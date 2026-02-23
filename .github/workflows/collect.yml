@@ -50,3 +50,10 @@ jobs:
           name: datepulse-db-${{ github.run_number }}
           path: data/datepulse.db
           retention-days: 7
+
+      - name: Trigger Render pipeline
+        if: always()
+        run: |
+          curl -sf -X POST "https://datepulse-api.onrender.com/api/admin/collect" \
+            -H "X-Admin-Key: ${{ secrets.ADMIN_KEY }}" \
+            || echo "Render trigger failed (service may be sleeping)"
