@@ -71,6 +71,25 @@ export interface AppsResponse {
   cities: CityInfo[];
 }
 
+// Calendar view types
+export interface CalendarDayItem {
+  date: string;
+  score: number;
+  components: Record<string, number>;
+  event: string | null;
+  day_of_week: string;
+}
+
+export interface CalendarResponse {
+  app: string;
+  months: number;
+  total_days: number;
+  avg_score: number;
+  top_days: CalendarDayItem[];
+  worst_days: CalendarDayItem[];
+  calendar: CalendarDayItem[];
+}
+
 export interface HealthResponse {
   status: string;
   timestamp: string;

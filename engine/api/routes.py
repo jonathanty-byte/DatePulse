@@ -274,6 +274,40 @@ async def score_best_times(
 
 
 # -----------------------------------------------------------------------
+# GET /api/score/calendar
+# -----------------------------------------------------------------------
+@app.get("/api/score/calendar")
+async def score_calendar(
+    app_name: str = Query("tinder", alias="app", description="App name"),
+    months: int = Query(12, ge=1, le=24, description="Number of months"),
+):
+    """
+    Get daily activity scores for the last N months (calendar view).
+
+    Combines Google Trends weekly (interpolated to daily), Wikipedia
+    daily pageviews, and seasonal index to produce a daily score.
+    """
+    from engine.processor.calendar_scorer import compute_calendar_scores
+
+    calendar_data = compute_calendar_scores(app_name, months)
+
+    scores = [d["score"] for d in calendar_data]
+    avg_score = sum(scores) / len(scores) if scores else 0
+
+    sorted_days = sorted(calendar_data, key=lambda d: d["score"], reverse=True)
+
+    return {
+        "app": app_name,
+        "months": months,
+        "total_days": len(calendar_data),
+        "avg_score": round(avg_score, 1),
+        "top_days": sorted_days[:10],
+        "worst_days": sorted_days[-10:][::-1],
+        "calendar": calendar_data,
+    }
+
+
+# -----------------------------------------------------------------------
 # POST /api/admin/collect — trigger pipeline on the server
 # -----------------------------------------------------------------------
 def _run_pipeline_background():

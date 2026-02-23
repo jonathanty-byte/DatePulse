@@ -387,6 +387,32 @@ def get_latest_signal_value(
         return row["value"] if row else None
 
 
+def get_daily_signals_aggregated(
+    source: str,
+    app_name: str,
+    metric_type: str,
+    start_date: str,
+    end_date: str,
+) -> list[dict[str, Any]]:
+    """
+    Return daily aggregated signal values for a source/app/metric in a date range.
+    Groups by date and returns the average value per day.
+    """
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT date(collected_at) as day, AVG(value) as avg_value
+            FROM raw_signals
+            WHERE source = ? AND app_name = ? AND metric_type = ?
+              AND collected_at >= ? AND collected_at <= ?
+            GROUP BY date(collected_at)
+            ORDER BY day ASC
+            """,
+            (source, app_name, metric_type, start_date, end_date),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
 def count_signals(
     source: Optional[str] = None,
     app_name: Optional[str] = None,

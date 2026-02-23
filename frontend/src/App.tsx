@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import CalendarPage from "./pages/Calendar";
 import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
 
@@ -39,6 +40,8 @@ export default function App() {
   switch (page) {
     case "dashboard":
       return <Dashboard />;
+    case "calendar":
+      return <CalendarPage />;
     default:
       return <Landing />;
   }
@@ -47,5 +50,6 @@ export default function App() {
 function getPage(path?: string): string {
   const p = path || window.location.pathname;
   if (p === "/dashboard" || p === "/dashboard/") return "dashboard";
+  if (p === "/calendar" || p === "/calendar/") return "calendar";
   return "landing";
 }

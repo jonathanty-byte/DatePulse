@@ -1,6 +1,7 @@
 import type {
   AppsResponse,
   BestTimesResponse,
+  CalendarResponse,
   ForecastResponse,
   HealthResponse,
   HistoryResponse,
@@ -38,6 +39,12 @@ export function fetchHistory(app: string, city: string, period = "30d") {
 export function fetchBestTimes(app: string, city: string) {
   return fetchJSON<BestTimesResponse>(
     `${BASE}/score/best-times?app=${app}&city=${city}`
+  );
+}
+
+export function fetchCalendar(app: string, months = 12) {
+  return fetchJSON<CalendarResponse>(
+    `${BASE}/score/calendar?app=${app}&months=${months}`
   );
 }
 
