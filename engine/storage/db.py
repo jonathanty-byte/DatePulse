@@ -411,6 +411,130 @@ def count_signals(
 
 
 # ---------------------------------------------------------------------------
+# Telegram users
+# ---------------------------------------------------------------------------
+
+def upsert_telegram_user(
+    chat_id: int,
+    username: Optional[str] = None,
+    city: str = "paris",
+    apps: str = "tinder,bumble,hinge,happn",
+) -> bool:
+    """Insert or update a Telegram user. Returns True if new user."""
+    with get_connection() as conn:
+        existing = conn.execute(
+            "SELECT id FROM telegram_users WHERE chat_id = ?", (chat_id,)
+        ).fetchone()
+        if existing:
+            conn.execute(
+                "UPDATE telegram_users SET username = ?, active = 1 WHERE chat_id = ?",
+                (username, chat_id),
+            )
+            return False
+        else:
+            conn.execute(
+                """INSERT INTO telegram_users (chat_id, username, city, apps)
+                   VALUES (?, ?, ?, ?)""",
+                (chat_id, username, city, apps),
+            )
+            return True
+
+
+def get_telegram_user(chat_id: int) -> Optional[dict[str, Any]]:
+    """Return a Telegram user by chat_id, or None."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM telegram_users WHERE chat_id = ?", (chat_id,)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def update_telegram_user_settings(
+    chat_id: int,
+    city: Optional[str] = None,
+    apps: Optional[str] = None,
+) -> None:
+    """Update city and/or apps for a Telegram user."""
+    updates: list[str] = []
+    params: list[Any] = []
+    if city is not None:
+        updates.append("city = ?")
+        params.append(city)
+    if apps is not None:
+        updates.append("apps = ?")
+        params.append(apps)
+    if not updates:
+        return
+    params.append(chat_id)
+    with get_connection() as conn:
+        conn.execute(
+            f"UPDATE telegram_users SET {', '.join(updates)} WHERE chat_id = ?",
+            params,
+        )
+
+
+def get_active_telegram_users() -> list[dict[str, Any]]:
+    """Return all active Telegram users."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM telegram_users WHERE active = 1"
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def count_telegram_users() -> int:
+    """Return total active Telegram user count."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) as cnt FROM telegram_users WHERE active = 1"
+        ).fetchone()
+        return row["cnt"]
+
+
+# ---------------------------------------------------------------------------
+# Alerts log
+# ---------------------------------------------------------------------------
+
+def insert_alert_log(
+    chat_id: int,
+    app_name: str,
+    city: str,
+    score: float,
+    alert_type: str,
+) -> None:
+    """Log an alert that was sent."""
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO alerts_log (chat_id, app_name, city, score, alert_type)
+               VALUES (?, ?, ?, ?, ?)""",
+            (chat_id, app_name, city, score, alert_type),
+        )
+
+
+def count_alerts_today(chat_id: int) -> int:
+    """Count alerts sent to a user today."""
+    with get_connection() as conn:
+        row = conn.execute(
+            """SELECT COUNT(*) as cnt FROM alerts_log
+               WHERE chat_id = ? AND date(sent_at) = date('now')""",
+            (chat_id,),
+        ).fetchone()
+        return row["cnt"]
+
+
+def get_last_alert_time(chat_id: int, app_name: str) -> Optional[str]:
+    """Return the timestamp of the last alert sent for an app, or None."""
+    with get_connection() as conn:
+        row = conn.execute(
+            """SELECT sent_at FROM alerts_log
+               WHERE chat_id = ? AND app_name = ?
+               ORDER BY sent_at DESC LIMIT 1""",
+            (chat_id, app_name),
+        ).fetchone()
+        return row["sent_at"] if row else None
+
+
+# ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
 
