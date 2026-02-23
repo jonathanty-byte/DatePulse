@@ -31,5 +31,11 @@ frontend/dist/
 .DS_Store
 Thumbs.db
 
+# Vercel
+.vercel/
+
+# Pytest
+.pytest_cache/
+
 # Claude
 .claude/

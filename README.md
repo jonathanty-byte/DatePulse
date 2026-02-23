@@ -2,6 +2,11 @@
 
 > Sais quand ouvrir ton app de dating pour maximiser tes matches.
 
+[![Tests](https://github.com/jonathanty-byte/DatePulse/actions/workflows/test.yml/badge.svg)](https://github.com/jonathanty-byte/DatePulse/actions/workflows/test.yml)
+[![Hourly Collection](https://github.com/jonathanty-byte/DatePulse/actions/workflows/collect.yml/badge.svg)](https://github.com/jonathanty-byte/DatePulse/actions/workflows/collect.yml)
+
+**Live**: [frontend-sigma-gules-59.vercel.app](https://frontend-sigma-gules-59.vercel.app)
+
 DatePulse aggregates 6 public data sources in real-time to produce an activity score (0-100) for dating apps in French cities. It predicts optimal times to use Tinder, Bumble, Hinge, and Happn.
 
 ## How it works
@@ -15,7 +20,27 @@ Sources (6 free APIs) --> Data Engine (Python) --> SQLite --> FastAPI REST API -
 
 **Scoring model**: 7-component weighted composite — Google Trends (35%), Wikipedia (20%), App Reviews (15%), Bluesky (10%), Seasonal (10%), Weather (5%), Day/Hour (5%). Normalized against historical percentiles.
 
-## Quick start
+## Deploy
+
+### Frontend (Vercel)
+
+Already deployed. For your own fork:
+
+```bash
+cd frontend && vercel --prod
+```
+
+### Backend API (Render — one-click)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/jonathanty-byte/DatePulse)
+
+Or manually with Railway:
+
+```bash
+railway login && railway init && railway up
+```
+
+## Quick start (local)
 
 ### Backend (Python engine + API)
 
@@ -87,12 +112,6 @@ pip install pytest
 pytest tests/ -v
 ```
 
-## Deployment
-
-- **Frontend**: Vercel (`frontend/vercel.json` configured)
-- **Backend**: Railway (`railway.toml` + `Procfile`)
-- **Scheduler**: GitHub Actions cron (hourly)
-
 ## Project structure
 
 ```
@@ -111,7 +130,7 @@ frontend/
     src/hooks/           # useScore, useForecast, useHistory
     src/services/api.ts  # API client
 tests/
-    test_pipeline.py     # End-to-end pipeline tests
+    test_pipeline.py     # End-to-end pipeline tests (36 tests)
 scripts/
     seed_historical.py   # 2-year data backfill
     calibrate_weights.py # Scoring model optimization
