@@ -6,3 +6,5 @@ python-dotenv>=1.0.0
 fastapi>=0.104.0
 uvicorn>=0.24.0
 python-telegram-bot>=20.0
+google-play-scraper>=1.2.0
+beautifulsoup4>=4.12.0

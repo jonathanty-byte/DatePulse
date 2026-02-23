@@ -284,26 +284,29 @@ async def score_calendar(
     """
     Get daily activity scores for the last N months (calendar view).
 
-    Combines Google Trends weekly (interpolated to daily), Wikipedia
-    daily pageviews, and seasonal index to produce a daily score.
+    Returns both a combined weighted calendar and independent per-source
+    calendars so each signal's contribution can be evaluated separately.
     """
-    from engine.processor.calendar_scorer import compute_calendar_scores
+    from engine.processor.calendar_scorer import compute_calendar_scores_per_source
 
-    calendar_data = compute_calendar_scores(app_name, months)
+    result = compute_calendar_scores_per_source(app_name, months)
 
-    scores = [d["score"] for d in calendar_data]
+    combined = result["combined"]
+    scores = [d["score"] for d in combined]
     avg_score = sum(scores) / len(scores) if scores else 0
 
-    sorted_days = sorted(calendar_data, key=lambda d: d["score"], reverse=True)
+    sorted_days = sorted(combined, key=lambda d: d["score"], reverse=True)
 
     return {
         "app": app_name,
         "months": months,
-        "total_days": len(calendar_data),
+        "total_days": len(combined),
         "avg_score": round(avg_score, 1),
         "top_days": sorted_days[:10],
         "worst_days": sorted_days[-10:][::-1],
-        "calendar": calendar_data,
+        "calendar": combined,
+        "calendars": result["sources"],
+        "available_sources": result["available_sources"],
     }
 
 

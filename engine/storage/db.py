@@ -104,6 +104,18 @@ CREATE TABLE IF NOT EXISTS alerts_log (
     sent_at       TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS match_group_metrics (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    report_date   TEXT    NOT NULL,
+    quarter       TEXT    NOT NULL,
+    metric_type   TEXT    NOT NULL,
+    value         REAL    NOT NULL,
+    region        TEXT    NOT NULL DEFAULT 'global',
+    notes         TEXT,
+    created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(quarter, metric_type, region)
+);
+
 -- Indexes for time-series queries
 CREATE INDEX IF NOT EXISTS idx_raw_signals_lookup
     ON raw_signals(source, app_name, city, metric_type, collected_at);
@@ -434,6 +446,54 @@ def count_signals(
             f"SELECT COUNT(*) as cnt FROM raw_signals {where}", params
         ).fetchone()
         return row["cnt"]
+
+
+# ---------------------------------------------------------------------------
+# Match Group metrics
+# ---------------------------------------------------------------------------
+
+def insert_match_group_metric(
+    report_date: str,
+    quarter: str,
+    metric_type: str,
+    value: float,
+    region: str = "global",
+    notes: Optional[str] = None,
+) -> bool:
+    """Insert a Match Group quarterly metric. Returns True if inserted, False if duplicate."""
+    with get_connection() as conn:
+        cursor = conn.execute(
+            """
+            INSERT OR IGNORE INTO match_group_metrics
+                (report_date, quarter, metric_type, value, region, notes)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (report_date, quarter, metric_type, value, region, notes),
+        )
+        return cursor.rowcount > 0
+
+
+def get_match_group_metrics(
+    quarter: Optional[str] = None,
+    metric_type: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    """Query Match Group metrics with optional filters."""
+    clauses: list[str] = []
+    params: list[Any] = []
+
+    if quarter is not None:
+        clauses.append("quarter = ?")
+        params.append(quarter)
+    if metric_type is not None:
+        clauses.append("metric_type = ?")
+        params.append(metric_type)
+
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    query = f"SELECT * FROM match_group_metrics {where} ORDER BY quarter DESC"
+
+    with get_connection() as conn:
+        rows = conn.execute(query, params).fetchall()
+        return [dict(row) for row in rows]
 
 
 # ---------------------------------------------------------------------------

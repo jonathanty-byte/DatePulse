@@ -39,6 +39,11 @@ ALERT_COOLDOWN_MINUTES: int = int(os.getenv("ALERT_COOLDOWN_MINUTES", "120"))
 TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 # ---------------------------------------------------------------------------
+# Cloudflare Radar API
+# ---------------------------------------------------------------------------
+CLOUDFLARE_API_TOKEN: str = os.getenv("CLOUDFLARE_API_TOKEN", "")
+
+# ---------------------------------------------------------------------------
 # City coordinates (for Open-Meteo)
 # ---------------------------------------------------------------------------
 CITIES: dict[str, dict] = {

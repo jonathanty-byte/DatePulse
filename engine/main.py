@@ -22,10 +22,16 @@ from types import ModuleType
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from engine.collectors import (
+    app_rankings,
     app_reviews,
+    app_versions,
     bluesky,
+    cloudflare_radar,
+    downdetector,
     events,
     google_trends,
+    match_group,
+    reddit,
     weather,
     wikipedia,
 )
@@ -39,6 +45,12 @@ COLLECTORS: list[tuple[str, ModuleType]] = [
     ("wikipedia", wikipedia),
     ("bluesky", bluesky),
     ("app_reviews", app_reviews),
+    ("reddit", reddit),
+    ("downdetector", downdetector),
+    ("app_rankings", app_rankings),
+    ("app_versions", app_versions),
+    ("cloudflare_radar", cloudflare_radar),
+    ("match_group", match_group),
     ("weather", weather),
     ("events", events),
 ]
