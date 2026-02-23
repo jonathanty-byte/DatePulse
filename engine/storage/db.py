@@ -235,6 +235,182 @@ def get_latest_score(app_name: str, city: str) -> Optional[dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
+# Forecasts
+# ---------------------------------------------------------------------------
+
+def insert_forecast(
+    app_name: str,
+    city: str,
+    forecast_date: str,
+    forecast_hour: int,
+    predicted_score: float,
+    confidence: Optional[float] = None,
+    components: Optional[dict] = None,
+) -> bool:
+    """Insert a forecast row. Returns True if inserted, False if duplicate."""
+    comp_json = json.dumps(components) if components else None
+
+    with get_connection() as conn:
+        cursor = conn.execute(
+            """
+            INSERT OR REPLACE INTO forecasts
+                (app_name, city, forecast_date, forecast_hour,
+                 predicted_score, confidence, components)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (app_name, city, forecast_date, forecast_hour,
+             predicted_score, confidence, comp_json),
+        )
+        return cursor.rowcount > 0
+
+
+def get_forecasts(
+    app_name: str,
+    city: str,
+    days: int = 7,
+) -> list[dict[str, Any]]:
+    """Return forecasts for the next N days."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT * FROM forecasts
+            WHERE app_name = ? AND city = ?
+              AND forecast_date >= date('now')
+              AND forecast_date <= date('now', ? || ' days')
+            ORDER BY forecast_date, forecast_hour
+            """,
+            (app_name, city, str(days)),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+# ---------------------------------------------------------------------------
+# Aggregation helpers (for normalizer / scorer)
+# ---------------------------------------------------------------------------
+
+def get_signals_in_range(
+    source: Optional[str] = None,
+    app_name: Optional[str] = None,
+    city: Optional[str] = None,
+    metric_type: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    """Query raw signals with optional date range filters."""
+    clauses: list[str] = []
+    params: list[Any] = []
+
+    if source is not None:
+        clauses.append("source = ?")
+        params.append(source)
+    if app_name is not None:
+        clauses.append("app_name = ?")
+        params.append(app_name)
+    if city is not None:
+        clauses.append("city = ?")
+        params.append(city)
+    if metric_type is not None:
+        clauses.append("metric_type = ?")
+        params.append(metric_type)
+    if start_date is not None:
+        clauses.append("collected_at >= ?")
+        params.append(start_date)
+    if end_date is not None:
+        clauses.append("collected_at <= ?")
+        params.append(end_date)
+
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    query = f"SELECT * FROM raw_signals {where} ORDER BY collected_at ASC"
+
+    with get_connection() as conn:
+        rows = conn.execute(query, params).fetchall()
+        return [dict(row) for row in rows]
+
+
+def get_signal_values(
+    source: str,
+    app_name: str,
+    city: str,
+    metric_type: str,
+    limit: int = 10000,
+) -> list[float]:
+    """Return just the values for a specific signal type (for percentile calc)."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT value FROM raw_signals
+            WHERE source = ? AND app_name = ? AND city = ? AND metric_type = ?
+            ORDER BY collected_at DESC
+            LIMIT ?
+            """,
+            (source, app_name, city, metric_type, limit),
+        ).fetchall()
+        return [row["value"] for row in rows]
+
+
+def get_scores_history(
+    app_name: str,
+    city: str,
+    limit: int = 1000,
+) -> list[dict[str, Any]]:
+    """Return recent scores for an app+city pair, oldest first."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT * FROM scores
+            WHERE app_name = ? AND city = ?
+            ORDER BY computed_at DESC
+            LIMIT ?
+            """,
+            (app_name, city, limit),
+        ).fetchall()
+        return [dict(row) for row in reversed(rows)]
+
+
+def get_latest_signal_value(
+    source: str,
+    app_name: str,
+    city: str,
+    metric_type: str,
+) -> Optional[float]:
+    """Return the most recent signal value, or None."""
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT value FROM raw_signals
+            WHERE source = ? AND app_name = ? AND city = ? AND metric_type = ?
+            ORDER BY collected_at DESC
+            LIMIT 1
+            """,
+            (source, app_name, city, metric_type),
+        ).fetchone()
+        return row["value"] if row else None
+
+
+def count_signals(
+    source: Optional[str] = None,
+    app_name: Optional[str] = None,
+) -> int:
+    """Count total signals matching optional filters."""
+    clauses: list[str] = []
+    params: list[Any] = []
+
+    if source is not None:
+        clauses.append("source = ?")
+        params.append(source)
+    if app_name is not None:
+        clauses.append("app_name = ?")
+        params.append(app_name)
+
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    with get_connection() as conn:
+        row = conn.execute(
+            f"SELECT COUNT(*) as cnt FROM raw_signals {where}", params
+        ).fetchone()
+        return row["cnt"]
+
+
+# ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
 

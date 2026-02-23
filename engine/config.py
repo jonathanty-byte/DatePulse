@@ -53,9 +53,9 @@ CITIES: dict[str, dict] = {
 # Wikipedia article mapping (app -> FR article title)
 # ---------------------------------------------------------------------------
 WIKIPEDIA_ARTICLES: dict[str, str] = {
-    "tinder": "Tinder_(application)",
-    "bumble": "Bumble_(application)",
-    "hinge":  "Hinge_(application)",
+    "tinder": "Tinder",
+    "bumble": "Bumble",
+    "hinge":  "Hinge",
     "happn":  "Happn",
 }
 
