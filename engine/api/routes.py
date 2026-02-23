@@ -12,6 +12,7 @@ Endpoints:
 
 import json
 import logging
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -23,10 +24,19 @@ from engine.storage import db
 
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db.init_db()
+    logger.info("DatePulse API started")
+    yield
+
+
 app = FastAPI(
     title="DatePulse API",
     description="Real-time dating app activity scores for French cities",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS — allow frontend origins
@@ -42,12 +52,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-async def startup():
-    db.init_db()
-    logger.info("DatePulse API started")
 
 
 # -----------------------------------------------------------------------

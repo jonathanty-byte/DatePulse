@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#030712"/>
+      <stop offset="100%" style="stop-color:#1f0a1e"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f472b6"/>
+      <stop offset="100%" style="stop-color:#db2777"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- Brand circle -->
+  <circle cx="600" cy="230" r="80" fill="url(#accent)" opacity="0.15"/>
+  <circle cx="600" cy="230" r="60" fill="none" stroke="url(#accent)" stroke-width="6"/>
+  <text x="600" y="250" text-anchor="middle" font-family="system-ui,sans-serif" font-size="48" font-weight="bold" fill="#f472b6">78</text>
+  <text x="600" y="275" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#9ca3af">/100</text>
+  <!-- Title -->
+  <text x="600" y="370" text-anchor="middle" font-family="system-ui,sans-serif" font-size="52" font-weight="800" fill="#f9fafb">DatePulse</text>
+  <!-- Subtitle -->
+  <text x="600" y="420" text-anchor="middle" font-family="system-ui,sans-serif" font-size="24" fill="#9ca3af">Sais quand ouvrir ton app de dating</text>
+  <!-- Tags -->
+  <text x="600" y="480" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#6b7280">Score en temps reel  |  Previsions 7 jours  |  Alertes Telegram</text>
+  <!-- Apps -->
+  <text x="600" y="530" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#4b5563">Tinder  ·  Bumble  ·  Hinge  ·  Happn</text>
+</svg>
