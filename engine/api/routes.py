@@ -12,15 +12,23 @@ Endpoints:
 
 import json
 import logging
+import os
+import threading
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from engine.config import CITIES, TARGET_APPS, TARGET_CITIES
 from engine.storage import db
+
+# Simple admin key — defaults to "datepulse" if not set
+ADMIN_KEY = os.getenv("ADMIN_KEY", "datepulse")
+
+# Track background pipeline state
+_pipeline_status: dict = {"running": False, "last_run": None, "last_result": None}
 
 logger = logging.getLogger(__name__)
 
@@ -263,6 +271,59 @@ async def score_best_times(
         "city": city,
         "best_times": ranked[:10],
     }
+
+
+# -----------------------------------------------------------------------
+# POST /api/admin/collect — trigger pipeline on the server
+# -----------------------------------------------------------------------
+def _run_pipeline_background():
+    """Run the full pipeline in a background thread."""
+    _pipeline_status["running"] = True
+    _pipeline_status["last_run"] = datetime.now(timezone.utc).isoformat()
+    try:
+        from engine.main import run_all, run_scoring, run_forecasting
+
+        collect_results = run_all()
+        score_count = run_scoring()
+        forecast_count = run_forecasting()
+
+        _pipeline_status["last_result"] = {
+            "collection": {
+                k: v if isinstance(v, int) else str(v)
+                for k, v in collect_results.items()
+            },
+            "scores": score_count,
+            "forecasts": forecast_count,
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as exc:
+        _pipeline_status["last_result"] = {"error": str(exc)}
+    finally:
+        _pipeline_status["running"] = False
+
+
+@app.post("/api/admin/collect")
+async def admin_collect(x_admin_key: Optional[str] = Header(None)):
+    """Trigger the full data collection pipeline in the background."""
+    if x_admin_key != ADMIN_KEY:
+        raise HTTPException(status_code=403, detail="Invalid admin key")
+
+    if _pipeline_status["running"]:
+        return {"status": "already_running", "started_at": _pipeline_status["last_run"]}
+
+    thread = threading.Thread(target=_run_pipeline_background, daemon=True)
+    thread.start()
+
+    return {"status": "started", "message": "Pipeline running in background"}
+
+
+@app.get("/api/admin/status")
+async def admin_status(x_admin_key: Optional[str] = Header(None)):
+    """Check pipeline execution status."""
+    if x_admin_key != ADMIN_KEY:
+        raise HTTPException(status_code=403, detail="Invalid admin key")
+
+    return _pipeline_status
 
 
 # -----------------------------------------------------------------------
