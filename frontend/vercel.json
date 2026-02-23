@@ -4,7 +4,9 @@
   "framework": "vite",
   "rewrites": [
     { "source": "/dashboard", "destination": "/index.html" },
-    { "source": "/dashboard/(.*)", "destination": "/index.html" }
+    { "source": "/dashboard/(.*)", "destination": "/index.html" },
+    { "source": "/calendar", "destination": "/index.html" },
+    { "source": "/calendar/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {
