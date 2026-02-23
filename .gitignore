@@ -1,0 +1,35 @@
+# Environment
+.env
+.env.*
+
+# Database
+data/datepulse.db
+data/*.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.eggs/
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/
