@@ -7,7 +7,9 @@ import type {
   ScoreResponse,
 } from "../types";
 
-const BASE = "/api";
+const BASE = import.meta.env.PROD
+  ? "https://datepulse-api.onrender.com/api"
+  : "/api";
 
 async function fetchJSON<T>(url: string): Promise<T> {
   const res = await fetch(url);
