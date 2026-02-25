@@ -5,6 +5,9 @@ Designed to run every 30 minutes via Windows Task Scheduler.
 Calculates the DatePulse score and opens the dating app in Chrome
 when the score exceeds the configured threshold.
 
+Uses the user's regular Chrome (already logged in, extensions installed).
+Auto Swiper is activated via its keyboard shortcut (Alt+Shift+S).
+
 Installation (Windows Task Scheduler):
   1. Open Task Scheduler (taskschd.msc)
   2. Create a basic task:
@@ -22,18 +25,9 @@ import subprocess
 import time
 import json
 import logging
-import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
 
 from scoring_engine import compute_score, get_score_label, get_next_peak, PARIS_TZ
 
@@ -77,11 +71,9 @@ def is_session_running() -> bool:
         expires = datetime.fromisoformat(expires_str)
         if datetime.now(PARIS_TZ) < expires:
             return True
-        # Lockfile expired, clean it up
         LOCKFILE_PATH.unlink(missing_ok=True)
         return False
     except (ValueError, OSError):
-        # Corrupted lockfile, remove it
         LOCKFILE_PATH.unlink(missing_ok=True)
         return False
 
@@ -145,152 +137,54 @@ def show_history(count: int = 20) -> None:
     print()
 
 
-AUTOMATION_PROFILE_DIR = os.path.join(
-    os.environ.get("USERPROFILE", ""), ".datepulse", "chrome-profile"
-)
+# ── Chrome launch + Auto Swiper activation ───────────────────────
 
+def launch_chrome_tabs(config: dict, urls: list[str]) -> None:
+    """Open URLs in the user's regular Chrome (already logged in).
 
-def get_extension_path(config: dict) -> str | None:
-    """Find the Auto Swiper extension directory on disk."""
-    ext_id = config.get("auto_swiper_extension_id", "")
-    if not ext_id:
-        return None
-
-    # Look in the user's default Chrome profile
-    default_data_dir = os.path.join(
-        os.environ.get("LOCALAPPDATA", ""), "Google", "Chrome", "User Data"
-    )
-    profile = config.get("chrome_profile", "Default")
-    ext_base = os.path.join(default_data_dir, profile, "Extensions", ext_id)
-
-    if not os.path.isdir(ext_base):
-        return None
-
-    versions = sorted(os.listdir(ext_base))
-    return os.path.join(ext_base, versions[-1]) if versions else None
-
-
-def is_profile_setup() -> bool:
-    """Check if the automation Chrome profile has been initialized."""
-    return os.path.isdir(AUTOMATION_PROFILE_DIR) and \
-        os.path.exists(os.path.join(AUTOMATION_PROFILE_DIR, "Default", "Preferences"))
-
-
-def launch_chrome(config: dict) -> webdriver.Chrome | None:
-    """Launch Chrome with Selenium using a dedicated automation profile.
-
-    Uses a separate profile dir (~/.datepulse/chrome-profile/) so it doesn't
-    conflict with the user's regular Chrome. The Auto Swiper extension is
-    loaded from the user's regular Chrome installation.
-
-    First run: user must log in to Tinder/Bumble. After that, cookies are saved.
+    Each URL is opened as a separate Chrome call to avoid popup blocking.
     """
-    chrome_path = config.get("chrome_path", "")
-    debug_port = 9222
+    chrome_path = config.get("chrome_path", "chrome")
 
-    # Load Auto Swiper from the user's Chrome installation
-    ext_path = get_extension_path(config)
-
-    # Launch Chrome via subprocess with remote debugging + automation profile
-    os.makedirs(AUTOMATION_PROFILE_DIR, exist_ok=True)
-    chrome_args = [
-        chrome_path,
-        f"--remote-debugging-port={debug_port}",
-        f"--user-data-dir={AUTOMATION_PROFILE_DIR}",
-    ]
-    if ext_path:
-        chrome_args.append(f"--load-extension={ext_path}")
-        logging.info(f"Extension Auto Swiper chargee: {ext_path}")
-
-    try:
-        proc = subprocess.Popen(chrome_args)
-        logging.info(f"Chrome lance (PID: {proc.pid}, debug port: {debug_port})")
-        time.sleep(5)
-    except (FileNotFoundError, OSError) as e:
-        logging.error(f"Chrome introuvable: {e}")
-        return None
-
-    # Connect Selenium to the running Chrome
-    options = Options()
-    options.add_experimental_option("debuggerAddress", f"127.0.0.1:{debug_port}")
-
-    try:
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
-        logging.info("Selenium connecte a Chrome")
-        return driver
-    except Exception as e:
-        logging.error(f"Erreur connexion Selenium: {e}")
+    for i, url in enumerate(urls):
         try:
-            proc.kill()
-        except Exception:
-            pass
-        return None
+            subprocess.Popen([chrome_path, url])
+            logging.info(f"Onglet {i+1}: {url}")
+            if i < len(urls) - 1:
+                time.sleep(2)  # Small delay between tabs
+        except (FileNotFoundError, OSError) as e:
+            logging.error(f"Erreur ouverture {url}: {e}")
 
 
+def activate_auto_swiper() -> None:
+    """Press the Auto Swiper keyboard shortcut (Alt+Shift+S) to open its popup,
+    then press Enter to click the Start/Play button.
 
-def start_auto_swiper(driver: webdriver.Chrome, ext_id: str, app: str) -> None:
-    """Open Auto Swiper popup and click the Start button."""
-    logging.info(f"Ouverture popup Auto Swiper pour {app}...")
+    Uses pyautogui to simulate keyboard input in the user's Chrome.
+    """
+    try:
+        import pyautogui
+    except ImportError:
+        logging.warning("pyautogui non installe, Auto Swiper doit etre lance manuellement")
+        logging.warning("Installer avec: python -m pip install pyautogui")
+        return
 
-    popup_url = f"chrome-extension://{ext_id}/popup/popup.html"
+    # Wait for Chrome to be in focus and page to load
+    time.sleep(5)
 
-    # Remember the current app tab
-    app_tab = driver.current_window_handle
+    # Press Alt+Shift+S to open Auto Swiper popup
+    logging.info("Activation Auto Swiper (Alt+Shift+S)...")
+    pyautogui.hotkey("alt", "shift", "s")
+    time.sleep(3)  # Wait for popup to appear and Vue app to mount
 
-    # Open a new blank tab, then navigate to the extension popup
-    driver.switch_to.new_window("tab")
+    # Press Enter to click the focused/default Start button
+    pyautogui.press("enter")
     time.sleep(1)
-    driver.get(popup_url)
-    time.sleep(5)  # Wait for Vue app to mount
 
-    try:
-        # Debug: log the page source and all buttons found
-        buttons = driver.find_elements(By.TAG_NAME, "button")
-        logging.info(f"Popup: {len(buttons)} bouton(s) trouves")
-        for i, btn in enumerate(buttons):
-            btn_text = btn.text.strip()[:50]
-            btn_class = btn.get_attribute("class") or ""
-            logging.info(f"  bouton[{i}]: '{btn_text}' class='{btn_class[:80]}'")
+    logging.info("Auto Swiper: commande envoyee")
 
-        # Strategy 1: Find button by text content
-        clicked = False
-        for btn in buttons:
-            text = btn.text.strip().lower()
-            if any(kw in text for kw in ["start", "play", "run", "go", "swipe", "begin"]):
-                btn.click()
-                logging.info(f"Auto Swiper demarre! (bouton: '{btn.text.strip()}')")
-                clicked = True
-                break
 
-        # Strategy 2: Click the first prominent button (primary/success type)
-        if not clicked:
-            for selector in ["button.n-button--primary-type", "button.n-button--success-type",
-                             "button.n-button--info-type", "button.n-button"]:
-                try:
-                    btn = driver.find_element(By.CSS_SELECTOR, selector)
-                    if btn.is_displayed() and btn.is_enabled():
-                        btn.click()
-                        logging.info(f"Auto Swiper demarre! (selector: '{selector}')")
-                        clicked = True
-                        break
-                except Exception:
-                    continue
-
-        if not clicked:
-            logging.warning("Bouton Start Auto Swiper non trouve dans le popup")
-
-    except Exception as e:
-        logging.error(f"Erreur activation Auto Swiper: {e}")
-    finally:
-        # Close popup tab, go back to app tab
-        time.sleep(1)
-        try:
-            driver.close()
-            driver.switch_to.window(app_tab)
-        except Exception:
-            pass
-
+# ── Main ─────────────────────────────────────────────────────────
 
 def main() -> None:
     config = load_config()
@@ -299,7 +193,7 @@ def main() -> None:
     now = datetime.now(PARIS_TZ)
     hour = now.hour
     logging.info("=" * 50)
-    logging.info(f"Auto Trigger run — {now.strftime('%A %d/%m/%Y %Hh%M')}")
+    logging.info(f"Auto Trigger run -- {now.strftime('%A %d/%m/%Y %Hh%M')}")
 
     # Check quiet hours
     quiet = config.get("quiet_hours", {})
@@ -344,120 +238,35 @@ def main() -> None:
         logging.info("Session deja en cours, skip")
         return
 
-    # Launch Chrome via Selenium and start Auto Swiper
+    # Launch Chrome with the user's regular profile
     duration = config.get("session_duration_minutes", 30)
     urls = [config["app_urls"][app] for app in triggered_apps]
-    ext_id = config.get("auto_swiper_extension_id", "")
 
     logging.info(f"PEAK DETECTED! Lancement de {', '.join(triggered_apps)} pour {duration}min")
 
-    driver = launch_chrome(config)
-    if not driver:
-        return
+    launch_chrome_tabs(config, urls)
 
-    try:
-        # Navigate to first app
-        driver.get(urls[0])
-        logging.info(f"Onglet 1: {urls[0]}")
-        time.sleep(3)
+    # Activate Auto Swiper via keyboard shortcut
+    activate_auto_swiper()
 
-        # Open additional apps in new tabs
-        for url in urls[1:]:
-            driver.execute_script(f"window.open('{url}', '_blank');")
-            logging.info(f"Onglet +: {url}")
-            time.sleep(2)
+    # Log session to history
+    log_session(triggered_apps, {a: all_scores[a] for a in triggered_apps}, duration)
 
-        # Start Auto Swiper on each tab
-        if ext_id:
-            app_tabs = list(driver.window_handles)
-            for i, handle in enumerate(app_tabs):
-                driver.switch_to.window(handle)
-                time.sleep(1)
-                start_auto_swiper(driver, ext_id, triggered_apps[i] if i < len(triggered_apps) else "")
-        else:
-            logging.warning("Extension Auto Swiper non detectee, swipe manuel requis")
+    # Write lockfile to prevent duplicate sessions
+    write_lockfile(duration)
 
-        # Log session to history
-        log_session(triggered_apps, {a: all_scores[a] for a in triggered_apps}, duration)
+    # Wait for the session duration
+    logging.info(f"Attente de {duration} minutes...")
+    time.sleep(duration * 60)
 
-        # Write lockfile to prevent duplicate sessions
-        write_lockfile(duration)
-
-        # Wait for the session duration
-        logging.info(f"Attente de {duration} minutes...")
-        time.sleep(duration * 60)
-
-        logging.info("Session terminee")
-    except Exception as e:
-        logging.error(f"Erreur durant la session: {e}")
-    finally:
-        try:
-            driver.quit()
-        except Exception:
-            pass
-        remove_lockfile()
-
-
-def setup_profile() -> None:
-    """Interactive setup: launch Chrome with automation profile so user can log in."""
-    config = load_config()
-    print("\n" + "=" * 60)
-    print("  DatePulse Auto Trigger — Configuration initiale")
-    print("=" * 60)
-    print()
-    print("Un Chrome va s'ouvrir avec un profil dedie a l'automatisation.")
-    print("Tu dois te connecter a tes comptes une seule fois :")
-    print()
-
-    apps = config.get("apps", ["tinder"])
-    if isinstance(apps, str):
-        apps = [apps]
-    for app in apps:
-        url = config["app_urls"].get(app, "")
-        print(f"  - {app.capitalize()}: {url}")
-
-    print()
-    print("Etapes :")
-    print("  1. Connecte-toi a chaque app dans le Chrome qui va s'ouvrir")
-    print("  2. Verifie qu'Auto Swiper fonctionne manuellement (clic sur play)")
-    print("  3. Ferme Chrome quand tu as fini")
-    print()
-    input("Appuie sur Entree pour lancer Chrome...")
-
-    driver = launch_chrome(config)
-    if not driver:
-        print("Erreur: Chrome n'a pas pu demarrer.")
-        return
-
-    # Open all app URLs
-    urls = [config["app_urls"][app] for app in apps]
-    driver.get(urls[0])
-    for url in urls[1:]:
-        driver.execute_script(f"window.open('{url}', '_blank');")
-        time.sleep(1)
-
-    print()
-    print("Chrome est ouvert. Connecte-toi a tes comptes.")
-    print("Quand c'est fait, ferme Chrome ou appuie sur Entree ici.")
-    input()
-
-    try:
-        driver.quit()
-    except Exception:
-        pass
-
-    print()
-    print("Setup termine ! Le profil est sauvegarde dans :")
-    print(f"  {AUTOMATION_PROFILE_DIR}")
-    print()
-    print("Tu peux maintenant lancer : python auto_trigger.py")
+    # Session complete
+    remove_lockfile()
+    logging.info("Session terminee")
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--history":
         count = int(sys.argv[2]) if len(sys.argv) > 2 else 20
         show_history(count)
-    elif len(sys.argv) > 1 and sys.argv[1] == "--setup":
-        setup_profile()
     else:
         main()

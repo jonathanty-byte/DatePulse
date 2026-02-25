@@ -79,9 +79,13 @@ export default function Home() {
             {/* Auto Swiper launch button */}
             <motion.button
               onClick={() => {
-                Object.values(AUTO_SWIPE_URLS).forEach((url) =>
-                  window.open(url, "_blank", "noopener")
-                );
+                // Open first URL directly (always works)
+                const urls = Object.values(AUTO_SWIPE_URLS);
+                window.open(urls[0], "_blank", "noopener");
+                // Open remaining URLs with small delays to avoid popup blocking
+                urls.slice(1).forEach((url, i) => {
+                  setTimeout(() => window.open(url, "_blank", "noopener"), (i + 1) * 1000);
+                });
               }}
               className="mt-4 flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-500 to-pink-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-95"
               initial={{ opacity: 0, y: 10 }}
