@@ -139,28 +139,28 @@ def show_history(count: int = 20) -> None:
 
 # ── Chrome launch + Auto Swiper activation ───────────────────────
 
-def launch_chrome_tabs(config: dict, urls: list[str]) -> None:
-    """Open URLs in the user's regular Chrome (already logged in).
+def launch_chrome_tab(config: dict, url: str) -> bool:
+    """Open a single URL in the user's regular Chrome (already logged in).
 
-    Each URL is opened as a separate Chrome call to avoid popup blocking.
+    Returns True if the tab was opened successfully.
     """
     chrome_path = config.get("chrome_path", "chrome")
 
-    for i, url in enumerate(urls):
-        try:
-            subprocess.Popen([chrome_path, url])
-            logging.info(f"Onglet {i+1}: {url}")
-            if i < len(urls) - 1:
-                time.sleep(2)  # Small delay between tabs
-        except (FileNotFoundError, OSError) as e:
-            logging.error(f"Erreur ouverture {url}: {e}")
+    try:
+        subprocess.Popen([chrome_path, url])
+        logging.info(f"Onglet ouvert: {url}")
+        return True
+    except (FileNotFoundError, OSError) as e:
+        logging.error(f"Erreur ouverture {url}: {e}")
+        return False
 
 
-def activate_auto_swiper() -> None:
+def activate_auto_swiper(app_name: str) -> None:
     """Press the Auto Swiper keyboard shortcut (Alt+Shift+S) to open its popup,
-    then press Enter to click the Start/Play button.
+    then Tab 14 times to reach the Play button and press Enter.
 
     Uses pyautogui to simulate keyboard input in the user's Chrome.
+    Must be called while the target tab is focused.
     """
     try:
         import pyautogui
@@ -169,19 +169,21 @@ def activate_auto_swiper() -> None:
         logging.warning("Installer avec: python -m pip install pyautogui")
         return
 
-    # Wait for Chrome to be in focus and page to load
-    time.sleep(5)
-
     # Press Alt+Shift+S to open Auto Swiper popup
-    logging.info("Activation Auto Swiper (Alt+Shift+S)...")
+    logging.info(f"Activation Auto Swiper sur {app_name} (Alt+Shift+S)...")
     pyautogui.hotkey("alt", "shift", "s")
     time.sleep(3)  # Wait for popup to appear and Vue app to mount
 
-    # Press Enter to click the focused/default Start button
+    # Tab 14 times to reach the Play button (Enter alone hits OK/Refresh)
+    for _ in range(14):
+        pyautogui.press("tab")
+        time.sleep(0.1)
+
+    # Press Enter to click the Play button
     pyautogui.press("enter")
     time.sleep(1)
 
-    logging.info("Auto Swiper: commande envoyee")
+    logging.info(f"Auto Swiper sur {app_name}: commande envoyee")
 
 
 # ── Main ─────────────────────────────────────────────────────────
@@ -244,10 +246,13 @@ def main() -> None:
 
     logging.info(f"PEAK DETECTED! Lancement de {', '.join(triggered_apps)} pour {duration}min")
 
-    launch_chrome_tabs(config, urls)
-
-    # Activate Auto Swiper via keyboard shortcut
-    activate_auto_swiper()
+    # Open each tab and activate Auto Swiper on it before moving to the next
+    for i, (app, url) in enumerate(zip(triggered_apps, urls)):
+        if launch_chrome_tab(config, url):
+            # Wait for Chrome to load the page
+            time.sleep(8 if i == 0 else 5)
+            # Activate Auto Swiper on this tab
+            activate_auto_swiper(app)
 
     # Log session to history
     log_session(triggered_apps, {a: all_scores[a] for a in triggered_apps}, duration)
@@ -264,9 +269,141 @@ def main() -> None:
     logging.info("Session terminee")
 
 
+def trigger_now() -> dict:
+    """Force-trigger Auto Swiper on all configured apps, ignoring score threshold.
+
+    Returns a status dict (used by both CLI --now and HTTP server).
+    """
+    config = load_config()
+    setup_logging(config.get("log_file", "scripts/auto_trigger.log"))
+
+    now = datetime.now(PARIS_TZ)
+    logging.info("=" * 50)
+    logging.info(f"Manual trigger -- {now.strftime('%A %d/%m/%Y %Hh%M')}")
+
+    if is_session_running():
+        logging.info("Session deja en cours, skip")
+        return {"status": "skipped", "reason": "session_running"}
+
+    apps = config.get("apps", config.get("app", "tinder"))
+    if isinstance(apps, str):
+        apps = [apps]
+
+    # Compute scores (for logging only, no threshold check)
+    all_scores = {}
+    for app in apps:
+        result = compute_score(now, app)
+        all_scores[app] = result
+        label = get_score_label(result["score"])
+        logging.info(f"  {app}: {result['score']}/100 ({label['label']})")
+
+    duration = config.get("session_duration_minutes", 30)
+    urls = [config["app_urls"][app] for app in apps]
+
+    logging.info(f"MANUAL TRIGGER! Lancement de {', '.join(apps)} pour {duration}min")
+
+    for i, (app, url) in enumerate(zip(apps, urls)):
+        if launch_chrome_tab(config, url):
+            time.sleep(8 if i == 0 else 5)
+            activate_auto_swiper(app)
+
+    log_session(apps, {a: all_scores[a] for a in apps}, duration)
+    write_lockfile(duration)
+
+    return {
+        "status": "triggered",
+        "apps": apps,
+        "scores": {app: all_scores[app]["score"] for app in apps},
+        "duration": duration,
+    }
+
+
+# ── Local HTTP server for frontend button ─────────────────────────
+
+def run_server(port: int = 5555) -> None:
+    """Run a local HTTP server that exposes /trigger endpoint.
+
+    The frontend button calls POST http://localhost:5555/trigger
+    to force-launch Auto Swiper.
+    """
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+    import threading
+
+    config = load_config()
+    setup_logging(config.get("log_file", "scripts/auto_trigger.log"))
+
+    class TriggerHandler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            if self.path == "/trigger":
+                # Run trigger in a background thread so HTTP responds immediately
+                result = {"status": "launching"}
+                threading.Thread(target=trigger_now, daemon=True).start()
+                self._respond(200, result)
+            else:
+                self._respond(404, {"error": "not found"})
+
+        def do_GET(self):
+            if self.path == "/status":
+                running = is_session_running()
+                now = datetime.now(PARIS_TZ)
+                apps = config.get("apps", config.get("app", "tinder"))
+                if isinstance(apps, str):
+                    apps = [apps]
+                scores = {}
+                for app in apps:
+                    r = compute_score(now, app)
+                    scores[app] = r["score"]
+                self._respond(200, {
+                    "session_running": running,
+                    "scores": scores,
+                    "time": now.strftime("%Hh%M"),
+                })
+            else:
+                self._respond(404, {"error": "not found"})
+
+        def do_OPTIONS(self):
+            self.send_response(204)
+            self._cors_headers()
+            self.end_headers()
+
+        def _cors_headers(self):
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
+        def _respond(self, code, data):
+            self.send_response(code)
+            self._cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(data).encode())
+
+        def log_message(self, format, *args):
+            logging.info(f"HTTP {args[0]}")
+
+    server = HTTPServer(("127.0.0.1", port), TriggerHandler)
+    logging.info(f"Serveur local demarre sur http://localhost:{port}")
+    logging.info(f"  POST /trigger  -> lancer Auto Swiper")
+    logging.info(f"  GET  /status   -> scores + etat session")
+    logging.info("Ctrl+C pour arreter")
+
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        logging.info("Serveur arrete")
+        server.server_close()
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--history":
         count = int(sys.argv[2]) if len(sys.argv) > 2 else 20
         show_history(count)
+    elif len(sys.argv) > 1 and sys.argv[1] == "--now":
+        config = load_config()
+        setup_logging(config.get("log_file", "scripts/auto_trigger.log"))
+        trigger_now()
+    elif len(sys.argv) > 1 and sys.argv[1] == "--server":
+        port = int(sys.argv[2]) if len(sys.argv) > 2 else 5555
+        run_server(port)
     else:
         main()

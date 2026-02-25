@@ -12,10 +12,7 @@ import BestTimes from "../components/BestTimes";
 import CountdownNext from "../components/CountdownNext";
 import PoolFreshness from "../components/PoolFreshness";
 
-const AUTO_SWIPE_URLS: Record<string, string> = {
-  tinder: "https://tinder.com/app/recs",
-  bumble: "https://bumble.com/app",
-};
+const TRIGGER_URL = "http://localhost:5555/trigger";
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -25,6 +22,7 @@ export default function Home() {
   const [app, setApp] = useState<AppName>("tinder");
   const [now, setNow] = useState(new Date());
   const [result, setResult] = useState<ScoreResult>(() => computeScore(new Date(), "tinder"));
+  const [triggerStatus, setTriggerStatus] = useState<"idle" | "launching" | "ok" | "error">("idle");
 
   // Recompute when app changes
   useEffect(() => {
@@ -78,16 +76,22 @@ export default function Home() {
 
             {/* Auto Swiper launch button */}
             <motion.button
-              onClick={() => {
-                // Open first URL directly (always works)
-                const urls = Object.values(AUTO_SWIPE_URLS);
-                window.open(urls[0], "_blank", "noopener");
-                // Open remaining URLs with small delays to avoid popup blocking
-                urls.slice(1).forEach((url, i) => {
-                  setTimeout(() => window.open(url, "_blank", "noopener"), (i + 1) * 1000);
-                });
+              onClick={async () => {
+                setTriggerStatus("launching");
+                try {
+                  const res = await fetch(TRIGGER_URL, { method: "POST" });
+                  if (res.ok) {
+                    setTriggerStatus("ok");
+                  } else {
+                    setTriggerStatus("error");
+                  }
+                } catch {
+                  setTriggerStatus("error");
+                }
+                setTimeout(() => setTriggerStatus("idle"), 5000);
               }}
-              className="mt-4 flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-500 to-pink-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-95"
+              disabled={triggerStatus === "launching"}
+              className="mt-4 flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-500 to-pink-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-95 disabled:opacity-50"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
@@ -95,7 +99,13 @@ export default function Home() {
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
                 <path fillRule="evenodd" d="M2 10a.75.75 0 0 1 .75-.75h12.59l-2.1-1.95a.75.75 0 1 1 1.02-1.1l3.5 3.25a.75.75 0 0 1 0 1.1l-3.5 3.25a.75.75 0 1 1-1.02-1.1l2.1-1.95H2.75A.75.75 0 0 1 2 10Z" clipRule="evenodd" />
               </svg>
-              Lancer Auto Swiper — Tinder + Bumble
+              {triggerStatus === "launching"
+                ? "Lancement en cours..."
+                : triggerStatus === "ok"
+                  ? "Auto Swiper lance !"
+                  : triggerStatus === "error"
+                    ? "Erreur — serveur local actif ?"
+                    : "Lancer Auto Swiper — Tinder + Bumble"}
             </motion.button>
           </div>
         </div>
