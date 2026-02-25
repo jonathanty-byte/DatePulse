@@ -11,6 +11,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
 
 from google_play_scraper import app as gplay_app
 
@@ -28,6 +29,8 @@ LANG = "fr"
 MAX_HISTORY_ENTRIES = 90
 
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "frontend" / "public" / "data"
+
+TrendValue = Literal["up", "down", "stable"]
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -109,13 +112,12 @@ def compute_ranks_from_details(details: dict[str, dict | None]) -> dict[str, int
 def compute_trends(
     current_ranks: dict[str, int | None],
     history: list[dict],
-) -> dict[str, int | None]:
+) -> dict[str, TrendValue]:
     """
     Compare today's rank to the most recent historical entry.
-    Returns {app_name: delta} where negative means improved (moved up),
-    positive means dropped, None if no comparison is possible.
+    Returns one of: "up", "down", "stable".
     """
-    trends: dict[str, int | None] = {name: None for name in APPS}
+    trends: dict[str, TrendValue] = {name: "stable" for name in APPS}
 
     if not history:
         return trends
@@ -136,10 +138,14 @@ def compute_trends(
         cur = current_ranks.get(app_name)
         prev = prev_apps.get(app_name, {}).get("rank")
         if cur is not None and prev is not None:
-            # Negative trend = improved (rank number went down)
-            trends[app_name] = cur - prev
+            if cur < prev:
+                trends[app_name] = "up"
+            elif cur > prev:
+                trends[app_name] = "down"
+            else:
+                trends[app_name] = "stable"
         else:
-            trends[app_name] = None
+            trends[app_name] = "stable"
 
     return trends
 
@@ -261,14 +267,11 @@ def main() -> None:
     for app_name, data in apps_snapshot.items():
         rank_str = f"#{data['rank']}" if data["rank"] is not None else "N/A"
         score_str = f"{data['score']:.1f}" if data["score"] is not None else "N/A"
-        trend_str = ""
-        if data["trend"] is not None:
-            if data["trend"] < 0:
-                trend_str = f" (up {abs(data['trend'])})"
-            elif data["trend"] > 0:
-                trend_str = f" (down {data['trend']})"
-            else:
-                trend_str = " (stable)"
+        trend_str = " (stable)"
+        if data["trend"] == "up":
+            trend_str = " (up)"
+        elif data["trend"] == "down":
+            trend_str = " (down)"
         log(f"  {app_name:8s}  rank={rank_str:>4s}  score={score_str}{trend_str}")
 
 

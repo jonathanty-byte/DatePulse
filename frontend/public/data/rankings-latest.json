@@ -9,7 +9,7 @@
       "installs": "100 000 000+",
       "recentInstalls": 472997902,
       "updated": 1771867265,
-      "trend": null
+      "trend": "stable"
     },
     "bumble": {
       "rank": 3,
@@ -19,7 +19,7 @@
       "installs": "100 000 000+",
       "recentInstalls": 106101083,
       "updated": 1771845561,
-      "trend": null
+      "trend": "stable"
     },
     "hinge": {
       "rank": 4,
@@ -29,7 +29,7 @@
       "installs": "10 000 000+",
       "recentInstalls": 31612268,
       "updated": 1771628081,
-      "trend": null
+      "trend": "stable"
     },
     "happn": {
       "rank": 2,
@@ -39,7 +39,7 @@
       "installs": "100 000 000+",
       "recentInstalls": 112995364,
       "updated": 1770136165,
-      "trend": null
+      "trend": "stable"
     }
   }
 }

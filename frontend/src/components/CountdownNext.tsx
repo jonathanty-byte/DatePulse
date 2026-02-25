@@ -4,11 +4,11 @@ import { getNextPeak, getScoreLabel } from "../lib/scoring";
 import type { NextPeak } from "../lib/scoring";
 import { DAY_NAMES_FULL } from "../lib/data";
 import type { AppName } from "../lib/data";
+import { getParisDateParts } from "../lib/franceTime";
 
 function formatPeakTime(peak: NextPeak): string {
-  const d = peak.date;
-  const day = DAY_NAMES_FULL[d.getDay()];
-  const hour = d.getHours();
+  const { day, hour } = getParisDateParts(peak.date);
+  const dayName = DAY_NAMES_FULL[day];
 
   if (peak.hoursUntil === 0) {
     return `dans ${peak.minutesUntil} min`;
@@ -17,7 +17,7 @@ function formatPeakTime(peak: NextPeak): string {
     return `dans ${peak.hoursUntil}h${peak.minutesUntil > 0 ? String(peak.minutesUntil).padStart(2, "0") : ""}`;
   }
   // > 24h: show day name + hour
-  return `${day} a ${hour}h`;
+  return `${dayName} a ${hour}h`;
 }
 
 interface CountdownNextProps {

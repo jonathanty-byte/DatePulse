@@ -8,6 +8,7 @@ import {
   MONTHLY_CHURN,
 } from "./data";
 import type { AppName, PoolFreshnessData } from "./data";
+import { getParisDateParts } from "./franceTime";
 
 // ── Score result types ──────────────────────────────────────────
 
@@ -49,9 +50,7 @@ export function computeScore(
   date: Date = new Date(),
   app: AppName = "tinder"
 ): ScoreResult {
-  const hour = date.getHours();
-  const day = date.getDay(); // 0=Sunday
-  const month = date.getMonth();
+  const { hour, day, month } = getParisDateParts(date);
 
   const hourly = APP_HOURLY[app][hour];
   const weekly = APP_WEEKLY[app][day];
@@ -101,7 +100,7 @@ export function computeWeekHeatmap(
   baseDate: Date = new Date(),
   app: AppName = "tinder"
 ): HeatmapSlot[] {
-  const month = baseDate.getMonth();
+  const { month } = getParisDateParts(baseDate);
   const hourlyTable = APP_HOURLY[app];
   const weeklyTable = APP_WEEKLY[app];
   const monthlyTable = APP_MONTHLY[app];
@@ -213,7 +212,7 @@ export function getNextPeak(
 /** Compute the pool freshness for a given month.
  *  Based on Adjust install benchmarks + Sensor Tower churn data. */
 export function getPoolFreshness(date: Date = new Date()): PoolFreshnessData {
-  const month = date.getMonth();
+  const { month } = getParisDateParts(date);
   const installs = MONTHLY_INSTALLS[month];
   const churn = MONTHLY_CHURN[month];
 

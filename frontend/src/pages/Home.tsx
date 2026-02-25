@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { computeScore } from "../lib/scoring";
 import type { ScoreResult } from "../lib/scoring";
 import type { AppName } from "../lib/data";
+import { formatParisDay, formatParisTime } from "../lib/franceTime";
 import ScoreGauge from "../components/ScoreGauge";
 import ScoreLabel from "../components/ScoreLabel";
 import AppSelector from "../components/AppSelector";
@@ -10,21 +11,6 @@ import HeatmapWeek from "../components/HeatmapWeek";
 import BestTimes from "../components/BestTimes";
 import CountdownNext from "../components/CountdownNext";
 import PoolFreshness from "../components/PoolFreshness";
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function formatDay(date: Date): string {
-  return date.toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-}
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -79,10 +65,10 @@ export default function Home() {
           {/* Score display */}
           <div className="mt-10 flex flex-col items-center gap-6">
             <p className="text-sm font-medium uppercase tracking-wider text-gray-500">
-              {capitalize(app)} — {formatDay(now)} — {formatTime(now)}
+              {capitalize(app)} — {formatParisDay(now)} — {formatParisTime(now)} (heure de Paris)
             </p>
             <ScoreGauge score={result.score} />
-            <ScoreLabel score={result.score} event={result.event} app={app} />
+            <ScoreLabel score={result.score} event={result.event} app={app} now={now} />
             <CountdownNext app={app} />
           </div>
         </div>

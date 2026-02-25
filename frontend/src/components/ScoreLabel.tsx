@@ -6,11 +6,12 @@ interface ScoreLabelProps {
   score: number;
   event: string | null;
   app?: AppName;
+  now?: Date;
 }
 
-export default function ScoreLabel({ score, event, app = "tinder" }: ScoreLabelProps) {
+export default function ScoreLabel({ score, event, app = "tinder", now }: ScoreLabelProps) {
   const { label, color, colorBg, message } = getScoreLabel(score);
-  const delta = getDeltaVsAverage(score, new Date(), app);
+  const delta = getDeltaVsAverage(score, now ?? new Date(), app);
 
   return (
     <motion.div

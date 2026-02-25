@@ -5,7 +5,7 @@ export interface AppRanking {
   score: number;
   ratings: number;
   installs: string;
-  trend: "up" | "down" | "stable" | null;
+  trend: "up" | "down" | "stable";
 }
 
 export interface RankingsData {
@@ -18,11 +18,14 @@ export interface RankingsHistory {
   apps: Record<string, { rank: number | null; score: number; ratings: number }>;
 }
 
-// Convert numeric trend delta from scraper to "up" | "down" | "stable"
-// Scraper outputs: negative = improved (rank number went down), positive = dropped
-function normalizeTrend(trend: number | string | null): "up" | "down" | "stable" | null {
-  if (trend === null || trend === undefined) return null;
-  if (typeof trend === "string") return trend as "up" | "down" | "stable";
+// Normalize scraper trend values to the frontend enum.
+// Backward-compatible with old numeric deltas and nulls.
+function normalizeTrend(trend: number | string | null): "up" | "down" | "stable" {
+  if (trend === null || trend === undefined) return "stable";
+  if (typeof trend === "string") {
+    if (trend === "up" || trend === "down" || trend === "stable") return trend;
+    return "stable";
+  }
   if (trend < 0) return "up";
   if (trend > 0) return "down";
   return "stable";
