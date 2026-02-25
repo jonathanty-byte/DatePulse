@@ -79,7 +79,11 @@ export default function Home() {
               onClick={async () => {
                 setTriggerStatus("launching");
                 try {
-                  const res = await fetch(TRIGGER_URL, { method: "POST" });
+                  const res = await fetch(TRIGGER_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ app }),
+                  });
                   if (res.ok) {
                     setTriggerStatus("ok");
                   } else {
@@ -105,7 +109,7 @@ export default function Home() {
                   ? "Auto Swiper lance !"
                   : triggerStatus === "error"
                     ? "Erreur — serveur local actif ?"
-                    : "Lancer Auto Swiper — Tinder + Bumble"}
+                    : `Lancer Auto Swiper — ${capitalize(app)}`}
             </motion.button>
           </div>
         </div>

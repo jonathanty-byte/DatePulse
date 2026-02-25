@@ -240,22 +240,19 @@ def main() -> None:
         logging.info("Session deja en cours, skip")
         return
 
-    # Launch Chrome with the user's regular profile
+    # Pick the app with the highest score (extension only supports one at a time)
+    best_app = max(triggered_apps, key=lambda a: all_scores[a]["score"])
     duration = config.get("session_duration_minutes", 30)
-    urls = [config["app_urls"][app] for app in triggered_apps]
+    url = config["app_urls"][best_app]
 
-    logging.info(f"PEAK DETECTED! Lancement de {', '.join(triggered_apps)} pour {duration}min")
+    logging.info(f"PEAK DETECTED! Lancement de {best_app} (meilleur score) pour {duration}min")
 
-    # Open each tab and activate Auto Swiper on it before moving to the next
-    for i, (app, url) in enumerate(zip(triggered_apps, urls)):
-        if launch_chrome_tab(config, url):
-            # Wait for Chrome to load the page
-            time.sleep(8 if i == 0 else 5)
-            # Activate Auto Swiper on this tab
-            activate_auto_swiper(app)
+    if launch_chrome_tab(config, url):
+        time.sleep(8)
+        activate_auto_swiper(best_app)
 
     # Log session to history
-    log_session(triggered_apps, {a: all_scores[a] for a in triggered_apps}, duration)
+    log_session([best_app], {best_app: all_scores[best_app]}, duration)
 
     # Write lockfile to prevent duplicate sessions
     write_lockfile(duration)
@@ -269,8 +266,11 @@ def main() -> None:
     logging.info("Session terminee")
 
 
-def trigger_now() -> dict:
-    """Force-trigger Auto Swiper on all configured apps, ignoring score threshold.
+def trigger_now(target_app: str | None = None) -> dict:
+    """Force-trigger Auto Swiper on a single app, ignoring score threshold.
+
+    Args:
+        target_app: App to trigger (e.g. "tinder"). If None, uses first configured app.
 
     Returns a status dict (used by both CLI --now and HTTP server).
     """
@@ -285,35 +285,35 @@ def trigger_now() -> dict:
         logging.info("Session deja en cours, skip")
         return {"status": "skipped", "reason": "session_running"}
 
-    apps = config.get("apps", config.get("app", "tinder"))
-    if isinstance(apps, str):
-        apps = [apps]
+    # Determine which app to launch
+    if target_app is None:
+        configured = config.get("apps", config.get("app", "tinder"))
+        target_app = configured[0] if isinstance(configured, list) else configured
 
-    # Compute scores (for logging only, no threshold check)
-    all_scores = {}
-    for app in apps:
-        result = compute_score(now, app)
-        all_scores[app] = result
-        label = get_score_label(result["score"])
-        logging.info(f"  {app}: {result['score']}/100 ({label['label']})")
+    if target_app not in config.get("app_urls", {}):
+        logging.error(f"App inconnue: {target_app}")
+        return {"status": "error", "reason": f"unknown app: {target_app}"}
+
+    result = compute_score(now, target_app)
+    label = get_score_label(result["score"])
+    logging.info(f"  {target_app}: {result['score']}/100 ({label['label']})")
 
     duration = config.get("session_duration_minutes", 30)
-    urls = [config["app_urls"][app] for app in apps]
+    url = config["app_urls"][target_app]
 
-    logging.info(f"MANUAL TRIGGER! Lancement de {', '.join(apps)} pour {duration}min")
+    logging.info(f"MANUAL TRIGGER! Lancement de {target_app} pour {duration}min")
 
-    for i, (app, url) in enumerate(zip(apps, urls)):
-        if launch_chrome_tab(config, url):
-            time.sleep(8 if i == 0 else 5)
-            activate_auto_swiper(app)
+    if launch_chrome_tab(config, url):
+        time.sleep(8)
+        activate_auto_swiper(target_app)
 
-    log_session(apps, {a: all_scores[a] for a in apps}, duration)
+    log_session([target_app], {target_app: result}, duration)
     write_lockfile(duration)
 
     return {
         "status": "triggered",
-        "apps": apps,
-        "scores": {app: all_scores[app]["score"] for app in apps},
+        "app": target_app,
+        "score": result["score"],
         "duration": duration,
     }
 
@@ -335,9 +335,17 @@ def run_server(port: int = 5555) -> None:
     class TriggerHandler(BaseHTTPRequestHandler):
         def do_POST(self):
             if self.path == "/trigger":
+                # Read target app from request body
+                target_app = None
+                content_len = int(self.headers.get("Content-Length", 0))
+                if content_len > 0:
+                    body = json.loads(self.rfile.read(content_len))
+                    target_app = body.get("app")
                 # Run trigger in a background thread so HTTP responds immediately
-                result = {"status": "launching"}
-                threading.Thread(target=trigger_now, daemon=True).start()
+                result = {"status": "launching", "app": target_app}
+                threading.Thread(
+                    target=trigger_now, args=(target_app,), daemon=True
+                ).start()
                 self._respond(200, result)
             else:
                 self._respond(404, {"error": "not found"})
