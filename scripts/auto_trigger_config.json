@@ -1,15 +1,20 @@
 {
   "threshold": 70,
-  "apps": ["tinder", "bumble"],
+  "apps": [
+    "tinder",
+    "bumble"
+  ],
   "session_duration_minutes": 30,
-  "chrome_path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-  "chrome_profile_dir": "",
+  "chrome_path": "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  "chrome_user_data_dir": "",
+  "chrome_profile": "Default",
   "app_urls": {
     "tinder": "https://tinder.com/app/recs",
     "bumble": "https://bumble.com/app",
     "hinge": "https://hinge.co/app",
     "happn": "https://www.happn.com/"
   },
+  "auto_swiper_extension_id": "knhjggkkeoamjgogdmmefekofllomhea",
   "log_file": "scripts/auto_trigger.log",
   "quiet_hours": {
     "start": 1,
