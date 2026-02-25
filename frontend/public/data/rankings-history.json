@@ -1,0 +1,27 @@
+[
+  {
+    "date": "2026-02-25",
+    "apps": {
+      "tinder": {
+        "rank": 1,
+        "score": 3.6924677,
+        "ratings": 8813574
+      },
+      "bumble": {
+        "rank": 3,
+        "score": 3.9378552,
+        "ratings": 1495426
+      },
+      "hinge": {
+        "rank": 4,
+        "score": 3.7946668,
+        "ratings": 422736
+      },
+      "happn": {
+        "rank": 2,
+        "score": 4.072369,
+        "ratings": 2012004
+      }
+    }
+  }
+]

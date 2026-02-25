@@ -1,55 +1,45 @@
-/**
- * 7-day x 24-hour heatmap showing predicted activity scores.
- * Color-coded cells from blue (low) to red (high).
- */
+import { useMemo } from "react";
+import { computeWeekHeatmap } from "../lib/scoring";
+import type { HeatmapSlot } from "../lib/scoring";
+import type { AppName } from "../lib/data";
 
-import type { ForecastItem } from "../types";
-
-interface HeatmapWeekProps {
-  forecast: ForecastItem[];
-}
-
-const DAYS = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 function scoreToColor(score: number): string {
-  if (score >= 75) return "bg-red-500";
-  if (score >= 60) return "bg-orange-500";
-  if (score >= 45) return "bg-yellow-500";
-  if (score >= 30) return "bg-blue-400";
-  return "bg-blue-900";
+  if (score >= 75) return "bg-red-500/90";
+  if (score >= 55) return "bg-orange-500/80";
+  if (score >= 35) return "bg-yellow-500/60";
+  if (score >= 15) return "bg-blue-400/40";
+  return "bg-blue-900/30";
 }
 
-function getDayIndex(dateStr: string): number {
-  const d = new Date(dateStr + "T00:00:00");
-  // JS: 0=Sunday. Convert to Mon=0
-  return (d.getDay() + 6) % 7;
+interface HeatmapWeekProps {
+  now?: Date;
+  app?: AppName;
 }
 
-export default function HeatmapWeek({ forecast }: HeatmapWeekProps) {
-  // Build grid[dayIndex][hour] = score
-  const grid: (number | null)[][] = Array.from({ length: 7 }, () =>
-    Array(24).fill(null)
-  );
+export default function HeatmapWeek({ now, app = "tinder" }: HeatmapWeekProps) {
+  const heatmap = useMemo(() => computeWeekHeatmap(now, app), [now, app]);
 
-  for (const item of forecast) {
-    const dayIdx = getDayIndex(item.date);
-    if (dayIdx >= 0 && dayIdx < 7 && item.hour >= 0 && item.hour < 24) {
-      grid[dayIdx][item.hour] = item.predicted_score;
+  // Group by day
+  const days = useMemo(() => {
+    const map = new Map<number, HeatmapSlot[]>();
+    for (const slot of heatmap) {
+      if (!map.has(slot.dayIndex)) map.set(slot.dayIndex, []);
+      map.get(slot.dayIndex)!.push(slot);
     }
-  }
+    return Array.from(map.entries()).sort(([a], [b]) => a - b);
+  }, [heatmap]);
 
-  // Find top 5 slots
-  const allSlots = forecast
-    .slice()
-    .sort((a, b) => b.predicted_score - a.predicted_score);
-  const top5 = new Set(
-    allSlots.slice(0, 5).map((s) => `${s.date}-${s.hour}`)
-  );
+  // Top 5 slots
+  const top5 = useMemo(() => {
+    const sorted = [...heatmap].sort((a, b) => b.score - a.score);
+    return new Set(sorted.slice(0, 5).map((s) => `${s.dayIndex}-${s.hour}`));
+  }, [heatmap]);
 
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[700px]">
+      <div className="min-w-[640px]">
         {/* Hour headers */}
         <div className="mb-1 flex">
           <div className="w-10 shrink-0" />
@@ -64,33 +54,22 @@ export default function HeatmapWeek({ forecast }: HeatmapWeekProps) {
         </div>
 
         {/* Day rows */}
-        {DAYS.map((day, dayIdx) => (
-          <div key={day} className="mb-0.5 flex items-center">
+        {days.map(([dayIndex, slots]) => (
+          <div key={dayIndex} className="mb-0.5 flex items-center">
             <div className="w-10 shrink-0 text-xs font-medium text-gray-400">
-              {day}
+              {slots[0].dayName}
             </div>
             <div className="flex flex-1 gap-0.5">
-              {HOURS.map((hour) => {
-                const score = grid[dayIdx]?.[hour];
-                const matchItem = forecast.find(
-                  (f) => getDayIndex(f.date) === dayIdx && f.hour === hour
-                );
-                const isTop =
-                  matchItem &&
-                  top5.has(`${matchItem.date}-${matchItem.hour}`);
-
+              {slots.map((slot) => {
+                const isTop = top5.has(`${slot.dayIndex}-${slot.hour}`);
                 return (
                   <div
-                    key={hour}
-                    className={`heatmap-cell flex-1 rounded-sm ${
-                      score !== null ? scoreToColor(score) : "bg-gray-800"
-                    } ${isTop ? "ring-2 ring-white/60" : ""}`}
+                    key={slot.hour}
+                    className={`flex-1 rounded-sm ${scoreToColor(slot.score)} ${
+                      isTop ? "ring-2 ring-white/60" : ""
+                    } transition-opacity hover:opacity-80`}
                     style={{ aspectRatio: "1", minHeight: 16 }}
-                    title={
-                      score !== null
-                        ? `${day} ${hour}h: ${Math.round(score)}/100`
-                        : `${day} ${hour}h: --`
-                    }
+                    title={`${slot.dayName} ${slot.hour}h : ${slot.score}/100`}
                   />
                 );
               })}
@@ -101,15 +80,15 @@ export default function HeatmapWeek({ forecast }: HeatmapWeekProps) {
         {/* Legend */}
         <div className="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-sm bg-blue-900" />
+            <span className="inline-block h-3 w-3 rounded-sm bg-blue-900/30" />
             Calme
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-sm bg-yellow-500" />
+            <span className="inline-block h-3 w-3 rounded-sm bg-yellow-500/60" />
             Moyen
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-sm bg-red-500" />
+            <span className="inline-block h-3 w-3 rounded-sm bg-red-500/90" />
             Intense
           </span>
         </div>

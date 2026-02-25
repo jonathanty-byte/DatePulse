@@ -1,32 +1,26 @@
-/**
- * App selection tabs (Tinder, Bumble, Hinge, Happn).
- */
+import { APPS } from "../lib/data";
+import type { AppName } from "../lib/data";
 
 interface AppSelectorProps {
-  apps: string[];
-  selected: string;
-  onChange: (app: string) => void;
+  selected: AppName;
+  onChange: (app: AppName) => void;
 }
 
-const APP_COLORS: Record<string, string> = {
-  tinder: "bg-gradient-to-r from-orange-500 to-pink-500",
-  bumble: "bg-yellow-500",
-  hinge: "bg-gray-700",
-  happn: "bg-orange-600",
+const APP_COLORS: Record<AppName, string> = {
+  tinder: "from-orange-500 to-pink-500",
+  bumble: "from-yellow-400 to-yellow-600",
+  hinge: "from-gray-500 to-gray-700",
+  happn: "from-orange-500 to-orange-700",
 };
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-export default function AppSelector({
-  apps,
-  selected,
-  onChange,
-}: AppSelectorProps) {
+export default function AppSelector({ selected, onChange }: AppSelectorProps) {
   return (
     <div className="flex gap-2">
-      {apps.map((app) => {
+      {APPS.map((app) => {
         const isActive = app === selected;
         return (
           <button
@@ -34,8 +28,8 @@ export default function AppSelector({
             onClick={() => onChange(app)}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
               isActive
-                ? `${APP_COLORS[app] || "bg-brand-600"} text-white shadow-lg`
-                : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
+                ? `bg-gradient-to-r ${APP_COLORS[app]} text-white shadow-lg`
+                : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200"
             }`}
           >
             {capitalize(app)}

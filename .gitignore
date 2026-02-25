@@ -2,21 +2,6 @@
 .env
 .env.*
 
-# Database
-data/datepulse.db
-data/*.db
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.egg-info/
-dist/
-build/
-.venv/
-venv/
-.eggs/
-
 # Node / Frontend
 node_modules/
 frontend/dist/
@@ -34,8 +19,8 @@ Thumbs.db
 # Vercel
 .vercel/
 
-# Pytest
-.pytest_cache/
-
 # Claude
 .claude/
+
+# Playwright
+.playwright-mcp/

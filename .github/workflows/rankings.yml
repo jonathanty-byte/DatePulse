@@ -1,0 +1,46 @@
+name: Daily Rankings Scraper
+
+on:
+  schedule:
+    # Every day at 06:00 UTC (08:00 Paris time)
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install google-play-scraper
+
+      - name: Run scraper
+        run: python scripts/scrape_rankings.py
+
+      - name: Check for changes
+        id: check
+        run: |
+          git add frontend/public/data/
+          git diff --cached --quiet frontend/public/data/ || echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add frontend/public/data/
+          git commit -m "chore: update daily rankings [skip ci]"
+          git push

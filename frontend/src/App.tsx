@@ -1,31 +1,25 @@
 import { useEffect, useState } from "react";
-import CalendarPage from "./pages/Calendar";
-import Dashboard from "./pages/Dashboard";
-import Landing from "./pages/Landing";
+import Home from "./pages/Home";
+import Methodology from "./pages/Methodology";
 
 /**
- * Simple hash-based routing (no dependency needed).
- * /           -> Landing
- * /dashboard  -> Dashboard
+ * Minimal SPA routing.
+ * /            -> Home (score + heatmap + best times)
+ * /methodology -> Methodology
  */
 export default function App() {
   const [page, setPage] = useState(() => getPage());
 
   useEffect(() => {
     const onNav = () => setPage(getPage());
-    window.addEventListener("hashchange", onNav);
     window.addEventListener("popstate", onNav);
-    return () => {
-      window.removeEventListener("hashchange", onNav);
-      window.removeEventListener("popstate", onNav);
-    };
+    return () => window.removeEventListener("popstate", onNav);
   }, []);
 
-  // Intercept link clicks for SPA navigation
+  // Intercept internal link clicks
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const anchor = target.closest("a");
+      const anchor = (e.target as HTMLElement).closest("a");
       if (!anchor) return;
       const href = anchor.getAttribute("href");
       if (!href || href.startsWith("http") || href.startsWith("//")) return;
@@ -38,18 +32,15 @@ export default function App() {
   }, []);
 
   switch (page) {
-    case "dashboard":
-      return <Dashboard />;
-    case "calendar":
-      return <CalendarPage />;
+    case "methodology":
+      return <Methodology />;
     default:
-      return <Landing />;
+      return <Home />;
   }
 }
 
 function getPage(path?: string): string {
   const p = path || window.location.pathname;
-  if (p === "/dashboard" || p === "/dashboard/") return "dashboard";
-  if (p === "/calendar" || p === "/calendar/") return "calendar";
-  return "landing";
+  if (p.startsWith("/methodology")) return "methodology";
+  return "home";
 }
