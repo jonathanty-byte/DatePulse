@@ -12,6 +12,11 @@ import BestTimes from "../components/BestTimes";
 import CountdownNext from "../components/CountdownNext";
 import PoolFreshness from "../components/PoolFreshness";
 
+const AUTO_SWIPE_URLS: Record<string, string> = {
+  tinder: "https://tinder.com/app/recs",
+  bumble: "https://bumble.com/app",
+};
+
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -70,6 +75,24 @@ export default function Home() {
             <ScoreGauge score={result.score} />
             <ScoreLabel score={result.score} event={result.event} app={app} now={now} />
             <CountdownNext app={app} />
+
+            {/* Auto Swiper launch button */}
+            <motion.button
+              onClick={() => {
+                Object.values(AUTO_SWIPE_URLS).forEach((url) =>
+                  window.open(url, "_blank", "noopener")
+                );
+              }}
+              className="mt-4 flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-500 to-pink-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-95"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+                <path fillRule="evenodd" d="M2 10a.75.75 0 0 1 .75-.75h12.59l-2.1-1.95a.75.75 0 1 1 1.02-1.1l3.5 3.25a.75.75 0 0 1 0 1.1l-3.5 3.25a.75.75 0 1 1-1.02-1.1l2.1-1.95H2.75A.75.75 0 0 1 2 10Z" clipRule="evenodd" />
+              </svg>
+              Lancer Auto Swiper — Tinder + Bumble
+            </motion.button>
           </div>
         </div>
       </section>
