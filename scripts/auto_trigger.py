@@ -281,10 +281,6 @@ def trigger_now(target_app: str | None = None) -> dict:
     logging.info("=" * 50)
     logging.info(f"Manual trigger -- {now.strftime('%A %d/%m/%Y %Hh%M')}")
 
-    if is_session_running():
-        logging.info("Session deja en cours, skip")
-        return {"status": "skipped", "reason": "session_running"}
-
     # Determine which app to launch
     if target_app is None:
         configured = config.get("apps", config.get("app", "tinder"))
@@ -308,7 +304,6 @@ def trigger_now(target_app: str | None = None) -> dict:
         activate_auto_swiper(target_app)
 
     log_session([target_app], {target_app: result}, duration)
-    write_lockfile(duration)
 
     return {
         "status": "triggered",

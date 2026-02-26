@@ -13,6 +13,7 @@ import CountdownNext from "../components/CountdownNext";
 import PoolFreshness from "../components/PoolFreshness";
 
 const TRIGGER_URL = "http://localhost:5555/trigger";
+const SWIPEABLE_APPS = new Set(["tinder", "bumble"]);
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -74,8 +75,8 @@ export default function Home() {
             <ScoreLabel score={result.score} event={result.event} app={app} now={now} />
             <CountdownNext app={app} />
 
-            {/* Auto Swiper launch button */}
-            <motion.button
+            {/* Auto Swiper launch button (Tinder & Bumble only) */}
+            {SWIPEABLE_APPS.has(app) && <motion.button
               onClick={async () => {
                 setTriggerStatus("launching");
                 try {
@@ -110,7 +111,7 @@ export default function Home() {
                   : triggerStatus === "error"
                     ? "Erreur — serveur local actif ?"
                     : `Lancer Auto Swiper — ${capitalize(app)}`}
-            </motion.button>
+            </motion.button>}
           </div>
         </div>
       </section>
