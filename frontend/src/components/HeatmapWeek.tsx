@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { computeWeekHeatmap } from "../lib/scoring";
 import type { HeatmapSlot } from "../lib/scoring";
 import type { AppName } from "../lib/data";
+import { getParisDateParts } from "../lib/franceTime";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
@@ -41,11 +42,16 @@ export default function HeatmapWeek({ now, app = "tinder" }: HeatmapWeekProps) {
     return Array.from(map.entries()).sort(([a], [b]) => a - b);
   }, [heatmap]);
 
-  // Top 5 slots
-  const top5 = useMemo(() => {
-    const sorted = [...heatmap].sort((a, b) => b.score - a.score);
-    return new Set(sorted.slice(0, 5).map((s) => `${s.dayIndex}-${s.hour}`));
-  }, [heatmap]);
+  // Current time in Paris -> heatmap dayIndex + hour
+  const { currentDayIndex, currentHour } = useMemo(() => {
+    const paris = getParisDateParts(now ?? new Date());
+    // JS day (0=Sun) -> heatmap display index (0=Mon...6=Sun)
+    const jsDayToDisplay = [6, 0, 1, 2, 3, 4, 5]; // Sun=6, Mon=0, Tue=1...
+    return {
+      currentDayIndex: jsDayToDisplay[paris.day],
+      currentHour: paris.hour,
+    };
+  }, [now]);
 
   return (
     <div>
@@ -100,15 +106,19 @@ export default function HeatmapWeek({ now, app = "tinder" }: HeatmapWeekProps) {
               </div>
               <div className="flex flex-1 gap-0.5">
                 {slots.map((slot) => {
-                  const isTop = top5.has(`${slot.dayIndex}-${slot.hour}`);
+                  const isNow =
+                    slot.dayIndex === currentDayIndex &&
+                    slot.hour === currentHour;
                   return (
                     <div
                       key={slot.hour}
                       className={`flex-1 rounded-sm ${scoreToColor(slot.score)} ${
-                        isTop ? "ring-2 ring-white/60" : ""
+                        isNow
+                          ? "ring-2 ring-white animate-pulse"
+                          : ""
                       } transition-all hover:opacity-80 hover:scale-110`}
                       style={{ aspectRatio: "1", minHeight: 16 }}
-                      title={`${slot.dayName} ${slot.hour}h : ${slot.score}/100`}
+                      title={`${slot.dayName} ${slot.hour}h : ${slot.score}/100${isNow ? " (maintenant)" : ""}`}
                     />
                   );
                 })}
@@ -147,12 +157,16 @@ export default function HeatmapWeek({ now, app = "tinder" }: HeatmapWeekProps) {
             </div>
             <div className="flex flex-1 gap-px">
               {slots.map((slot) => {
-                const isTop = top5.has(`${slot.dayIndex}-${slot.hour}`);
+                const isNow =
+                  slot.dayIndex === currentDayIndex &&
+                  slot.hour === currentHour;
                 return (
                   <div
                     key={slot.hour}
                     className={`flex-1 rounded-[2px] ${scoreToColor(slot.score)} ${
-                      isTop ? "ring-1 ring-white/50" : ""
+                      isNow
+                        ? "ring-1 ring-white animate-pulse"
+                        : ""
                     }`}
                     style={{ aspectRatio: "1.2", minHeight: 10 }}
                     onClick={() => setTooltip(slot)}
