@@ -22,17 +22,17 @@ export default function ScoreLabel({ score, event, app = "tinder", now }: ScoreL
     >
       {/* Label badge */}
       <span
-        className="inline-block rounded-full px-4 py-1.5 text-sm font-semibold"
+        className="inline-block rounded-full px-3.5 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-semibold"
         style={{ backgroundColor: colorBg, color }}
       >
         {label}
       </span>
 
       {/* Message */}
-      <p className="text-lg font-medium text-gray-200">{message}</p>
+      <p className="text-base sm:text-lg font-medium text-gray-200">{message}</p>
 
       {/* Delta vs average */}
-      <p className="text-sm text-gray-400">
+      <p className="text-xs sm:text-sm text-gray-400">
         {delta >= 0 ? (
           <span className="text-green-400">+{delta}%</span>
         ) : (

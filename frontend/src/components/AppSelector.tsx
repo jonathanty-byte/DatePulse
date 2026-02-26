@@ -19,14 +19,14 @@ function capitalize(s: string) {
 
 export default function AppSelector({ selected, onChange }: AppSelectorProps) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-1.5 sm:gap-2">
       {APPS.map((app) => {
         const isActive = app === selected;
         return (
           <button
             key={app}
             onClick={() => onChange(app)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+            className={`rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-all active:scale-95 ${
               isActive
                 ? `bg-gradient-to-r ${APP_COLORS[app]} text-white shadow-lg`
                 : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200"

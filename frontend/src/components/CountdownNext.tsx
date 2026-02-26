@@ -40,17 +40,18 @@ export default function CountdownNext({ app = "tinder" }: CountdownNextProps) {
 
   return (
     <motion.div
-      className="flex items-center gap-3 rounded-xl bg-white/5 px-5 py-3"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      className="flex items-center gap-2.5 sm:gap-3 rounded-xl bg-white/5 border border-white/5 px-4 sm:px-5 py-2.5 sm:py-3"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
+      whileHover={{ backgroundColor: "rgba(255,255,255,0.06)" }}
     >
-      <span className="text-2xl">{icon}</span>
+      <span className="text-xl sm:text-2xl">{icon}</span>
       <div>
-        <p className="text-sm text-gray-400">Prochain creneau optimal</p>
-        <p className="text-base font-semibold text-gray-100">
+        <p className="text-xs sm:text-sm text-gray-400">Prochain creneau optimal</p>
+        <p className="text-sm sm:text-base font-semibold text-gray-100">
           {formatPeakTime(peak)}
-          <span className="ml-2 text-sm text-gray-400">
+          <span className="ml-1.5 sm:ml-2 text-xs sm:text-sm text-gray-400">
             — score {peak.score}/100
           </span>
         </p>

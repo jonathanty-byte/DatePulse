@@ -14,9 +14,13 @@ export default function ScoreGauge({ score, size = 220 }: ScoreGaugeProps) {
   const progress = score / 100;
   const { color, icon } = getScoreLabel(score);
 
+  // Pulse intensity based on score: high score = stronger pulse
+  const pulseOpacity = score >= 70 ? [0.25, 0.55] : score >= 40 ? [0.2, 0.4] : [0.15, 0.25];
+  const pulseScale = score >= 70 ? [1, 1.08] : score >= 40 ? [1, 1.04] : [1, 1.02];
+
   return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
+    <div className="relative w-[180px] h-[180px] sm:w-[220px] sm:h-[220px]">
+      <svg viewBox={`0 0 ${size} ${size}`} className="-rotate-90 w-full h-full">
         {/* Background circle */}
         <circle
           cx={center}
@@ -44,13 +48,14 @@ export default function ScoreGauge({ score, size = 220 }: ScoreGaugeProps) {
         {/* Glow filter */}
         <defs>
           <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feGaussianBlur stdDeviation="4" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
         </defs>
+        {/* Pulsing glow arc */}
         <motion.circle
           cx={center}
           cy={center}
@@ -61,16 +66,36 @@ export default function ScoreGauge({ score, size = 220 }: ScoreGaugeProps) {
           strokeLinecap="round"
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: circumference * (1 - progress) }}
-          transition={{ duration: 1.4, ease: "easeOut" }}
+          animate={{
+            strokeDashoffset: circumference * (1 - progress),
+            opacity: pulseOpacity,
+          }}
+          transition={{
+            strokeDashoffset: { duration: 1.4, ease: "easeOut" },
+            opacity: { duration: 2, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" },
+          }}
           filter="url(#glow)"
-          opacity={0.4}
         />
       </svg>
+      {/* Outer pulse ring */}
+      <motion.div
+        className="absolute inset-0 rounded-full"
+        style={{ boxShadow: `0 0 30px 2px ${color}` }}
+        animate={{
+          opacity: pulseOpacity,
+          scale: pulseScale,
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          repeatType: "reverse",
+          ease: "easeInOut",
+        }}
+      />
       {/* Center text */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <motion.span
-          className="text-5xl font-bold"
+          className="text-4xl sm:text-5xl font-bold"
           style={{ color }}
           key={score}
           initial={{ scale: 0.8, opacity: 0 }}
@@ -79,8 +104,8 @@ export default function ScoreGauge({ score, size = 220 }: ScoreGaugeProps) {
         >
           {score}
         </motion.span>
-        <span className="text-sm text-gray-500">/100</span>
-        <span className="mt-1 text-lg">{icon}</span>
+        <span className="text-xs sm:text-sm text-gray-400">/100</span>
+        <span className="mt-1 text-base sm:text-lg">{icon}</span>
       </div>
     </div>
   );
