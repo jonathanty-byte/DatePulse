@@ -1,44 +1,44 @@
 {
-  "updated": "2026-02-25T14:25:42Z",
+  "updated": "2026-02-26T07:02:08Z",
   "apps": {
     "tinder": {
       "rank": 1,
-      "score": 3.6924677,
-      "ratings": 8813574,
-      "reviews": 38048,
+      "score": 3.692701,
+      "ratings": 8815285,
+      "reviews": 38052,
       "installs": "100 000 000+",
-      "recentInstalls": 472997902,
-      "updated": 1771867265,
+      "recentInstalls": 473151715,
+      "updated": 1772043807,
       "trend": "stable"
     },
     "bumble": {
       "rank": 3,
-      "score": 3.9378552,
-      "ratings": 1495426,
+      "score": 3.9368582,
+      "ratings": 1495841,
       "reviews": 5108,
       "installs": "100 000 000+",
-      "recentInstalls": 106101083,
+      "recentInstalls": 106160533,
       "updated": 1771845561,
       "trend": "stable"
     },
     "hinge": {
       "rank": 4,
-      "score": 3.7946668,
-      "ratings": 422736,
-      "reviews": 2426,
+      "score": 3.7962964,
+      "ratings": 422954,
+      "reviews": 2429,
       "installs": "10 000 000+",
-      "recentInstalls": 31612268,
+      "recentInstalls": 31656188,
       "updated": 1771628081,
       "trend": "stable"
     },
     "happn": {
       "rank": 2,
-      "score": 4.072369,
-      "ratings": 2012004,
-      "reviews": 32265,
+      "score": 4.0729113,
+      "ratings": 2012285,
+      "reviews": 32268,
       "installs": "100 000 000+",
-      "recentInstalls": 112995364,
-      "updated": 1770136165,
+      "recentInstalls": 113021561,
+      "updated": 1772037915,
       "trend": "stable"
     }
   }
