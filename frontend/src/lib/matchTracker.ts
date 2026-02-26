@@ -7,8 +7,9 @@ export interface MatchEntry {
   id: string;
   app: AppName;
   timestamp: string; // ISO string
-  score: number; // DatePulse score at that moment
+  score: number; // DatePulse score at that moment (auto-computed)
   note: string;
+  rating?: number; // User compatibility rating 1-10
 }
 
 export interface MatchStats {
@@ -39,7 +40,7 @@ export function saveMatches(matches: MatchEntry[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(matches));
 }
 
-export function addMatch(app: AppName, date: Date, note = ""): MatchEntry {
+export function addMatch(app: AppName, date: Date, note = "", rating?: number): MatchEntry {
   const matches = loadMatches();
   const result = computeScore(date, app);
   const entry: MatchEntry = {
@@ -48,11 +49,40 @@ export function addMatch(app: AppName, date: Date, note = ""): MatchEntry {
     timestamp: date.toISOString(),
     score: result.score,
     note,
+    rating: rating && rating >= 1 && rating <= 10 ? rating : undefined,
   };
   matches.push(entry);
   matches.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   saveMatches(matches);
   return entry;
+}
+
+export function updateMatch(
+  id: string,
+  updates: { app?: AppName; date?: Date; note?: string; rating?: number | null }
+): void {
+  const matches = loadMatches();
+  const idx = matches.findIndex((m) => m.id === id);
+  if (idx === -1) return;
+
+  const m = matches[idx];
+  if (updates.app !== undefined) m.app = updates.app;
+  if (updates.date !== undefined) {
+    m.timestamp = updates.date.toISOString();
+    m.score = computeScore(updates.date, m.app).score;
+  }
+  if (updates.note !== undefined) m.note = updates.note;
+  if (updates.rating === null) {
+    m.rating = undefined;
+  } else if (updates.rating !== undefined && updates.rating >= 1 && updates.rating <= 10) {
+    m.rating = updates.rating;
+  }
+
+  // Re-sort if date changed
+  if (updates.date !== undefined) {
+    matches.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+  saveMatches(matches);
 }
 
 export function deleteMatch(id: string): void {

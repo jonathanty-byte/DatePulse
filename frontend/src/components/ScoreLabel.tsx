@@ -38,7 +38,7 @@ export default function ScoreLabel({ score, event, app = "tinder", now }: ScoreL
         ) : (
           <span className="text-red-400">{delta}%</span>
         )}{" "}
-        vs la moyenne
+        vs la moyenne de la semaine
       </p>
 
       {/* Active event */}

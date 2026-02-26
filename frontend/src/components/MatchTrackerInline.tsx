@@ -6,6 +6,7 @@ import { getScoreLabel } from "../lib/scoring";
 import {
   loadMatches,
   addMatch,
+  updateMatch,
   deleteMatch,
   computeMatchStats,
   aggregateByWeek,
@@ -95,6 +96,8 @@ export default function MatchTrackerInline({ currentApp }: Props) {
     return local.toISOString().slice(0, 16);
   });
   const [formNote, setFormNote] = useState("");
+  const [formRating, setFormRating] = useState<number>(0); // 0 = not set
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   // Sync formApp when parent app changes
@@ -113,16 +116,41 @@ export default function MatchTrackerInline({ currentApp }: Props) {
     refresh();
   }, [refresh]);
 
-  const handleAdd = () => {
-    const date = new Date(formDate);
-    addMatch(formApp, date, formNote.trim());
+  const resetForm = () => {
     setFormNote("");
+    setFormRating(0);
+    setEditingId(null);
     setShowForm(false);
     const now = new Date();
     const offset = now.getTimezoneOffset();
     const local = new Date(now.getTime() - offset * 60000);
     setFormDate(local.toISOString().slice(0, 16));
+    setFormApp(currentApp);
+  };
+
+  const handleSubmit = () => {
+    const date = new Date(formDate);
+    const rating = formRating >= 1 ? formRating : undefined;
+
+    if (editingId) {
+      updateMatch(editingId, { app: formApp, date, note: formNote.trim(), rating: rating ?? null });
+    } else {
+      addMatch(formApp, date, formNote.trim(), rating);
+    }
+    resetForm();
     refresh();
+  };
+
+  const handleEdit = (m: MatchEntry) => {
+    const d = new Date(m.timestamp);
+    const offset = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - offset * 60000);
+    setFormApp(m.app);
+    setFormDate(local.toISOString().slice(0, 16));
+    setFormNote(m.note);
+    setFormRating(m.rating ?? 0);
+    setEditingId(m.id);
+    setShowForm(true);
   };
 
   const handleDelete = (id: string) => {
@@ -156,7 +184,7 @@ export default function MatchTrackerInline({ currentApp }: Props) {
           </p>
         </div>
         <motion.button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => { if (showForm) resetForm(); else setShowForm(true); }}
           className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-pink-600 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-md shadow-brand-500/20 transition hover:shadow-brand-500/30 active:scale-95"
           whileTap={{ scale: 0.95 }}
         >
@@ -219,12 +247,39 @@ export default function MatchTrackerInline({ currentApp }: Props) {
               </div>
             </div>
 
+            {/* Compatibility rating */}
+            <div className="mb-3">
+              <label className="mb-1.5 block text-[10px] sm:text-xs text-gray-400">
+                Compatibilite{formRating > 0 ? ` — ${formRating}/10` : ""}
+              </label>
+              <div className="flex gap-1">
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setFormRating(formRating === v ? 0 : v)}
+                    className={`flex-1 rounded-md py-1.5 text-[10px] sm:text-xs font-medium transition-all active:scale-90 ${
+                      formRating >= v
+                        ? v >= 8
+                          ? "bg-green-500/30 text-green-300 ring-1 ring-green-500/30"
+                          : v >= 5
+                            ? "bg-yellow-500/25 text-yellow-300 ring-1 ring-yellow-500/25"
+                            : "bg-red-500/25 text-red-300 ring-1 ring-red-500/25"
+                        : "bg-white/5 text-gray-500 hover:bg-white/10"
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <motion.button
-              onClick={handleAdd}
+              onClick={handleSubmit}
               className="w-full rounded-lg bg-brand-600 py-2 text-xs sm:text-sm font-semibold text-white transition hover:bg-brand-500 active:scale-[0.98]"
               whileTap={{ scale: 0.98 }}
             >
-              Enregistrer
+              {editingId ? "Modifier" : "Enregistrer"}
             </motion.button>
           </motion.div>
         )}
@@ -319,6 +374,20 @@ export default function MatchTrackerInline({ currentApp }: Props) {
                       <p className="text-[9px] sm:text-[10px] text-gray-500 truncate">{m.note}</p>
                     )}
                   </div>
+                  {/* Rating badge */}
+                  {m.rating && (
+                    <span
+                      className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold ${
+                        m.rating >= 8
+                          ? "bg-green-500/20 text-green-400"
+                          : m.rating >= 5
+                            ? "bg-yellow-500/20 text-yellow-300"
+                            : "bg-red-500/20 text-red-400"
+                      }`}
+                    >
+                      {m.rating}/10
+                    </span>
+                  )}
                   <div className="flex items-center gap-1 shrink-0">
                     <span className="text-xs">{icon}</span>
                     <span
@@ -328,6 +397,13 @@ export default function MatchTrackerInline({ currentApp }: Props) {
                       {m.score}
                     </span>
                   </div>
+                  <button
+                    onClick={() => handleEdit(m)}
+                    className="shrink-0 rounded px-1.5 py-0.5 text-[9px] text-gray-600 opacity-0 group-hover:opacity-100 hover:text-blue-400 transition"
+                    title="Modifier"
+                  >
+                    &#9998;
+                  </button>
                   <button
                     onClick={() => handleDelete(m.id)}
                     className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] transition ${

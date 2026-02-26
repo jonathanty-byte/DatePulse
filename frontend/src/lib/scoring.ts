@@ -97,7 +97,7 @@ export function getScoreLabel(score: number): ScoreLabel {
     return { label: "Moyen", color: "#facc15", colorBg: "#facc1522", icon: "\u{1F324}\u{FE0F}", message: "Activite correcte" };
   if (score >= 16)
     return { label: "Calme", color: "#60a5fa", colorBg: "#60a5fa22", icon: "\u{1F634}", message: "Peu d'activite en ce moment" };
-  return { label: "Mort plat", color: "#6b7280", colorBg: "#6b728022", icon: "\u{1F480}", message: "Evite de swiper maintenant" };
+  return { label: "Tres calme", color: "#6b7280", colorBg: "#6b728022", icon: "\u{1F319}", message: "Evite de swiper maintenant" };
 }
 
 // ── Heatmap (7 days x 24 hours) ────────────────────────────────
@@ -186,12 +186,19 @@ export interface NextPeak {
   minutesUntil: number;
 }
 
-/** Find the next time slot where score >= threshold for a given app. */
+/** Find the next time slot where score >= threshold for a given app.
+ *  Uses the same static heatmap formula as BestTimes (no events/weather)
+ *  so scores stay consistent across all UI components. */
 export function getNextPeak(
   fromDate: Date = new Date(),
   app: AppName = "tinder",
   threshold = 70
 ): NextPeak | null {
+  const { month } = getParisDateParts(fromDate);
+  const hourlyTable = APP_HOURLY[app];
+  const weeklyTable = APP_WEEKLY[app];
+  const monthlyTable = APP_MONTHLY[app];
+
   const check = new Date(fromDate);
   // Round up to next hour
   check.setMinutes(0, 0, 0);
@@ -199,12 +206,14 @@ export function getNextPeak(
 
   // Search up to 7 days ahead
   for (let i = 0; i < 168; i++) {
-    const result = computeScore(check, app);
-    if (result.score >= threshold) {
+    const { hour, day } = getParisDateParts(check);
+    const raw = (hourlyTable[hour] * weeklyTable[day] * monthlyTable[month]) / 10000;
+    const score = Math.min(100, Math.max(0, Math.round(raw)));
+    if (score >= threshold) {
       const diff = check.getTime() - fromDate.getTime();
       return {
         date: new Date(check),
-        score: result.score,
+        score,
         hoursUntil: Math.floor(diff / 3600000),
         minutesUntil: Math.floor((diff % 3600000) / 60000),
       };
