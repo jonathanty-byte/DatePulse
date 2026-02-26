@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import Home from "./pages/Home";
 import Methodology from "./pages/Methodology";
-import Tracker from "./pages/Tracker";
 
 /**
  * Minimal SPA routing.
- * /            -> Home (score + heatmap + best times)
+ * /            -> Home (score + heatmap + best times + match tracker)
  * /methodology -> Methodology
- * /tracker     -> Match Tracker
  */
 export default function App() {
   const [page, setPage] = useState(() => getPage());
@@ -36,8 +34,6 @@ export default function App() {
   switch (page) {
     case "methodology":
       return <Methodology />;
-    case "tracker":
-      return <Tracker />;
     default:
       return <Home />;
   }
@@ -46,6 +42,5 @@ export default function App() {
 function getPage(path?: string): string {
   const p = path || window.location.pathname;
   if (p.startsWith("/methodology")) return "methodology";
-  if (p.startsWith("/tracker")) return "tracker";
   return "home";
 }
