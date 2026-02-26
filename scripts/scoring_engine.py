@@ -1,7 +1,8 @@
 """
 DatePulse Scoring Engine — Python port of frontend/src/lib/data.ts + scoring.ts
+Feminine scoring model: tables calibrated for female activity patterns.
 
-Deterministic scoring: score(t) = hourly[h] * weekly[d] * monthly[m] / 10000 * event_multiplier
+Deterministic scoring: score(t) = hourly[h] * weekly[d] * monthly[m] / 10000 * event_multiplier * weather_mod
 All times in Europe/Paris timezone.
 """
 
@@ -15,23 +16,23 @@ PARIS_TZ = ZoneInfo("Europe/Paris")
 
 APPS = ("tinder", "bumble", "hinge", "happn")
 
-# ── Shared base indexes (Tinder baseline) ────────────────────────
+# ── Shared base indexes (Tinder baseline — feminine model) ──────
 
 HOURLY_INDEX = {
-    0: 8, 1: 5, 2: 5, 3: 5, 4: 5, 5: 5, 6: 10, 7: 15,
-    8: 25, 9: 28, 10: 30, 11: 35, 12: 42, 13: 45, 14: 40,
-    15: 28, 16: 25, 17: 30, 18: 55, 19: 70, 20: 85, 21: 100,
-    22: 75, 23: 45,
+    0: 6, 1: 4, 2: 3, 3: 3, 4: 3, 5: 4, 6: 8, 7: 12,
+    8: 20, 9: 22, 10: 25, 11: 32, 12: 45, 13: 48, 14: 40,
+    15: 22, 16: 22, 17: 30, 18: 62, 19: 85, 20: 100, 21: 92,
+    22: 65, 23: 35,
 }
 
 WEEKLY_INDEX = {
-    0: 100,  # Dimanche — pic
-    1: 90,   # Lundi
-    2: 75,   # Mardi
-    3: 75,   # Mercredi
-    4: 85,   # Jeudi
-    5: 55,   # Vendredi
-    6: 60,   # Samedi
+    0: 90,   # Dimanche
+    1: 82,   # Lundi
+    2: 68,   # Mardi
+    3: 65,   # Mercredi
+    4: 78,   # Jeudi
+    5: 65,   # Vendredi
+    6: 100,  # Samedi — pic feminin
 }
 
 MONTHLY_INDEX = {
@@ -54,53 +55,53 @@ MONTHLY_INDEX = {
 APP_HOURLY = {
     "tinder": HOURLY_INDEX,
     "bumble": {
-        0: 8, 1: 5, 2: 5, 3: 5, 4: 5, 5: 5, 6: 10, 7: 15,
-        8: 22, 9: 25, 10: 28, 11: 32, 12: 40, 13: 42, 14: 38,
-        15: 28, 16: 25, 17: 32, 18: 60, 19: 85, 20: 100, 21: 90,
-        22: 65, 23: 38,
+        0: 6, 1: 4, 2: 3, 3: 3, 4: 3, 5: 4, 6: 8, 7: 12,
+        8: 18, 9: 20, 10: 24, 11: 30, 12: 42, 13: 44, 14: 36,
+        15: 24, 16: 22, 17: 32, 18: 65, 19: 100, 20: 92, 21: 80,
+        22: 55, 23: 30,
     },
     "hinge": {
-        0: 6, 1: 4, 2: 4, 3: 4, 4: 4, 5: 4, 6: 8, 7: 12,
-        8: 20, 9: 22, 10: 25, 11: 30, 12: 38, 13: 40, 14: 35,
-        15: 25, 16: 22, 17: 28, 18: 55, 19: 78, 20: 92, 21: 100,
-        22: 82, 23: 50,
+        0: 5, 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 6, 7: 10,
+        8: 18, 9: 20, 10: 22, 11: 28, 12: 40, 13: 42, 14: 35,
+        15: 22, 16: 20, 17: 28, 18: 58, 19: 82, 20: 100, 21: 95,
+        22: 75, 23: 42,
     },
     "happn": {
-        0: 5, 1: 3, 2: 3, 3: 3, 4: 3, 5: 5, 6: 12, 7: 22,
-        8: 38, 9: 35, 10: 28, 11: 30, 12: 40, 13: 42, 14: 35,
-        15: 28, 16: 28, 17: 38, 18: 65, 19: 80, 20: 90, 21: 100,
-        22: 68, 23: 35,
+        0: 4, 1: 2, 2: 2, 3: 2, 4: 2, 5: 4, 6: 10, 7: 20,
+        8: 35, 9: 32, 10: 25, 11: 28, 12: 42, 13: 44, 14: 35,
+        15: 25, 16: 25, 17: 36, 18: 68, 19: 85, 20: 100, 21: 90,
+        22: 60, 23: 30,
     },
 }
 
 APP_WEEKLY = {
     "tinder": WEEKLY_INDEX,
     "bumble": {
-        0: 90,   # Dimanche
+        0: 85,   # Dimanche
         1: 100,  # Lundi — pic Bumble
-        2: 85,   # Mardi
-        3: 75,   # Mercredi
-        4: 80,   # Jeudi
-        5: 55,   # Vendredi
-        6: 65,   # Samedi
+        2: 80,   # Mardi
+        3: 70,   # Mercredi
+        4: 75,   # Jeudi
+        5: 58,   # Vendredi
+        6: 90,   # Samedi
     },
     "hinge": {
-        0: 100,  # Dimanche — pic fort
-        1: 85,   # Lundi
-        2: 72,   # Mardi
-        3: 70,   # Mercredi
-        4: 88,   # Jeudi
-        5: 50,   # Vendredi
-        6: 55,   # Samedi
+        0: 90,   # Dimanche
+        1: 80,   # Lundi
+        2: 68,   # Mardi
+        3: 65,   # Mercredi
+        4: 82,   # Jeudi
+        5: 52,   # Vendredi
+        6: 100,  # Samedi — pic feminin
     },
     "happn": {
-        0: 75,   # Dimanche
-        1: 95,   # Lundi
-        2: 90,   # Mardi
-        3: 88,   # Mercredi
-        4: 100,  # Jeudi — pic Happn
-        5: 65,   # Vendredi
-        6: 60,   # Samedi
+        0: 72,   # Dimanche
+        1: 90,   # Lundi
+        2: 88,   # Mardi
+        3: 85,   # Mercredi
+        4: 95,   # Jeudi — pic Happn (Ogury)
+        5: 62,   # Vendredi
+        6: 100,  # Samedi
     },
 }
 
@@ -125,31 +126,67 @@ APP_MONTHLY = {
 # check_function receives a Paris-localized datetime
 
 SPECIAL_EVENTS = [
-    # Boosters
+    # Adjusted boosters
     {
         "name": "Dating Sunday",
-        "check": lambda d: d.month == 1 and d.weekday() == 6 and d.day <= 7,  # Sunday in Jan, first week
-        "multiplier": 1.35,
+        "check": lambda d: d.month == 1 and d.weekday() == 6 and d.day <= 7,
+        "multiplier": 1.25,
     },
     {
         "name": "Nouvel An",
         "check": lambda d: d.month == 1 and 1 <= d.day <= 7,
-        "multiplier": 1.25,
+        "multiplier": 1.35,
     },
     {
         "name": "Pre-Saint-Valentin",
         "check": lambda d: d.month == 2 and 1 <= d.day <= 13,
-        "multiplier": 1.20,
+        "multiplier": 1.30,
+    },
+    {
+        "name": "Saint-Valentin",
+        "check": lambda d: d.month == 2 and d.day == 14,
+        "multiplier": 1.35,
     },
     {
         "name": "Rentree",
         "check": lambda d: d.month == 9 and 1 <= d.day <= 15,
-        "multiplier": 1.10,
+        "multiplier": 1.15,
     },
     {
         "name": "Cuffing Season",
         "check": lambda d: (d.month == 10 and d.day >= 15) or d.month == 11,
-        "multiplier": 1.10,
+        "multiplier": 1.06,
+    },
+    # New psychological events
+    {
+        "name": "Sunday Blues",
+        "check": lambda d: d.weekday() == 6 and 18 <= d.hour <= 22,
+        "multiplier": 1.08,
+    },
+    {
+        "name": "Vendredi FOMO",
+        "check": lambda d: d.weekday() == 4 and 20 <= d.hour <= 23,
+        "multiplier": 1.12,
+    },
+    {
+        "name": "Dimanche Ennui",
+        "check": lambda d: d.weekday() == 6 and 14 <= d.hour <= 17,
+        "multiplier": 1.08,
+    },
+    {
+        "name": "Winter Darkness",
+        "check": lambda d: d.month in (1, 2, 11, 12) and 17 <= d.hour <= 22,
+        "multiplier": 1.05,
+    },
+    {
+        "name": "Post-Noel",
+        "check": lambda d: d.month == 12 and 27 <= d.day <= 30,
+        "multiplier": 1.15,
+    },
+    {
+        "name": "8 Mars",
+        "check": lambda d: d.month == 3 and d.day == 8,
+        "multiplier": 1.08,
     },
     # Reducers
     {
@@ -174,6 +211,19 @@ SPECIAL_EVENTS = [
     },
 ]
 
+# ── Weather modifiers ────────────────────────────────────────────
+
+WEATHER_MODIFIERS = {
+    "clear": 0.95,
+    "clouds": 1.00,
+    "rain": 1.10,
+    "drizzle": 1.05,
+    "snow": 1.27,
+    "thunderstorm": 1.15,
+    "mist": 1.03,
+    "fog": 1.03,
+}
+
 # ── Helper: get Paris date parts ─────────────────────────────────
 
 def _get_paris_parts(dt: datetime) -> tuple[int, int, int]:
@@ -193,7 +243,11 @@ def _get_paris_parts(dt: datetime) -> tuple[int, int, int]:
 
 # ── Core scoring ─────────────────────────────────────────────────
 
-def compute_score(dt: Optional[datetime] = None, app: str = "tinder") -> dict:
+def compute_score(
+    dt: Optional[datetime] = None,
+    app: str = "tinder",
+    weather_condition: Optional[str] = None,
+) -> dict:
     """Compute the activity score for a given datetime and app.
 
     Returns dict with: score, hourly, weekly, monthly, event, event_multiplier
@@ -219,7 +273,14 @@ def compute_score(dt: Optional[datetime] = None, app: str = "tinder") -> dict:
                 event_multiplier = event["multiplier"]
                 event_name = event["name"]
 
-    raw = (hourly * weekly * monthly) / 10000 * event_multiplier
+    # Weather modifier
+    weather_mod = (
+        WEATHER_MODIFIERS.get(weather_condition, 1.0)
+        if weather_condition
+        else 1.0
+    )
+
+    raw = (hourly * weekly * monthly) / 10000 * event_multiplier * weather_mod
     score = min(100, max(0, round(raw)))
 
     return {

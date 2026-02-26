@@ -1,6 +1,10 @@
-// DatePulse V3 — Static lookup tables
+// DatePulse V3 — Static lookup tables (Feminine scoring model)
 // Sources: Adjust Benchmarks 2024, Sensor Tower FR Q1-Q4 2024/Q1 2025,
-//          data.ai Jan 2024, Tinder Year in Swipe, Hinge Blog, Bumble PR, Nielsen, Ogury
+//          data.ai Jan 2024, Tinder Year in Swipe, Hinge Blog, Bumble PR, Nielsen, Ogury,
+//          SwipeStats (gender split), Reincubate (F 25-34), BMC Psychology 2024,
+//          Sumter 2017, Hily Survey, OKCupid Weather Data, Hinge Storm Data
+
+import { getParisHour } from "./franceTime";
 
 /** Apps supported. */
 export const APPS = ["tinder", "bumble", "hinge", "happn"] as const;
@@ -8,23 +12,31 @@ export type AppName = (typeof APPS)[number];
 
 // ── Shared base indexes (used as Tinder baseline) ───────────────
 
-/** Hourly activity index (0-23h). Peak at 21h = 100. */
+/** Hourly activity index (0-23h). Peak at 20h = 100 (feminine model).
+ *  - 12-13h boost: ENNUI lunch break (BMC Psychology 2024)
+ *  - 18-20h peak: VALIDATION post-work (Sumter 2017) + Bumble PR
+ *  - 22-23h rapid decline: shorter F sessions (SwipeStats)
+ *  - 0-5h reduced: F open less at night (SwipeStats: 3779 vs 5646 opens) */
 export const HOURLY_INDEX: Record<number, number> = {
-  0: 8, 1: 5, 2: 5, 3: 5, 4: 5, 5: 5, 6: 10, 7: 15,
-  8: 25, 9: 28, 10: 30, 11: 35, 12: 42, 13: 45, 14: 40,
-  15: 28, 16: 25, 17: 30, 18: 55, 19: 70, 20: 85, 21: 100,
-  22: 75, 23: 45,
+  0: 6, 1: 4, 2: 3, 3: 3, 4: 3, 5: 4, 6: 8, 7: 12,
+  8: 20, 9: 22, 10: 25, 11: 32, 12: 45, 13: 48, 14: 40,
+  15: 22, 16: 22, 17: 30, 18: 62, 19: 85, 20: 100, 21: 92,
+  22: 65, 23: 35,
 };
 
-/** Weekly activity index (0=Sunday). Peak on Sunday = 100. */
+/** Weekly activity index (0=Sunday). Peak on Saturday = 100 (feminine model).
+ *  - Saturday 100: Reincubate (F 25-34 = Saturday peak 20h-00h)
+ *  - Sunday 90: drops from 100 (global peak driven by 76% male)
+ *  - Friday 65: up from 55 (FOMO SOLITUDE Friday night, Hily survey)
+ *  - Monday 82: VALIDATION fresh start (Sumter 2017) */
 export const WEEKLY_INDEX: Record<number, number> = {
-  0: 100, // Dimanche — pic
-  1: 90,  // Lundi
-  2: 75,  // Mardi
-  3: 75,  // Mercredi
-  4: 85,  // Jeudi
-  5: 55,  // Vendredi
-  6: 60,  // Samedi
+  0: 90,  // Dimanche
+  1: 82,  // Lundi
+  2: 68,  // Mardi
+  3: 65,  // Mercredi
+  4: 78,  // Jeudi
+  5: 65,  // Vendredi (was 55, up for FOMO)
+  6: 100, // Samedi — PIC FEMININ
 };
 
 /** Monthly activity index (0=January). Peak in January = 100.
@@ -51,70 +63,70 @@ export const MONTHLY_INDEX: Record<number, number> = {
 
 /** Per-app hourly indexes. */
 export const APP_HOURLY: Record<AppName, Record<number, number>> = {
-  // Tinder: baseline — peak 21h (Nielsen, Tinder Year in Swipe)
+  // Tinder: baseline — peak 20h (feminine model)
   tinder: HOURLY_INDEX,
 
-  // Bumble: women initiate → earlier evening peak (Bumble PR: pic 19-20h)
+  // Bumble: women-first → peak advanced to 19h (Bumble PR "pic 19-20h")
   bumble: {
-    0: 8, 1: 5, 2: 5, 3: 5, 4: 5, 5: 5, 6: 10, 7: 15,
-    8: 22, 9: 25, 10: 28, 11: 32, 12: 40, 13: 42, 14: 38,
-    15: 28, 16: 25, 17: 32, 18: 60, 19: 85, 20: 100, 21: 90,
-    22: 65, 23: 38,
+    0: 6, 1: 4, 2: 3, 3: 3, 4: 3, 5: 4, 6: 8, 7: 12,
+    8: 18, 9: 20, 10: 24, 11: 30, 12: 42, 13: 44, 14: 36,
+    15: 24, 16: 22, 17: 32, 18: 65, 19: 100, 20: 92, 21: 80,
+    22: 55, 23: 30,
   },
 
-  // Hinge: relationship-seekers → wider evening window (Hinge Blog: 19h-22h)
+  // Hinge: wide evening window 18-21h (Hinge Blog: 19h-22h), peak 20h
   hinge: {
-    0: 6, 1: 4, 2: 4, 3: 4, 4: 4, 5: 4, 6: 8, 7: 12,
-    8: 20, 9: 22, 10: 25, 11: 30, 12: 38, 13: 40, 14: 35,
-    15: 25, 16: 22, 17: 28, 18: 55, 19: 78, 20: 92, 21: 100,
-    22: 82, 23: 50,
+    0: 5, 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 6, 7: 10,
+    8: 18, 9: 20, 10: 22, 11: 28, 12: 40, 13: 42, 14: 35,
+    15: 22, 16: 20, 17: 28, 18: 58, 19: 82, 20: 100, 21: 95,
+    22: 75, 23: 42,
   },
 
-  // Happn: proximity-based → commute spikes (usage geolocalise, urbain)
+  // Happn: commute spikes maintained, evening advanced
   happn: {
-    0: 5, 1: 3, 2: 3, 3: 3, 4: 3, 5: 5, 6: 12, 7: 22,
-    8: 38, 9: 35, 10: 28, 11: 30, 12: 40, 13: 42, 14: 35,
-    15: 28, 16: 28, 17: 38, 18: 65, 19: 80, 20: 90, 21: 100,
-    22: 68, 23: 35,
+    0: 4, 1: 2, 2: 2, 3: 2, 4: 2, 5: 4, 6: 10, 7: 20,
+    8: 35, 9: 32, 10: 25, 11: 28, 12: 42, 13: 44, 14: 35,
+    15: 25, 16: 25, 17: 36, 18: 68, 19: 85, 20: 100, 21: 90,
+    22: 60, 23: 30,
   },
 };
 
 /** Per-app weekly indexes. */
 export const APP_WEEKLY: Record<AppName, Record<number, number>> = {
-  // Tinder: baseline — Sunday peak (Tinder Year in Swipe)
+  // Tinder: baseline — Saturday peak (feminine model)
   tinder: WEEKLY_INDEX,
 
-  // Bumble: Monday peak (Bumble PR: "Monday is busiest day"), women initiate fresh week
+  // Bumble: Monday stays dominant (women-first, validated), Saturday up
   bumble: {
-    0: 90,  // Dimanche
-    1: 100, // Lundi — pic Bumble
-    2: 85,  // Mardi
-    3: 75,  // Mercredi
-    4: 80,  // Jeudi
-    5: 55,  // Vendredi
-    6: 65,  // Samedi
-  },
-
-  // Hinge: Sunday dominant (relationship-seekers, "designed to be deleted")
-  hinge: {
-    0: 100, // Dimanche — pic fort
-    1: 85,  // Lundi
-    2: 72,  // Mardi
+    0: 85,  // Dimanche
+    1: 100, // Lundi — pic Bumble (validated PR)
+    2: 80,  // Mardi
     3: 70,  // Mercredi
-    4: 88,  // Jeudi — pre-weekend planning
-    5: 50,  // Vendredi
-    6: 55,  // Samedi
+    4: 75,  // Jeudi
+    5: 58,  // Vendredi
+    6: 90,  // Samedi (was 65, up FOMO + soirees)
   },
 
-  // Happn: weekday-heavy (proximity = commutes, urban movement)
+  // Hinge: Saturday dominates, Sunday close
+  hinge: {
+    0: 90,  // Dimanche
+    1: 80,  // Lundi
+    2: 68,  // Mardi
+    3: 65,  // Mercredi
+    4: 82,  // Jeudi (pre-weekend planning)
+    5: 52,  // Vendredi
+    6: 100, // Samedi — PIC FEMININ
+  },
+
+  // Happn: weekday urban + Saturday night
   happn: {
-    0: 75,  // Dimanche — moins de deplacement
-    1: 95,  // Lundi
-    2: 90,  // Mardi
-    3: 88,  // Mercredi
-    4: 100, // Jeudi — pic Happn (Ogury: spike jeudi)
-    5: 65,  // Vendredi
-    6: 60,  // Samedi
+    0: 72,  // Dimanche
+    1: 90,  // Lundi
+    2: 88,  // Mardi
+    3: 85,  // Mercredi
+    4: 95,  // Jeudi (pic Happn, Ogury)
+    5: 62,  // Vendredi
+    6: 100, // Samedi
   },
 };
 
@@ -153,35 +165,85 @@ export interface SpecialEvent {
 
 /** Special events that boost or reduce activity. */
 export const SPECIAL_EVENTS: SpecialEvent[] = [
-  // Boosters
+  // ── Adjusted boosters ──
   {
     name: "Dating Sunday",
     check: (d) => d.getMonth() === 0 && d.getDay() === 0 && d.getDate() <= 7,
-    multiplier: 1.35,
+    multiplier: 1.25, // down from 1.35 (F already active Saturday)
   },
   {
     name: "Nouvel An",
     check: (d) => d.getMonth() === 0 && d.getDate() >= 1 && d.getDate() <= 7,
-    multiplier: 1.25,
+    multiplier: 1.35, // up from 1.25 (SOLITUDE "New Year alone")
   },
   {
     name: "Pre-Saint-Valentin",
     check: (d) => d.getMonth() === 1 && d.getDate() >= 1 && d.getDate() <= 13,
-    multiplier: 1.20,
+    multiplier: 1.30, // up from 1.20 (social pressure F)
+  },
+  {
+    name: "Saint-Valentin",
+    check: (d) => d.getMonth() === 1 && d.getDate() === 14,
+    multiplier: 1.35, // peak SOLITUDE for singles
   },
   {
     name: "Rentree",
     check: (d) => d.getMonth() === 8 && d.getDate() >= 1 && d.getDate() <= 15,
-    multiplier: 1.10,
+    multiplier: 1.15, // up from 1.10 (F come back strong)
   },
   {
     name: "Cuffing Season",
     check: (d) =>
       (d.getMonth() === 9 && d.getDate() >= 15) ||
       d.getMonth() === 10,
-    multiplier: 1.10,
+    multiplier: 1.06, // down from 1.10 (F more selective, Hily: 17% vs 39%)
   },
-  // Reducers
+
+  // ── New psychological events ──
+  {
+    name: "Sunday Blues",
+    check: (d) => {
+      const h = getParisHour(d);
+      return d.getDay() === 0 && h >= 18 && h <= 22;
+    },
+    multiplier: 1.08,
+  },
+  {
+    name: "Vendredi FOMO",
+    check: (d) => {
+      const h = getParisHour(d);
+      return d.getDay() === 5 && h >= 20 && h <= 23;
+    },
+    multiplier: 1.12,
+  },
+  {
+    name: "Dimanche Ennui",
+    check: (d) => {
+      const h = getParisHour(d);
+      return d.getDay() === 0 && h >= 14 && h <= 17;
+    },
+    multiplier: 1.08,
+  },
+  {
+    name: "Winter Darkness",
+    check: (d) => {
+      const h = getParisHour(d);
+      return [0, 1, 10, 11].includes(d.getMonth()) && h >= 17 && h <= 22;
+    },
+    multiplier: 1.05,
+  },
+  {
+    name: "Post-Noel",
+    check: (d) => d.getMonth() === 11 && d.getDate() >= 27 && d.getDate() <= 30,
+    multiplier: 1.15,
+  },
+  {
+    name: "8 Mars",
+    check: (d) => d.getMonth() === 2 && d.getDate() === 8,
+    multiplier: 1.08,
+  },
+
+  // ── Reducers ──
   {
     name: "Noel",
     check: (d) => d.getMonth() === 11 && d.getDate() >= 24 && d.getDate() <= 26,
@@ -202,9 +264,22 @@ export const SPECIAL_EVENTS: SpecialEvent[] = [
     check: (d) =>
       (d.getMonth() === 6 && d.getDate() >= 1) ||
       (d.getMonth() === 7 && d.getDate() <= 20),
-    multiplier: 1.08, // Summer is a real peak (Adjust +14% Jul, +5% Aug)
+    multiplier: 1.08,
   },
 ];
+
+// ── Weather modifiers ───────────────────────────────────────────
+
+export const WEATHER_MODIFIERS: Record<string, number> = {
+  "clear": 0.95,      // beau temps = dehors, moins d'app
+  "clouds": 1.00,     // neutre
+  "rain": 1.10,       // ENNUI indoor (OKCupid data)
+  "drizzle": 1.05,    // leger
+  "snow": 1.27,       // ENNUI + SOLITUDE (Hinge data: +27% tempete)
+  "thunderstorm": 1.15,
+  "mist": 1.03,
+  "fog": 1.03,
+};
 
 // ── Pool Freshness Data ─────────────────────────────────────────
 // Sources: Adjust benchmarks 2023-2024 (installs % vs average),

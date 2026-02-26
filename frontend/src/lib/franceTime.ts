@@ -80,3 +80,14 @@ export function formatParisTime(date: Date): string {
     minute: "2-digit",
   });
 }
+
+/** Get the current hour (0-23) in Europe/Paris timezone. */
+export function getParisHour(date: Date): number {
+  return parseInt(
+    new Intl.DateTimeFormat("fr-FR", {
+      hour: "numeric",
+      hour12: false,
+      timeZone: PARIS_TIME_ZONE,
+    }).format(date)
+  );
+}

@@ -95,7 +95,7 @@ export default function Methodology() {
         <Section title="Principe general" delay={0.05}>
           <p className="text-gray-400">
             L'activite sur les apps de rencontre suit des patterns temporels
-            previsibles : les utilisateurs swipent plus le dimanche soir qu'un
+            previsibles : les utilisateurs swipent plus le samedi soir qu'un
             mardi matin. Ces patterns sont documentes par les apps elles-memes
             (publications officielles, blogs, RP) et par des cabinets d'analyse
             independants.
@@ -104,7 +104,7 @@ export default function Methodology() {
             DatePulse agrege ces donnees publiques et les traduit en un score
             0-100 calcule <strong className="text-white">100% cote client</strong>.
             Aucune donnee utilisateur n'est collectee, aucune API externe n'est
-            appelee. Le calcul est deterministe et reproductible.
+            appelee en temps reel. Le calcul est deterministe et reproductible.
           </p>
         </Section>
 
@@ -113,20 +113,20 @@ export default function Methodology() {
           <div className="rounded-lg border border-white/10 bg-white/[0.03] p-5">
             <code className="text-base font-semibold text-brand-400">
               score(t) = hourly[h] &times; weekly[d] &times; monthly[m] / 10 000
-              &times; event_multiplier
+              &times; event_multiplier &times; weather_modifier
             </code>
           </div>
           <p className="text-gray-400">
-            Le score combine 4 facteurs independants :
+            Le score combine 5 facteurs independants :
           </p>
           <ul className="list-inside list-disc space-y-1 text-gray-400">
             <li>
               <strong className="text-gray-200">Indice horaire (0-100)</strong>{" "}
-              — pic a 21h, creux entre 1h-5h
+              — pic a 20h, creux entre 1h-5h
             </li>
             <li>
               <strong className="text-gray-200">Indice journalier (0-100)</strong>{" "}
-              — pic le dimanche, creux le vendredi
+              — pic le samedi, creux le vendredi
             </li>
             <li>
               <strong className="text-gray-200">Indice mensuel (0-100)</strong>{" "}
@@ -134,7 +134,11 @@ export default function Methodology() {
             </li>
             <li>
               <strong className="text-gray-200">Multiplicateur evenementiel</strong>{" "}
-              — boost ou reduction pour les periodes speciales
+              — boost ou reduction pour les periodes speciales et patterns psychologiques
+            </li>
+            <li>
+              <strong className="text-gray-200">Modificateur meteo</strong>{" "}
+              — ajustement leger base sur les conditions a Paris (pluie, neige = plus d'activite)
             </li>
           </ul>
           <p className="text-gray-400">
@@ -146,20 +150,15 @@ export default function Methodology() {
         {/* ── Sources per factor ─────────────────────────── */}
         <Section title="Sources de donnees" delay={0.15}>
           <h3 className="font-semibold text-gray-200">
-            Indice horaire — Pic d'activite dans la soiree
+            Indice horaire — Pic d'activite en soiree
           </h3>
           <Table
             headers={["Source", "Donnee cle", "Impact"]}
             rows={[
               [
-                "Tinder Year in Swipe (2023)",
-                "Pic d'activite a 21h",
-                "Baseline Tinder : 21h = 100",
-              ],
-              [
-                "Nielsen Mobile Panel",
-                "Duree moyenne de session par tranche horaire",
-                "Confirme le pic 20h-22h tous apps confondus",
+                "SwipeStats.io (gender split)",
+                "Sessions F plus courtes, pic plus tot, nuit reduite",
+                "Pic avance a 20h, nuit 0-5h reduite de 25-40%",
               ],
               [
                 "Bumble PR Blog",
@@ -172,6 +171,21 @@ export default function Methodology() {
                 "Hinge : fenetre elargie 19h-22h",
               ],
               [
+                "Reincubate (F 25-34 UK)",
+                "Pic samedi 20h-00h pour les femmes 25-34",
+                "Confirme le pic 20h pour le segment cible",
+              ],
+              [
+                "BMC Psychology 2024",
+                "Ennui comme moteur d'utilisation des apps",
+                "Boost lunch 12-13h (+7% vs global)",
+              ],
+              [
+                "Sumter et al. 2017",
+                "Validation-seeking post-travail",
+                "Pic 18-20h (post-work validation)",
+              ],
+              [
                 "Ogury (2023)",
                 "Usage geo-localise, pics aux heures de trajet",
                 "Happn : pics 8h et 18h (trajets domicile-travail)",
@@ -180,15 +194,15 @@ export default function Methodology() {
           />
 
           <h3 className="mt-6 font-semibold text-gray-200">
-            Indice journalier — Le dimanche domine
+            Indice journalier — Le samedi domine
           </h3>
           <Table
             headers={["Source", "Donnee cle", "Impact"]}
             rows={[
               [
-                "Tinder Year in Swipe",
-                "Dimanche = jour avec le plus de swipes",
-                "Tinder/Hinge : dimanche = 100",
+                "Reincubate (F 25-34)",
+                "Samedi = jour avec le plus d'activite feminine",
+                "Tinder/Hinge : samedi = 100",
               ],
               [
                 "Bumble PR",
@@ -198,12 +212,17 @@ export default function Methodology() {
               [
                 "Ogury France (2023)",
                 "\"Spike on Thursday for Happn\"",
-                "Happn : jeudi = 100 (deplacements urbains)",
+                "Happn : jeudi = 95 (deplacements urbains)",
+              ],
+              [
+                "Hily Survey",
+                "FOMO solitude le vendredi soir",
+                "Vendredi remonte a 65 (vs 55 global)",
               ],
               [
                 "SwipeStats.io",
                 "Vendredi/samedi = creux (sorties IRL)",
-                "Tous apps : vendredi-samedi = indices les plus bas",
+                "Vendredi reste le jour le plus bas pour la plupart des apps",
               ],
             ]}
           />
@@ -243,7 +262,7 @@ export default function Methodology() {
           />
 
           <h3 className="mt-6 font-semibold text-gray-200">
-            Evenements speciaux
+            Evenements speciaux et patterns psychologiques
           </h3>
           <Table
             headers={["Evenement", "Periode", "Effet", "Source"]}
@@ -251,20 +270,32 @@ export default function Methodology() {
               [
                 "Dating Sunday",
                 "1er dimanche de janvier",
-                "+35%",
+                "+25%",
                 "Tinder/Bumble/Hinge PR (concordant)",
               ],
               [
                 "Nouvel An",
                 "1-7 janvier",
-                "+25%",
-                "Adjust : pic d'installations debut janvier",
+                "+35%",
+                "Adjust : pic d'installations + solitude post-fetes",
               ],
               [
                 "Pre-Saint-Valentin",
                 "1-13 fevrier",
-                "+20%",
-                "Sensor Tower : spike downloads pre-14 fev",
+                "+30%",
+                "Sensor Tower + pression sociale accrue",
+              ],
+              [
+                "Saint-Valentin",
+                "14 fevrier",
+                "+35%",
+                "Pic de solitude pour les celibataires",
+              ],
+              [
+                "8 Mars",
+                "8 mars",
+                "+8%",
+                "Effet social / empowerment",
               ],
               [
                 "Pic Ete",
@@ -275,14 +306,44 @@ export default function Methodology() {
               [
                 "Rentree",
                 "1-15 septembre",
-                "+10%",
+                "+15%",
                 "Sensor Tower FR : rebond post-vacances",
               ],
               [
                 "Cuffing Season",
                 "15 oct - 30 nov",
-                "+10%",
-                "Adjust : +6% oct, tendance US/EU confirmee",
+                "+6%",
+                "Adjust + Hily (selectivite accrue)",
+              ],
+              [
+                "Sunday Blues",
+                "Dimanche 18h-22h",
+                "+8%",
+                "PMC 2024 : solitude fin de weekend",
+              ],
+              [
+                "Vendredi FOMO",
+                "Vendredi 20h-23h",
+                "+12%",
+                "Hily survey : solitude sans plans",
+              ],
+              [
+                "Dimanche Ennui",
+                "Dimanche 14h-17h",
+                "+8%",
+                "BMC Psychology 2024 : ennui apres-midi",
+              ],
+              [
+                "Winter Darkness",
+                "Nov-Fev, 17h-22h",
+                "+5%",
+                "Hily : 60% prefere automne/hiver",
+              ],
+              [
+                "Post-Noel",
+                "27-30 decembre",
+                "+15%",
+                "Solitude post-fetes familiales",
               ],
               [
                 "Noel",
@@ -304,6 +365,27 @@ export default function Methodology() {
               ],
             ]}
           />
+
+          <h3 className="mt-6 font-semibold text-gray-200">
+            Modificateur meteo
+          </h3>
+          <p className="text-gray-400">
+            Les conditions meteorologiques a Paris influencent l'utilisation des
+            apps. Par mauvais temps, les gens restent chez eux et ouvrent plus
+            les apps de rencontre.
+          </p>
+          <Table
+            headers={["Condition", "Modificateur", "Source"]}
+            rows={[
+              ["Beau temps", "x0.95 (-5%)", "Dehors, moins d'app"],
+              ["Couvert", "x1.00 (neutre)", "Baseline"],
+              ["Bruine", "x1.05 (+5%)", "Leger effet indoor"],
+              ["Pluie", "x1.10 (+10%)", "OKCupid : activite accrue par temps de pluie"],
+              ["Orage", "x1.15 (+15%)", "Effet indoor renforce"],
+              ["Neige / tempete", "x1.27 (+27%)", "Hinge : +27% lors des tempetes de neige"],
+              ["Brouillard", "x1.03 (+3%)", "Leger effet indoor"],
+            ]}
+          />
         </Section>
 
         {/* ── Per-app calibration ────────────────────────── */}
@@ -318,29 +400,29 @@ export default function Methodology() {
             rows={[
               [
                 "Tinder",
-                "21h",
-                "Dimanche",
+                "20h",
+                "Samedi",
                 "Janvier",
                 "Baseline — le plus documente",
               ],
               [
                 "Bumble",
-                "19-20h",
+                "19h",
                 "Lundi",
                 "Fevrier",
-                "Les femmes initient — pic plus tot dans la soiree et la semaine",
+                "Les femmes initient — pic plus tot dans la soiree",
               ],
               [
                 "Hinge",
-                "19-22h",
-                "Dimanche",
+                "20h",
+                "Samedi",
                 "Fevrier / Aout",
-                "\"Designed to be deleted\" — utilisateurs plus engages",
+                "\"Designed to be deleted\" — fenetre large 18-22h",
               ],
               [
                 "Happn",
-                "8h + 18h",
-                "Jeudi",
+                "20h",
+                "Samedi / Jeudi",
                 "Janvier",
                 "Proximite = pics aux heures de trajet urbain",
               ],
@@ -436,6 +518,12 @@ export default function Methodology() {
               donnees sectorielles (20-30% MoM), pas de chiffres exacts par app.
             </li>
             <li>
+              <strong className="text-gray-200">Meteo limitee a Paris</strong>{" "}
+              — Le modificateur meteo utilise les conditions actuelles a Paris.
+              Il n'est pas disponible pour les autres villes et n'affecte que le
+              score en temps reel (pas la heatmap ni les meilleurs creneaux).
+            </li>
+            <li>
               <strong className="text-gray-200">Modele statique</strong>{" "}
               — Les tables ne sont pas mises a jour en temps reel. Elles sont
               recalibrees periodiquement quand de nouvelles publications sortent.
@@ -454,7 +542,14 @@ export default function Methodology() {
             <li>Bumble — Press Releases: Busiest Days and Times (2023-2024)</li>
             <li>Nielsen — Mobile Panel: Dating App Session Duration (2023)</li>
             <li>Ogury — Mobile Journey: Dating Apps in France (2023)</li>
-            <li>SwipeStats.io — Anonymized Tinder Usage Data (2022-2024)</li>
+            <li>SwipeStats.io — Anonymized Tinder Usage Data, Gender Split (2022-2024)</li>
+            <li>Reincubate — Dating App Usage by Age and Gender (UK, 2023)</li>
+            <li>BMC Psychology 2024 — Boredom as a Driver of Dating App Usage</li>
+            <li>Sumter et al. 2017 — Love Me Tinder: Motivations for Using Dating Apps</li>
+            <li>Hily — Dating Trends Survey: Seasonal Preferences (2024)</li>
+            <li>OKCupid — Weather and Messaging Activity Data</li>
+            <li>Hinge — Storm Data: Snow Day Effect on App Activity (+27%)</li>
+            <li>Tyson et al. 2016 — A First Look at User Activity on Tinder</li>
           </ul>
         </Section>
       </main>

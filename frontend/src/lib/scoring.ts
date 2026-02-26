@@ -6,6 +6,7 @@ import {
   DAY_NAMES_FULL,
   MONTHLY_INSTALLS,
   MONTHLY_CHURN,
+  WEATHER_MODIFIERS,
 } from "./data";
 import type { AppName, PoolFreshnessData } from "./data";
 import { getParisDateParts } from "./franceTime";
@@ -48,7 +49,8 @@ export interface BestTimeSlot {
 /** Compute the activity score for a given date and app. */
 export function computeScore(
   date: Date = new Date(),
-  app: AppName = "tinder"
+  app: AppName = "tinder",
+  weatherCondition?: string
 ): ScoreResult {
   const { hour, day, month } = getParisDateParts(date);
 
@@ -71,7 +73,12 @@ export function computeScore(
     }
   }
 
-  const raw = (hourly * weekly * monthly) / 10000 * eventMultiplier;
+  // Weather modifier
+  const weatherMod = weatherCondition
+    ? (WEATHER_MODIFIERS[weatherCondition] ?? 1.0)
+    : 1.0;
+
+  const raw = (hourly * weekly * monthly) / 10000 * eventMultiplier * weatherMod;
   const score = Math.min(100, Math.max(0, Math.round(raw)));
 
   return { score, hourly, weekly, monthly, event: eventName, eventMultiplier };

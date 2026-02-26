@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { computeScore } from "../lib/scoring";
 import type { ScoreResult } from "../lib/scoring";
+import { WEATHER_MODIFIERS } from "../lib/data";
 import type { AppName } from "../lib/data";
 import { formatParisDay, formatParisTime } from "../lib/franceTime";
 import ScoreGauge from "../components/ScoreGauge";
@@ -16,6 +17,18 @@ import MatchTrackerInline from "../components/MatchTrackerInline";
 const TRIGGER_URL = "http://localhost:5555/trigger";
 const SWIPEABLE_APPS = new Set(["tinder", "bumble"]);
 
+const WEATHER_EMOJI: Record<string, string> = {
+  clear: "\u2600\uFE0F", clouds: "\u2601\uFE0F", rain: "\uD83C\uDF27\uFE0F",
+  drizzle: "\uD83C\uDF26\uFE0F", snow: "\u2744\uFE0F", thunderstorm: "\u26C8\uFE0F",
+  mist: "\uD83C\uDF2B\uFE0F", fog: "\uD83C\uDF2B\uFE0F",
+};
+
+const WEATHER_LABEL_FR: Record<string, string> = {
+  clear: "Ensoleille", clouds: "Couvert", rain: "Pluie",
+  drizzle: "Bruine", snow: "Neige", thunderstorm: "Orage",
+  mist: "Brume", fog: "Brouillard",
+};
+
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -25,11 +38,26 @@ export default function Home() {
   const [now, setNow] = useState(new Date());
   const [result, setResult] = useState<ScoreResult>(() => computeScore(new Date(), "tinder"));
   const [triggerStatus, setTriggerStatus] = useState<"idle" | "launching" | "ok" | "error">("idle");
+  const [weatherData, setWeatherData] = useState<{ condition: string; temp: number } | null>(null);
+
+  // Fetch weather data
+  useEffect(() => {
+    fetch("/weather.json")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.condition) setWeatherData({ condition: data.condition, temp: data.temp ?? 0 });
+      })
+      .catch(() => {});
+  }, []);
 
   // Recompute when app changes
   useEffect(() => {
-    setResult(computeScore(now, app));
-  }, [app, now]);
+    setResult(computeScore(now, app, weatherData?.condition));
+  }, [app, now, weatherData]);
+
+  // Weather display values
+  const weatherMod = weatherData ? (WEATHER_MODIFIERS[weatherData.condition] ?? 1) : 1;
+  const weatherPct = Math.round((weatherMod - 1) * 100);
 
   // Refresh every minute
   useEffect(() => {
@@ -82,6 +110,23 @@ export default function Home() {
             >
               {capitalize(app)} — {formatParisDay(now)} — {formatParisTime(now)} (heure de Paris)
             </motion.p>
+            {weatherData && (
+              <motion.div
+                className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs sm:text-sm"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.18 }}
+              >
+                <span>{WEATHER_EMOJI[weatherData.condition] ?? "\u2601\uFE0F"}</span>
+                <span className="text-gray-400">
+                  Paris {weatherData.temp}&deg;C &middot; {WEATHER_LABEL_FR[weatherData.condition] ?? weatherData.condition}
+                </span>
+                <span className="text-gray-600">|</span>
+                <span className={weatherPct > 0 ? "text-green-400" : weatherPct < 0 ? "text-amber-400" : "text-gray-500"}>
+                  {weatherPct === 0 ? "Impact neutre" : `${weatherPct > 0 ? "+" : ""}${weatherPct}% sur le score`}
+                </span>
+              </motion.div>
+            )}
             <ScoreGauge score={result.score} />
             <ScoreLabel score={result.score} event={result.event} app={app} now={now} />
             <CountdownNext app={app} />
