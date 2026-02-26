@@ -50,37 +50,47 @@ export default function Home() {
   const [now, setNow] = useState(new Date());
   const [result, setResult] = useState<ScoreResult>(() => computeScore(new Date(), "tinder"));
   const [triggerStatus, setTriggerStatus] = useState<"idle" | "launching" | "ok" | "error">("idle");
-  const [weatherData, setWeatherData] = useState<{ condition: string; temp: number } | null>(null);
+  const [weatherData, setWeatherData] = useState<{ condition: string; temp: number } | null>(() => {
+    try {
+      const cached = localStorage.getItem("dp_weather");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Date.now() - parsed.ts < 30 * 60_000) return parsed.data;
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
 
-  // Fetch weather: try wttr.in real-time, fallback to static /weather.json
+  // Fetch weather: instant from cache, refresh from wttr.in in background
   useEffect(() => {
     let cancelled = false;
-    async function fetchWeather() {
+    async function refreshWeather() {
       try {
-        const res = await fetch("https://wttr.in/Paris?format=j1", { signal: AbortSignal.timeout(5000) });
+        const res = await fetch("https://wttr.in/Paris?format=j1", { signal: AbortSignal.timeout(4000) });
         if (!res.ok) throw new Error("wttr.in error");
-        const data = await res.json();
-        const current = data?.current_condition?.[0];
+        const json = await res.json();
+        const current = json?.current_condition?.[0];
         if (current && !cancelled) {
-          setWeatherData({
-            condition: mapWeatherCode(Number(current.weatherCode)),
-            temp: Number(current.temp_C),
-          });
-          return;
+          const data = { condition: mapWeatherCode(Number(current.weatherCode)), temp: Number(current.temp_C) };
+          setWeatherData(data);
+          localStorage.setItem("dp_weather", JSON.stringify({ data, ts: Date.now() }));
         }
-      } catch { /* fallback below */ }
-      // Fallback: static weather.json
-      try {
-        const res = await fetch("/weather.json");
-        const data = await res.json();
-        if (data?.condition && !cancelled) {
-          setWeatherData({ condition: data.condition, temp: data.temp ?? 0 });
+      } catch {
+        // If no cache, try static fallback
+        if (!weatherData) {
+          try {
+            const res = await fetch("/weather.json");
+            const json = await res.json();
+            if (json?.condition && !cancelled) {
+              setWeatherData({ condition: json.condition, temp: json.temp ?? 0 });
+            }
+          } catch { /* no weather */ }
         }
-      } catch { /* no weather data available */ }
+      }
     }
-    fetchWeather();
+    refreshWeather();
     return () => { cancelled = true; };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Recompute when app changes
   useEffect(() => {
