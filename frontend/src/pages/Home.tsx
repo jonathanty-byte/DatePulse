@@ -131,18 +131,23 @@ export default function Home() {
       <section className="px-4 py-8 sm:py-12">
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
-            {/* Heatmap (2/3) */}
-            <motion.div
-              className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-6 lg:col-span-2"
-              initial={{ opacity: 0, y: 20, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
-              <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-white">
-                Activite de la semaine — {capitalize(app)}
-              </h2>
-              <HeatmapWeek now={now} app={app} />
-            </motion.div>
+            {/* Left column: Heatmap + Match Tracker */}
+            <div className="flex flex-col gap-4 sm:gap-6 lg:col-span-2">
+              <motion.div
+                className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-6"
+                initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+              >
+                <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-white">
+                  Activite de la semaine — {capitalize(app)}
+                </h2>
+                <HeatmapWeek now={now} app={app} />
+              </motion.div>
+
+              {/* Match Tracker — directly below heatmap */}
+              <MatchTrackerInline currentApp={app} />
+            </div>
 
             {/* Right column: Best times + Pool freshness */}
             <div className="flex flex-col gap-4 sm:gap-6">
@@ -161,11 +166,6 @@ export default function Home() {
               {/* Pool freshness */}
               <PoolFreshness now={now} />
             </div>
-          </div>
-
-          {/* Match Tracker — full width below the grid */}
-          <div className="mt-4 sm:mt-6">
-            <MatchTrackerInline currentApp={app} />
           </div>
         </div>
       </section>
