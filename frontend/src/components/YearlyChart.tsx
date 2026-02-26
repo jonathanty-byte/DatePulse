@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   AreaChart,
@@ -40,26 +40,25 @@ interface YearlyChartProps {
   now?: Date;
 }
 
-/** Custom tooltip styled for dark theme. */
+/** Custom tooltip styled for dark theme — only shows selected apps. */
 function ChartTooltip({
   active,
   payload,
   label,
-  selectedApp,
+  selectedApps,
 }: {
   active?: boolean;
   payload?: Array<{ dataKey: string; value: number; color: string }>;
   label?: string;
-  selectedApp: AppName;
+  selectedApps: Set<AppName>;
 }) {
   if (!active || !payload?.length) return null;
 
-  // Sort: selected app first, then by value desc
-  const sorted = [...payload].sort((a, b) => {
-    if (a.dataKey === selectedApp) return -1;
-    if (b.dataKey === selectedApp) return 1;
-    return b.value - a.value;
-  });
+  const visible = payload.filter((e) => selectedApps.has(e.dataKey as AppName));
+  if (!visible.length) return null;
+
+  // Sort by value desc
+  const sorted = [...visible].sort((a, b) => b.value - a.value);
 
   return (
     <div className="rounded-xl border border-white/10 bg-gray-900/95 px-3 py-2.5 shadow-xl backdrop-blur-sm">
@@ -67,21 +66,16 @@ function ChartTooltip({
       {sorted.map((entry) => (
         <div
           key={entry.dataKey}
-          className={`flex items-center gap-2 text-xs ${
-            entry.dataKey === selectedApp ? "font-semibold" : "text-gray-500"
-          }`}
+          className="flex items-center gap-2 text-xs font-medium"
         >
           <span
             className="inline-block h-2 w-2 rounded-full"
             style={{ backgroundColor: entry.color }}
           />
-          <span style={{ color: entry.dataKey === selectedApp ? entry.color : undefined }}>
+          <span style={{ color: entry.color }}>
             {APP_LABELS[entry.dataKey as AppName]}
           </span>
-          <span
-            className="ml-auto tabular-nums"
-            style={{ color: entry.dataKey === selectedApp ? "#fff" : undefined }}
-          >
+          <span className="ml-auto tabular-nums text-white">
             {entry.value}
           </span>
         </div>
@@ -90,34 +84,34 @@ function ChartTooltip({
   );
 }
 
-/** Custom active dot with pulse animation for current month. */
-function ActiveMonthDot({
+/** Pulsing dot on current month for each selected app. */
+function CurrentMonthDot({
   cx,
   cy,
-  dataKey,
   index,
   currentMonth,
-  selectedApp,
+  appName,
+  isSelected,
 }: {
   cx?: number;
   cy?: number;
-  dataKey?: string;
   index?: number;
   currentMonth: number;
-  selectedApp: AppName;
+  appName: AppName;
+  isSelected: boolean;
 }) {
   if (
+    !isSelected ||
     index !== currentMonth ||
-    dataKey !== selectedApp ||
     cx === undefined ||
     cy === undefined
   )
     return null;
 
+  const color = APP_COLORS[appName];
   return (
     <g>
-      {/* Pulse ring */}
-      <circle cx={cx} cy={cy} r={10} fill={APP_COLORS[selectedApp]} opacity={0.15}>
+      <circle cx={cx} cy={cy} r={10} fill={color} opacity={0.15}>
         <animate
           attributeName="r"
           values="6;12;6"
@@ -131,12 +125,11 @@ function ActiveMonthDot({
           repeatCount="indefinite"
         />
       </circle>
-      {/* Solid dot */}
       <circle
         cx={cx}
         cy={cy}
         r={5}
-        fill={APP_COLORS[selectedApp]}
+        fill={color}
         stroke="#0a0a0a"
         strokeWidth={2}
       />
@@ -145,6 +138,36 @@ function ActiveMonthDot({
 }
 
 export default function YearlyChart({ app, now }: YearlyChartProps) {
+  // Multi-select state: initialized with only the current app from the main selector
+  const [selectedApps, setSelectedApps] = useState<Set<AppName>>(
+    () => new Set([app])
+  );
+
+  // When the main app selector changes, ensure it's always in the selection
+  // (add it if not present, but don't remove others)
+  useMemo(() => {
+    setSelectedApps((prev) => {
+      if (prev.has(app)) return prev;
+      const next = new Set(prev);
+      next.add(app);
+      return next;
+    });
+  }, [app]);
+
+  const toggleApp = useCallback((a: AppName) => {
+    setSelectedApps((prev) => {
+      const next = new Set(prev);
+      if (next.has(a)) {
+        // Don't allow deselecting the last one
+        if (next.size <= 1) return prev;
+        next.delete(a);
+      } else {
+        next.add(a);
+      }
+      return next;
+    });
+  }, []);
+
   const currentMonth = useMemo(() => {
     const paris = getParisDateParts(now ?? new Date());
     return paris.month;
@@ -169,27 +192,35 @@ export default function YearlyChart({ app, now }: YearlyChartProps) {
       transition={{ delay: 0.35, duration: 0.5 }}
     >
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-2 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-base font-semibold text-white sm:text-lg">
           Activite sur l'annee
         </h2>
 
-        {/* Legend */}
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          {APPS.map((a) => (
-            <div
-              key={a}
-              className={`flex items-center gap-1.5 text-xs transition-opacity duration-300 ${
-                a === app ? "opacity-100" : "opacity-40"
-              }`}
-            >
-              <span
-                className="inline-block h-2 w-2 rounded-full"
-                style={{ backgroundColor: APP_COLORS[a] }}
-              />
-              <span className="text-gray-300">{APP_LABELS[a]}</span>
-            </div>
-          ))}
+        {/* Interactive legend — toggle chips */}
+        <div className="flex flex-wrap gap-2">
+          {APPS.map((a) => {
+            const isActive = selectedApps.has(a);
+            return (
+              <button
+                key={a}
+                onClick={() => toggleApp(a)}
+                className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200 ${
+                  isActive
+                    ? "border-white/20 bg-white/[0.08] text-white"
+                    : "border-white/5 bg-transparent text-gray-500 hover:border-white/10 hover:text-gray-400"
+                }`}
+              >
+                <span
+                  className={`inline-block h-2 w-2 rounded-full transition-opacity duration-200 ${
+                    isActive ? "opacity-100" : "opacity-30"
+                  }`}
+                  style={{ backgroundColor: APP_COLORS[a] }}
+                />
+                {APP_LABELS[a]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -200,7 +231,7 @@ export default function YearlyChart({ app, now }: YearlyChartProps) {
             data={chartData}
             margin={{ top: 8, right: 4, left: -20, bottom: 0 }}
           >
-            {/* Gradient definitions */}
+            {/* Gradient definitions — dynamic opacity based on selection */}
             <defs>
               {APPS.map((a) => (
                 <linearGradient
@@ -214,7 +245,7 @@ export default function YearlyChart({ app, now }: YearlyChartProps) {
                   <stop
                     offset="0%"
                     stopColor={APP_COLORS[a]}
-                    stopOpacity={a === app ? 0.25 : 0.05}
+                    stopOpacity={selectedApps.has(a) ? 0.2 : 0.02}
                   />
                   <stop
                     offset="100%"
@@ -254,61 +285,56 @@ export default function YearlyChart({ app, now }: YearlyChartProps) {
             />
 
             <Tooltip
-              content={
-                <ChartTooltip selectedApp={app} />
-              }
+              content={<ChartTooltip selectedApps={selectedApps} />}
               cursor={{
                 stroke: "rgba(255,255,255,0.06)",
                 strokeWidth: 1,
               }}
             />
 
-            {/* Ghost curves (non-selected apps) — rendered first (behind) */}
-            {APPS.filter((a) => a !== app).map((a) => (
-              <Area
-                key={a}
-                type="monotone"
-                dataKey={a}
-                stroke={APP_COLORS[a]}
-                strokeWidth={1.5}
-                strokeOpacity={0.15}
-                fill={`url(#gradient-${a})`}
-                fillOpacity={1}
-                dot={false}
-                activeDot={false}
-                animationDuration={800}
-                animationBegin={200}
-              />
-            ))}
-
-            {/* Selected app curve — rendered last (on top) */}
-            <Area
-              type="monotone"
-              dataKey={app}
-              stroke={APP_COLORS[app]}
-              strokeWidth={2.5}
-              fill={`url(#gradient-${app})`}
-              fillOpacity={1}
-              dot={(props: Record<string, unknown>) => (
-                <ActiveMonthDot
-                  key={`dot-${props.index}`}
-                  cx={props.cx as number}
-                  cy={props.cy as number}
-                  dataKey={app}
-                  index={props.index as number}
-                  currentMonth={currentMonth}
-                  selectedApp={app}
+            {/* Render all 4 curves — style depends on selection state */}
+            {APPS.map((a) => {
+              const isActive = selectedApps.has(a);
+              return (
+                <Area
+                  key={a}
+                  type="monotone"
+                  dataKey={a}
+                  stroke={APP_COLORS[a]}
+                  strokeWidth={isActive ? 2.5 : 1}
+                  strokeOpacity={isActive ? 1 : 0.1}
+                  fill={`url(#gradient-${a})`}
+                  fillOpacity={1}
+                  dot={
+                    isActive
+                      ? (props: Record<string, unknown>) => (
+                          <CurrentMonthDot
+                            key={`dot-${a}-${props.index}`}
+                            cx={props.cx as number}
+                            cy={props.cy as number}
+                            index={props.index as number}
+                            currentMonth={currentMonth}
+                            appName={a}
+                            isSelected={isActive}
+                          />
+                        )
+                      : false
+                  }
+                  activeDot={
+                    isActive
+                      ? {
+                          r: 4,
+                          stroke: APP_COLORS[a],
+                          strokeWidth: 2,
+                          fill: "#0a0a0a",
+                        }
+                      : false
+                  }
+                  animationDuration={800}
+                  animationBegin={100}
                 />
-              )}
-              activeDot={{
-                r: 4,
-                stroke: APP_COLORS[app],
-                strokeWidth: 2,
-                fill: "#0a0a0a",
-              }}
-              animationDuration={800}
-              animationBegin={100}
-            />
+              );
+            })}
           </AreaChart>
         </ResponsiveContainer>
       </div>
