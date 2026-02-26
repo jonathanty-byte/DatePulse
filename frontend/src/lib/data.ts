@@ -107,14 +107,14 @@ export const APP_WEEKLY: Record<AppName, Record<number, number>> = {
     6: 90,  // Samedi (was 65, up FOMO + soirees)
   },
 
-  // Hinge: Saturday dominates, Sunday close
+  // Hinge: Saturday dominates, Sunday close. Fri not lowest (date planning).
   hinge: {
     0: 90,  // Dimanche
     1: 80,  // Lundi
     2: 68,  // Mardi
     3: 65,  // Mercredi
     4: 82,  // Jeudi (pre-weekend planning)
-    5: 52,  // Vendredi
+    5: 62,  // Vendredi (was 52, raised: date planning for weekend)
     6: 100, // Samedi — PIC FEMININ
   },
 
@@ -136,16 +136,18 @@ export const APP_MONTHLY: Record<AppName, Record<number, number>> = {
   // Tinder: baseline (Adjust global benchmarks, aligned with Sensor Tower FR)
   tinder: MONTHLY_INDEX,
 
-  // Bumble: Feb Valentine spike, March secondary peak (Sensor Tower FR: 37K mid-March)
+  // Bumble: Jan peak like all apps. Feb NOT inflated (Valentine handled by SPECIAL_EVENTS).
+  // Summer stable (Sensor Tower FR: Bumble maintains engagement through women-first model).
   bumble: {
-    0: 90, 1: 100, 2: 88, 3: 72, 4: 68, 5: 62,
-    6: 60, 7: 55, 8: 75, 9: 80, 10: 82, 11: 65,
+    0: 100, 1: 78, 2: 72, 3: 68, 4: 80, 5: 70,
+    6: 82, 7: 75, 8: 78, 9: 82, 10: 80, 11: 62,
   },
 
-  // Hinge: strong growth, Feb + Aug peaks (Sensor Tower FR: rising through 2025)
+  // Hinge: Jan peak. Feb NOT inflated (Valentine handled by SPECIAL_EVENTS).
+  // Growth trend through 2025 (Sensor Tower FR), Aug moderate not peak.
   hinge: {
-    0: 88, 1: 100, 2: 82, 3: 70, 4: 68, 5: 65,
-    6: 78, 7: 90, 8: 80, 9: 85, 10: 82, 11: 72,
+    0: 100, 1: 76, 2: 70, 3: 66, 4: 72, 5: 68,
+    6: 82, 7: 78, 8: 76, 9: 85, 10: 82, 11: 68,
   },
 
   // Happn: less seasonal (proximity year-round), Jan peak + summer stable (Sensor Tower FR: 615-643K MAU stable)
@@ -167,14 +169,14 @@ export interface SpecialEvent {
 export const SPECIAL_EVENTS: SpecialEvent[] = [
   // ── Adjusted boosters ──
   {
-    name: "Dating Sunday",
-    check: (d) => d.getMonth() === 0 && d.getDay() === 0 && d.getDate() <= 7,
-    multiplier: 1.25, // down from 1.35 (F already active Saturday)
+    name: "Nouvel An",
+    check: (d) => d.getMonth() === 0 && d.getDate() >= 1 && d.getDate() <= 5,
+    multiplier: 1.35, // SOLITUDE "New Year alone" — narrowed to 1-5 Jan
   },
   {
-    name: "Nouvel An",
-    check: (d) => d.getMonth() === 0 && d.getDate() >= 1 && d.getDate() <= 7,
-    multiplier: 1.35, // up from 1.25 (SOLITUDE "New Year alone")
+    name: "Dating Sunday",
+    check: (d) => d.getMonth() === 0 && d.getDay() === 0 && d.getDate() >= 5 && d.getDate() <= 14,
+    multiplier: 1.25, // First or second Sunday of Jan (after Nouvel An fades)
   },
   {
     name: "Pre-Saint-Valentin",
