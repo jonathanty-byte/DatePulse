@@ -13,6 +13,7 @@ import BestTimes from "../components/BestTimes";
 import CountdownNext from "../components/CountdownNext";
 import PoolFreshness from "../components/PoolFreshness";
 import MatchTrackerInline from "../components/MatchTrackerInline";
+import YearlyChart from "../components/YearlyChart";
 
 const TRIGGER_URL = "http://localhost:5555/trigger";
 const SWIPEABLE_APPS = new Set(["tinder", "bumble"]);
@@ -254,6 +255,13 @@ export default function Home() {
               <PoolFreshness now={now} />
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── Yearly activity chart ────────────────────── */}
+      <section className="px-4 py-2 sm:py-4">
+        <div className="mx-auto max-w-6xl">
+          <YearlyChart app={app} now={now} />
         </div>
       </section>
 
