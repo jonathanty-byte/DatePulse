@@ -212,8 +212,34 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Methodology teaser ───────────────────────── */}
+      {/* ── Match Tracker teaser ────────────────────── */}
       <section className="px-4 py-8 sm:py-12">
+        <motion.div
+          className="mx-auto max-w-2xl rounded-2xl border border-brand-500/20 bg-gradient-to-br from-brand-900/30 to-gray-900 p-6 sm:p-8 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          whileHover={{ borderColor: "rgba(236,72,153,0.3)" }}
+        >
+          <h2 className="text-lg sm:text-xl font-bold">Match Tracker</h2>
+          <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-400 leading-relaxed">
+            Note tes matches et decouvre tes patterns. Est-ce que tu matches plus
+            quand DatePulse est haut ? Tes stats, tes insights.
+          </p>
+          <a
+            href="/tracker"
+            className="mt-4 sm:mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-pink-600 px-5 sm:px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/20 transition hover:shadow-brand-500/40 hover:brightness-110"
+          >
+            Ouvrir le Tracker
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+              <path fillRule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638l-3.96-4.158a.75.75 0 1 1 1.084-1.034l5.25 5.5a.75.75 0 0 1 0 1.034l-5.25 5.5a.75.75 0 0 1-1.084-1.034l3.96-4.158H3.75A.75.75 0 0 1 3 10Z" clipRule="evenodd" />
+            </svg>
+          </a>
+        </motion.div>
+      </section>
+
+      {/* ── Methodology teaser ───────────────────────── */}
+      <section className="px-4 pb-8 sm:pb-12">
         <motion.div
           className="mx-auto max-w-2xl rounded-2xl border border-white/10 bg-gradient-to-br from-gray-900 to-brand-900/20 p-6 sm:p-8 text-center"
           initial={{ opacity: 0, y: 20 }}
