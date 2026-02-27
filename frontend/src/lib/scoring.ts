@@ -20,6 +20,7 @@ export interface ScoreResult {
   monthly: number;
   event: string | null;
   eventMultiplier: number;
+  trendModifier: number;
 }
 
 export interface ScoreLabel {
@@ -50,7 +51,8 @@ export interface BestTimeSlot {
 export function computeScore(
   date: Date = new Date(),
   app: AppName = "tinder",
-  weatherCondition?: string
+  weatherCondition?: string,
+  trendModifier?: number
 ): ScoreResult {
   const { hour, day, month } = getParisDateParts(date);
 
@@ -78,10 +80,17 @@ export function computeScore(
     ? (WEATHER_MODIFIERS[weatherCondition] ?? 1.0)
     : 1.0;
 
-  const raw = (hourly * weekly * monthly) / 10000 * eventMultiplier * weatherMod;
+  // Google Trends modifier (validated triple: r=0.93 with Tinder APP_MONTHLY)
+  // Only applied to real-time score, NOT to heatmap/bestTimes/countdown
+  const trendMod =
+    trendModifier != null && trendModifier >= 0.5 && trendModifier <= 2.0
+      ? trendModifier
+      : 1.0;
+
+  const raw = (hourly * weekly * monthly) / 10000 * eventMultiplier * weatherMod * trendMod;
   const score = Math.min(100, Math.max(0, Math.round(raw)));
 
-  return { score, hourly, weekly, monthly, event: eventName, eventMultiplier };
+  return { score, hourly, weekly, monthly, event: eventName, eventMultiplier, trendModifier: trendMod };
 }
 
 // ── Score labels (UX mapping) ───────────────────────────────────

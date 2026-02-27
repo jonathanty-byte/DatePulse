@@ -13,11 +13,13 @@ DatePulse V3 is a lightweight Single Page App that shows real-time dating app ac
 ```
 Frontend (Vercel): Static lookup tables -> Client-side scoring -> React UI
                    + Real-time weather from wttr.in (localStorage cache, 30min TTL)
+                   + Google Trends modifier from trends.json (localStorage cache, 2h TTL)
 Automation (local): Python scoring engine -> Chrome + Auto Swiper via pyautogui
+                    Python trends_live.py -> Google Trends fetch -> trends.json (cron 2h)
 Bridge: Frontend button -> POST localhost:5555/trigger -> Python server
 ```
 
-**Frontend**: React 18 + TypeScript + Vite + Tailwind CSS + Framer Motion + Recharts. No backend, no database. Single external API: wttr.in for weather (with static fallback).
+**Frontend**: React 18 + TypeScript + Vite + Tailwind CSS + Framer Motion + Recharts. No backend, no database. External data: wttr.in for weather (with static fallback), trends.json for Google Trends modifier.
 **Automation**: Python scripts running locally on Windows (Task Scheduler cron + HTTP server).
 
 ## Project Structure
@@ -49,7 +51,8 @@ DatePulse/
 │   │   └── styles/
 │   │       └── globals.css            # Tailwind base styles
 │   ├── public/
-│   │   └── weather.json               # Static weather fallback (used if wttr.in is down)
+│   │   ├── weather.json               # Static weather fallback (used if wttr.in is down)
+│   │   └── trends.json                # Google Trends live modifier (updated by trends_live.py cron)
 │   ├── index.html                     # SEO meta tags + OG
 │   ├── package.json
 │   ├── vite.config.ts
@@ -59,10 +62,12 @@ DatePulse/
 ├── scripts/                           # Local automation (Windows PC)
 │   ├── scoring_engine.py              # Python port of data.ts + scoring.ts (feminine model + weather)
 │   ├── weather_proxy.py               # Optional: cron script to update weather.json from wttr.in
+│   ├── trends_live.py                 # Google Trends live modifier (cron 2h → trends.json)
 │   ├── auto_trigger.py                # Main script (cron + HTTP server + CLI)
 │   ├── auto_trigger_config.json       # User config (threshold, apps, chrome path)
 │   ├── sessions.jsonl                 # Auto Swiper session history
-│   └── auto_trigger.log              # Execution logs
+│   ├── auto_trigger.log              # Execution logs
+│   └── trends_live.log               # Trends fetch logs
 ```
 
 ## Commands
@@ -84,11 +89,15 @@ python scripts/auto_trigger.py --history  # Show session history
 
 # Weather (optional — frontend fetches wttr.in directly)
 python scripts/weather_proxy.py           # Update frontend/public/weather.json from wttr.in
+
+# Google Trends live modifier (cron every 2h)
+python scripts/trends_live.py             # Fetch trends + write frontend/public/trends.json
+python scripts/trends_live.py --dry-run   # Print results without writing
 ```
 
 ## Scoring Model
 
-Deterministic formula: `score(t) = hourly[h] * weekly[d] * monthly[m] / 10000 * event_multiplier * weather_modifier`
+Deterministic formula: `score(t) = hourly[h] * weekly[d] * monthly[m] / 10000 * event_multiplier * weather_modifier * trend_modifier`
 
 Feminine-calibrated tables (isolating female activity from the 76% male global signal):
 
@@ -110,9 +119,11 @@ Output: 0-100 with contextual labels (Tres calme / Calme / Moyen / Actif / Tres 
 ### Scoring consistency rules
 
 Three scoring paths must stay consistent:
-- `computeScore()` — real-time score with events + weather (used for live display)
-- `computeWeekHeatmap()` — static weekly heatmap (hourly × weekly × monthly / 10000, NO events/weather)
+- `computeScore()` — real-time score with events + weather + trend modifier (used for live display)
+- `computeWeekHeatmap()` — static weekly heatmap (hourly × weekly × monthly / 10000, NO events/weather/trends)
 - `getNextPeak()` — next peak countdown (uses same static formula as heatmap for consistency)
+
+**Rule**: Only `computeScore()` applies dynamic modifiers (events, weather, Google Trends). All other scoring functions use the static formula for UI consistency.
 
 ## Match Tracker
 
@@ -141,6 +152,20 @@ The frontend fetches real-time weather from `wttr.in/Paris?format=j1` (free, COR
 - **Fallback**: `/weather.json` static file if wttr.in is unreachable
 - **Display**: Weather badge on Home page shows condition + temperature + score impact (e.g., "Pluie +10% sur le score")
 - **Scoring**: Only affects `computeScore()` (real-time score). Heatmap, best times, and yearly chart remain static projections.
+
+## Google Trends Integration
+
+A weighted combination of 3 Google Trends FR proxy terms correlates at r=0.93 with Tinder's APP_MONTHLY curve. This powers a real-time trend modifier that adjusts the score based on actual search activity vs our static prediction.
+
+- **Script**: `scripts/trends_live.py` runs every 2h via Task Scheduler, fetches 90-day daily data from Google Trends (pytrends), computes modifier, writes `frontend/public/trends.json`
+- **Proxy terms**: `serie` (weight 0.50, r=0.71 solo), `site de rencontre` (0.30, r=0.59), `rencontre` (0.20, r=0.49). Fetched individually to avoid Google's volume normalization crushing low-volume terms.
+- **Algorithm**: Relative deviation comparison. Each term is self-normalized (peak=100), then weighted-combined. The modifier = `1 + (gt_deviation - model_deviation)` where deviation = how much the current month differs from its window average. This solves the variance compression problem (3-month window has narrower spread than 12-month model).
+- **Clamps**: Modifier clamped to [0.70, 1.40]. Input validation: trendModifier must be in [0.5, 2.0] or defaults to 1.0.
+- **Graceful degradation**: 3 terms OK → high confidence, 2 terms → medium, 1 term → low, 0 terms → neutral fallback (modifier=1.0). Existing trends.json is never overwritten on total failure.
+- **Cache**: localStorage with 2h TTL (key: `dp_trends`) — badge appears instantly on repeat visits
+- **Fallback**: `/trends.json` ships with neutral values (modifier=1.0). Script overwrites with live data on first successful run.
+- **Display**: Trends badge on Home page shows direction icon (📈/📉) + percentage (e.g., "+4% ce mois"). Opacity varies by confidence level. Hidden if trend_pct=0 or confidence=none.
+- **Scoring**: Only affects `computeScore()` (real-time score). Heatmap, best times, countdown, and yearly chart remain static projections — same rule as weather.
 
 ## Design System
 

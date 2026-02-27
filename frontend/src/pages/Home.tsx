@@ -61,6 +61,21 @@ export default function Home() {
     } catch { /* ignore */ }
     return null;
   });
+  const [trendsData, setTrendsData] = useState<{
+    trend_modifier: number;
+    trend_pct: number;
+    direction: string;
+    confidence: string;
+  } | null>(() => {
+    try {
+      const cached = localStorage.getItem("dp_trends");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Date.now() - parsed.ts < 2 * 60 * 60_000) return parsed.data; // 2h TTL
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
 
   // Fetch weather: instant from cache, refresh from wttr.in in background
   useEffect(() => {
@@ -93,10 +108,39 @@ export default function Home() {
     return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Recompute when app changes
+  // Fetch Google Trends modifier (same pattern as weather, 2h TTL)
   useEffect(() => {
-    setResult(computeScore(now, app, weatherData?.condition));
-  }, [app, now, weatherData]);
+    let cancelled = false;
+    async function refreshTrends() {
+      try {
+        const res = await fetch("/trends.json", { signal: AbortSignal.timeout(3000) });
+        if (!res.ok) throw new Error("trends.json fetch error");
+        const json = await res.json();
+        if (json?.trend_modifier && !cancelled) {
+          const data = {
+            trend_modifier: json.trend_modifier as number,
+            trend_pct: (json.trend_pct ?? Math.round((json.trend_modifier - 1) * 100)) as number,
+            direction: (json.direction ?? "neutral") as string,
+            confidence: (json.confidence ?? "none") as string,
+          };
+          // Only update if we have real data (not the initial fallback)
+          if (json.source !== "fallback") {
+            setTrendsData(data);
+            localStorage.setItem("dp_trends", JSON.stringify({ data, ts: Date.now() }));
+          }
+        }
+      } catch {
+        // trends.json absent or unreachable — silent fail, no modifier applied
+      }
+    }
+    refreshTrends();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Recompute when app, time, weather, or trends change
+  useEffect(() => {
+    setResult(computeScore(now, app, weatherData?.condition, trendsData?.trend_modifier));
+  }, [app, now, weatherData, trendsData]);
 
   // Weather display values
   const weatherMod = weatherData ? (WEATHER_MODIFIERS[weatherData.condition] ?? 1) : 1;
@@ -167,6 +211,26 @@ export default function Home() {
                 <span className="text-gray-600">|</span>
                 <span className={weatherPct > 0 ? "text-green-400" : weatherPct < 0 ? "text-amber-400" : "text-gray-500"}>
                   {weatherPct === 0 ? "Impact neutre" : `${weatherPct > 0 ? "+" : ""}${weatherPct}% sur le score`}
+                </span>
+              </motion.div>
+            )}
+            {trendsData && trendsData.trend_pct !== 0 && trendsData.confidence !== "none" && (
+              <motion.div
+                className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs sm:text-sm"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.22 }}
+                style={{
+                  opacity: trendsData.confidence === "high" ? 1
+                    : trendsData.confidence === "medium" ? 0.75
+                    : 0.5,
+                }}
+              >
+                <span>{trendsData.direction === "up" ? "\uD83D\uDCC8" : "\uD83D\uDCC9"}</span>
+                <span className="text-gray-400">Tendance Google</span>
+                <span className="text-gray-600">|</span>
+                <span className={trendsData.trend_pct > 0 ? "text-green-400" : "text-amber-400"}>
+                  {trendsData.trend_pct > 0 ? "+" : ""}{trendsData.trend_pct}% ce mois
                 </span>
               </motion.div>
             )}

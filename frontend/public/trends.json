@@ -1,0 +1,32 @@
+{
+  "trend_modifier": 1.0355,
+  "trend_pct": 4,
+  "direction": "up",
+  "confidence": "high",
+  "current_month": "February",
+  "current_month_index": 1,
+  "comparison_month": 2,
+  "n_terms_ok": 3,
+  "terms_status": {
+    "serie": "ok",
+    "site de rencontre": "ok",
+    "rencontre": "ok"
+  },
+  "source": "google_trends_3m",
+  "updated": "2026-02-26T18:34:33.055386+01:00",
+  "debug": {
+    "gt_normalized": {
+      "January": 100.0,
+      "February": 92.2,
+      "November": 87.3,
+      "December": 95.2
+    },
+    "gt_value": 92.2,
+    "gt_avg": 93.7,
+    "gt_deviation": -0.0157,
+    "model_value": 74,
+    "model_avg": 78.0,
+    "model_deviation": -0.0513,
+    "raw_ratio": 1.0355
+  }
+}
