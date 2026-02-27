@@ -7,7 +7,7 @@ export default function Audit() {
   const fromRedLight = new URLSearchParams(window.location.search).get("from") === "redlight";
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <div className="min-h-screen bg-[#080b14] text-gray-100">
       <NavBar />
 
       {/* Header */}

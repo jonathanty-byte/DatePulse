@@ -35,7 +35,7 @@ export interface WrappedMetrics {
   swipesByHour: Record<number, number>;
   matchesByMonth: Record<string, number>;
 
-  // DateDetox correlation
+  // DatePulse correlation
   matchesInGreenLightPct: number;
   estimatedTimeSavedHours: number;
 
@@ -121,7 +121,7 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
     matches.map((m) => m.timestamp)
   );
 
-  // ── DateDetox correlation ──────────────────────────────────
+  // ── DatePulse correlation ──────────────────────────────────
   let greenLightMatches = 0;
   for (const match of matches) {
     const result = computeScore(match.timestamp, appName);

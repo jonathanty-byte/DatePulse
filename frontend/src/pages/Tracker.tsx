@@ -134,7 +134,7 @@ export default function Tracker() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <div className="min-h-screen bg-[#080b14] text-gray-100">
       {/* Header */}
       <section className="relative overflow-hidden px-4 pb-6 pt-8 sm:pt-12">
         <div className="absolute inset-0 bg-gradient-to-b from-brand-900/20 to-transparent" />
@@ -149,7 +149,7 @@ export default function Tracker() {
                 href="/"
                 className="text-xs sm:text-sm text-gray-500 hover:text-gray-300 transition"
               >
-                &larr; DateDetox
+                &larr; DatePulse
               </a>
               <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight">
                 <span className="bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">
@@ -321,7 +321,7 @@ export default function Tracker() {
               </p>
               {stats.highScoreMatches > stats.lowScoreMatches && stats.total >= 5 && (
                 <p className="mt-2 text-brand-400 font-medium">
-                  Tu matches plus quand DateDetox est haut — continue de swiper aux bons moments !
+                  Tu matches plus quand DatePulse est haut — continue de swiper aux bons moments !
                 </p>
               )}
             </div>

@@ -6,6 +6,7 @@ const NAV_LINKS: { href: string; label: string; badge?: string }[] = [
   { href: "/audit", label: "Audit" },
   { href: "/coach", label: "Coach", badge: "NEW" },
   { href: "/wrapped", label: "Wrapped", badge: "NEW" },
+  { href: "/tracker", label: "Tracker" },
   { href: "/methodology", label: "Methodologie" },
 ];
 
@@ -14,12 +15,12 @@ export default function NavBar() {
   const currentPath = window.location.pathname;
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-white/5 bg-gray-950/90 backdrop-blur-md">
+    <nav className="sticky top-0 z-50 border-b border-white/5 bg-[#080b14]/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         {/* Logo */}
         <a href="/" className="flex items-center gap-1.5">
           <span className="bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-lg font-bold text-transparent">
-            DateDetox
+            DatePulse
           </span>
         </a>
 
@@ -78,7 +79,7 @@ export default function NavBar() {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            className="sm:hidden border-t border-white/5 bg-gray-950/95 backdrop-blur-md"
+            className="sm:hidden border-t border-white/5 bg-[#080b14]/95 backdrop-blur-md"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}

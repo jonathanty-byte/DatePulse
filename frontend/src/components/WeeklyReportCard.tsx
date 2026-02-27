@@ -124,7 +124,7 @@ export default function WeeklyReportCard() {
             Aucune session cette semaine.
           </p>
           <p className="text-xs text-gray-600">
-            Lance ta premiere session pendant un Green Light !
+            Lance ta premiere session pendant un momentum !
           </p>
         </div>
       ) : (
@@ -228,7 +228,7 @@ export default function WeeklyReportCard() {
               {report.bestHour !== null && (
                 <span>Meilleure heure : {report.bestHour}h</span>
               )}
-              <span>Green Light : {report.pctGreenLight}%</span>
+              <span>Momentum : {report.pctGreenLight}%</span>
             </div>
           )}
         </>

@@ -48,7 +48,7 @@ export default function CountdownNext({ app = "tinder" }: CountdownNextProps) {
     >
       <span className="text-xl sm:text-2xl">{icon}</span>
       <div>
-        <p className="text-xs sm:text-sm text-gray-400">Prochain Green Light</p>
+        <p className="text-xs sm:text-sm text-gray-400">Prochain momentum</p>
         <p className="text-sm sm:text-base font-semibold text-gray-100">
           {formatPeakTime(peak)}
           <span className="ml-1.5 sm:ml-2 text-xs sm:text-sm text-gray-400">

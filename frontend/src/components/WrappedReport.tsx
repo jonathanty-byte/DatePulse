@@ -331,10 +331,10 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         </div>
       </Card>
 
-      {/* 7. DateDetox correlation — circular percentage */}
+      {/* 7. DatePulse correlation — circular percentage */}
       <Card delay={0.3}>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Correlation DateDetox
+          Correlation DatePulse
         </h3>
         <div className="flex flex-col items-center">
           <CirclePercent value={metrics.matchesInGreenLightPct} />
@@ -342,7 +342,7 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
             <span className="font-semibold text-white">
               {metrics.matchesInGreenLightPct}%
             </span>{" "}
-            de tes matches sont arrives pendant les fenetres Green Light de DateDetox
+            de tes matches sont arrives pendant les fenetres momentum de DatePulse
           </p>
           {metrics.estimatedTimeSavedHours > 0 && (
             <p className="mt-2 text-xs text-emerald-400">
@@ -558,7 +558,7 @@ function getVerdict(m: WrappedMetrics): Verdict {
       icon: "\u{2705}",
       title: "Tu swipes deja aux bons moments !",
       message:
-        "DateDetox valide — " +
+        "DatePulse valide — " +
         m.matchesInGreenLightPct +
         "% de tes matches arrivent pendant les fenetres optimales. Continue comme ca.",
       ctaLabel: "Voir mes fenetres",
@@ -570,8 +570,8 @@ function getVerdict(m: WrappedMetrics): Verdict {
     icon: "\u{1F4CA}",
     title: "Optimise tes sessions",
     message:
-      "Utilise DateDetox pour swiper au bon moment et maximiser tes matches. Swipe less. Match more.",
-    ctaLabel: "Voir les fenetres Green Light",
+      "Utilise DatePulse pour swiper au bon moment et maximiser tes matches. Swipe when it matters.",
+    ctaLabel: "Voir les fenetres momentum",
     ctaHref: "/",
   };
 }

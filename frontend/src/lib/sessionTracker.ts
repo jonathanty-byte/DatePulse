@@ -3,7 +3,7 @@ import { computeScore } from "./scoring";
 
 // ── Types ───────────────────────────────────────────────────────
 
-export interface DetoxSession {
+export interface PulseSession {
   id: string;                // "session-" + timestamp
   date: string;              // ISO 8601
   app: AppName;
@@ -38,20 +38,39 @@ export interface ActiveSessionState {
 
 // ── Storage ─────────────────────────────────────────────────────
 
-const STORAGE_KEY = "datedetox_sessions";
-const ACTIVE_KEY = "datedetox_active_session";
+const STORAGE_KEY = "datepulse_sessions";
+const ACTIVE_KEY = "datepulse_active_session";
+const OLD_STORAGE_KEY = "datedetox_sessions";
+const OLD_ACTIVE_KEY = "datedetox_active_session";
 
-function loadSessions(): DetoxSession[] {
+/** Migrate old localStorage keys to new ones (one-time, transparent). */
+function migrateStorage(): void {
+  try {
+    if (!localStorage.getItem(STORAGE_KEY) && localStorage.getItem(OLD_STORAGE_KEY)) {
+      localStorage.setItem(STORAGE_KEY, localStorage.getItem(OLD_STORAGE_KEY)!);
+      localStorage.removeItem(OLD_STORAGE_KEY);
+    }
+    if (!localStorage.getItem(ACTIVE_KEY) && localStorage.getItem(OLD_ACTIVE_KEY)) {
+      localStorage.setItem(ACTIVE_KEY, localStorage.getItem(OLD_ACTIVE_KEY)!);
+      localStorage.removeItem(OLD_ACTIVE_KEY);
+    }
+  } catch { /* ignore */ }
+}
+
+// Run migration on module load
+migrateStorage();
+
+function loadSessions(): PulseSession[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as DetoxSession[];
+    return JSON.parse(raw) as PulseSession[];
   } catch {
     return [];
   }
 }
 
-function saveSessions(sessions: DetoxSession[]): void {
+function saveSessions(sessions: PulseSession[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
 }
 
@@ -98,7 +117,7 @@ export function startSession(
 export function endSession(
   activeState: ActiveSessionState,
   completed: boolean
-): DetoxSession {
+): PulseSession {
   const now = Date.now();
   const elapsedMs = now - activeState.startTime;
   const elapsedMinutes = Math.round((elapsedMs / 60_000) * 10) / 10; // 1 decimal
@@ -110,7 +129,7 @@ export function endSession(
     allSamples.reduce((sum, s) => sum + s, 0) / allSamples.length
   );
 
-  const session: DetoxSession = {
+  const session: PulseSession = {
     id: activeState.sessionId,
     date: new Date(activeState.startTime).toISOString(),
     app: activeState.app,
@@ -132,11 +151,11 @@ export function endSession(
   return session;
 }
 
-export function getSessions(): DetoxSession[] {
+export function getSessions(): PulseSession[] {
   return loadSessions();
 }
 
-export function getSessionsThisWeek(): DetoxSession[] {
+export function getSessionsThisWeek(): PulseSession[] {
   const sessions = loadSessions();
   const now = new Date();
   // Start of week (Monday 00:00)
@@ -149,7 +168,7 @@ export function getSessionsThisWeek(): DetoxSession[] {
   return sessions.filter((s) => new Date(s.date).getTime() >= startOfWeek.getTime());
 }
 
-export function getSessionStats(sessions?: DetoxSession[]): SessionStats {
+export function getSessionStats(sessions?: PulseSession[]): SessionStats {
   const data = sessions ?? loadSessions();
 
   if (data.length === 0) {
@@ -184,11 +203,11 @@ export function getSessionStats(sessions?: DetoxSession[]): SessionStats {
 }
 
 /** Compute percentile of a session's efficiency vs all previous sessions */
-export function getEfficiencyPercentile(session: DetoxSession): number | null {
+export function getEfficiencyPercentile(session: PulseSession): number | null {
   const allSessions = loadSessions().filter((s) => s.id !== session.id);
   if (allSessions.length < 2) return null; // Need at least 2 previous sessions
 
-  const getEfficiency = (s: DetoxSession) =>
+  const getEfficiency = (s: PulseSession) =>
     s.duration_actual > 0 ? s.matches / (s.duration_actual / 60) : 0;
 
   const currentEff = getEfficiency(session);

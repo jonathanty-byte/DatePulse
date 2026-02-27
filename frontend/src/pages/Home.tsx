@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { track } from "@vercel/analytics";
 import { computeScore } from "../lib/scoring";
 import type { ScoreResult } from "../lib/scoring";
 import { WEATHER_MODIFIERS } from "../lib/data";
@@ -9,17 +10,15 @@ import AppSelector from "../components/AppSelector";
 import HeatmapWeek from "../components/HeatmapWeek";
 import BestTimes from "../components/BestTimes";
 import PoolFreshness from "../components/PoolFreshness";
-import MatchTrackerInline from "../components/MatchTrackerInline";
 import YearlyChart from "../components/YearlyChart";
 import BoostOptimizer from "../components/BoostOptimizer";
 import RedLightScreen from "../components/RedLightScreen";
 import GreenLightScreen from "../components/GreenLightScreen";
 import SessionTimer from "../components/SessionTimer";
 import SessionSummary from "../components/SessionSummary";
-import WeeklyReportCard from "../components/WeeklyReportCard";
 import EmailSignup from "../components/EmailSignup";
 import NavBar from "../components/NavBar";
-import type { DetoxSession, ActiveSessionState } from "../lib/sessionTracker";
+import type { PulseSession, ActiveSessionState } from "../lib/sessionTracker";
 import { startSession, getActiveSessionState } from "../lib/sessionTracker";
 import { addMatch } from "../lib/matchTracker";
 
@@ -67,26 +66,28 @@ export default function Home() {
   const [activeSession, setActiveSession] = useState<ActiveSessionState | null>(
     () => getActiveSessionState()
   );
-  const [completedSession, setCompletedSession] = useState<DetoxSession | null>(null);
+  const [completedSession, setCompletedSession] = useState<PulseSession | null>(null);
 
   const handleStartSession = useCallback(
     (duration: number) => {
       const session = startSession(app, duration, result.score);
       setActiveSession(session);
       setSessionPhase("session_active");
+      track("session_started", { app, duration, score: result.score });
     },
     [app, result.score]
   );
 
   const handleSessionEnd = useCallback(
-    (session: DetoxSession) => {
+    (session: PulseSession) => {
       // Also add matches to the existing Match Tracker for compatibility
       for (let i = 0; i < session.matches; i++) {
-        addMatch(session.app, new Date(), "Session DateDetox");
+        addMatch(session.app, new Date(), "Session DatePulse");
       }
       setCompletedSession(session);
       setActiveSession(null);
       setSessionPhase("session_complete");
+      track("session_completed", { app: session.app, matches: session.matches, duration: session.duration_actual });
     },
     []
   );
@@ -208,45 +209,32 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
+  const [showMore, setShowMore] = useState(false);
+
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <div className="min-h-screen bg-[#080b14] text-gray-100">
       <NavBar />
 
-      {/* ── Header: Title + App selector + Context badges ──── */}
-      <section className="relative overflow-hidden px-4 pb-4 pt-8 sm:pb-6 sm:pt-12">
+      {/* ── Above fold: App selector + Context badges ──── */}
+      <section className="relative overflow-hidden px-4 pb-4 pt-6 sm:pb-6 sm:pt-10">
         <div className="absolute inset-0 bg-gradient-to-b from-brand-900/10 to-transparent" />
         <div className="relative mx-auto max-w-4xl">
           <motion.div
-            className="text-center"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-              <span className="bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">
-                DateDetox
-              </span>
-            </h1>
-            <p className="mx-auto mt-2 max-w-xl text-base sm:text-lg text-gray-400">
-              Swipe less. Match more.
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="mt-6 sm:mt-8 flex justify-center"
+            className="flex justify-center"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.05 }}
           >
             <AppSelector selected={app} onChange={setApp} />
           </motion.div>
 
           {/* Context badges: time, weather, trends */}
-          <div className="mt-4 sm:mt-6 flex flex-col items-center gap-2">
+          <div className="mt-3 sm:mt-4 flex flex-col items-center gap-2">
             <motion.p
               className="text-xs sm:text-sm font-medium uppercase tracking-wider text-gray-500"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.15 }}
+              transition={{ delay: 0.1 }}
             >
               {capitalize(app)} — {formatParisDay(now)} — {formatParisTime(now)} (heure de Paris)
             </motion.p>
@@ -255,7 +243,7 @@ export default function Home() {
                 className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs sm:text-sm"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.18 }}
+                transition={{ delay: 0.13 }}
               >
                 <span>{WEATHER_EMOJI[weatherData.condition] ?? "\u2601\uFE0F"}</span>
                 <span className="text-gray-400">
@@ -272,7 +260,7 @@ export default function Home() {
                 className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs sm:text-sm"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.22 }}
+                transition={{ delay: 0.16 }}
                 style={{
                   opacity: trendsData.confidence === "high" ? 1
                     : trendsData.confidence === "medium" ? 0.75
@@ -331,12 +319,11 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* ── Heatmap + Best Times ─────────────────────── */}
+      {/* ── Heatmap + Best Times + Pool Freshness (visible after scroll) ── */}
       <section className="px-4 py-8 sm:py-12">
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
-            {/* Left column: Heatmap + Match Tracker */}
-            <div className="flex flex-col gap-4 sm:gap-6 lg:col-span-2">
+            <div className="lg:col-span-2">
               <motion.div
                 className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-6"
                 initial={{ opacity: 0, y: 20, scale: 0.98 }}
@@ -348,12 +335,8 @@ export default function Home() {
                 </h2>
                 <HeatmapWeek now={now} app={app} />
               </motion.div>
-
-              {/* Match Tracker — directly below heatmap */}
-              <MatchTrackerInline currentApp={app} />
             </div>
 
-            {/* Right column: Best times + Pool freshness */}
             <div className="flex flex-col gap-4 sm:gap-6">
               <motion.div
                 className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-6"
@@ -367,161 +350,161 @@ export default function Home() {
                 <BestTimes now={now} app={app} />
               </motion.div>
 
-              {/* Pool freshness */}
               <PoolFreshness now={now} />
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Boost Optimizer ─────────────────────────── */}
-      <section className="px-4 py-2 sm:py-4">
+      {/* ── Progressive disclosure toggle ──────────────── */}
+      <div className="px-4 pb-4">
         <div className="mx-auto max-w-6xl">
-          <BoostOptimizer app={app} now={now} />
-        </div>
-      </section>
-
-      {/* ── Yearly activity chart ────────────────────── */}
-      <section className="px-4 py-2 sm:py-4">
-        <div className="mx-auto max-w-6xl">
-          <YearlyChart app={app} now={now} />
-        </div>
-      </section>
-
-      {/* ── Weekly Detox Report ──────────────────────── */}
-      <section className="px-4 py-4 sm:py-6">
-        <div className="mx-auto max-w-6xl">
-          <WeeklyReportCard />
-        </div>
-      </section>
-
-      {/* ── How it works ─────────────────────────────── */}
-      <section className="px-4 py-10 sm:py-16">
-        <div className="mx-auto max-w-4xl">
-          <motion.h2
-            className="mb-8 sm:mb-10 text-center text-xl sm:text-2xl font-bold"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
+          <motion.button
+            onClick={() => setShowMore(!showMore)}
+            className="mx-auto flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-6 py-3 text-sm font-medium text-gray-400 transition hover:bg-white/[0.06] hover:text-gray-200"
+            whileTap={{ scale: 0.97 }}
           >
-            Comment ca marche
-          </motion.h2>
-          <div className="grid gap-4 sm:gap-6 sm:grid-cols-3">
-            {[
-              {
-                num: "1",
-                title: "On analyse",
-                desc: "Donnees officielles Tinder, Bumble, Hinge, Happn + etudes independantes. On sait quand les apps sont actives.",
-              },
-              {
-                num: "2",
-                title: "On te dit quand",
-                desc: "Red Light = ferme l'app. Green Light = c'est le bon moment. 15 min max, pas plus.",
-              },
-              {
-                num: "3",
-                title: "Tu detox",
-                desc: "Moins de temps perdu, plus de matches. Swipe moins, swipe mieux.",
-              },
-            ].map((step, i) => (
-              <motion.div
-                key={step.num}
-                className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6 text-center"
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: 0.4 + i * 0.12, duration: 0.5 }}
-                whileHover={{ scale: 1.03, borderColor: "rgba(255,255,255,0.2)" }}
-              >
-                <div className="mx-auto mb-3 sm:mb-4 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white shadow-lg shadow-brand-600/30">
-                  {step.num}
+            {showMore ? "Masquer les details" : "Voir les details"}
+            <motion.span
+              animate={{ rotate: showMore ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="text-xs"
+            >
+              &#x25BC;
+            </motion.span>
+          </motion.button>
+        </div>
+      </div>
+
+      {/* ── Collapsed sections (progressive disclosure) ── */}
+      <AnimatePresence>
+        {showMore && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            {/* Boost Optimizer */}
+            <section className="px-4 py-2 sm:py-4">
+              <div className="mx-auto max-w-6xl">
+                <BoostOptimizer app={app} now={now} />
+              </div>
+            </section>
+
+            {/* Yearly activity chart */}
+            <section className="px-4 py-2 sm:py-4">
+              <div className="mx-auto max-w-6xl">
+                <YearlyChart app={app} now={now} />
+              </div>
+            </section>
+
+            {/* How it works */}
+            <section className="px-4 py-10 sm:py-16">
+              <div className="mx-auto max-w-4xl">
+                <h2 className="mb-8 sm:mb-10 text-center text-xl sm:text-2xl font-bold">
+                  Comment ca marche
+                </h2>
+                <div className="grid gap-4 sm:gap-6 sm:grid-cols-3">
+                  {[
+                    {
+                      num: "1",
+                      title: "On analyse",
+                      desc: "Donnees officielles Tinder, Bumble, Hinge, Happn + etudes independantes. On sait quand les apps sont actives.",
+                    },
+                    {
+                      num: "2",
+                      title: "On te dit quand",
+                      desc: "Hors pic = attends. Momentum = fonce. 15 min max, pas plus.",
+                    },
+                    {
+                      num: "3",
+                      title: "Tu optimises",
+                      desc: "Moins de temps perdu, plus de matches. Swipe au bon moment.",
+                    },
+                  ].map((step) => (
+                    <div
+                      key={step.num}
+                      className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6 text-center"
+                    >
+                      <div className="mx-auto mb-3 sm:mb-4 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white shadow-lg shadow-brand-600/30">
+                        {step.num}
+                      </div>
+                      <h3 className="mb-1.5 sm:mb-2 font-semibold text-sm sm:text-base">{step.title}</h3>
+                      <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">{step.desc}</p>
+                    </div>
+                  ))}
                 </div>
-                <h3 className="mb-1.5 sm:mb-2 font-semibold text-sm sm:text-base">{step.title}</h3>
-                <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">{step.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+              </div>
+            </section>
 
-      {/* ── Feature CTAs: Wrapped + Coach ────────────── */}
-      <section className="px-4 py-8 sm:py-12">
-        <div className="mx-auto max-w-4xl grid gap-4 sm:gap-6 sm:grid-cols-2">
-          <motion.a
-            href="/wrapped"
-            className="group rounded-2xl border border-white/10 bg-gradient-to-br from-brand-900/30 to-purple-900/20 p-6 sm:p-8 text-center transition hover:border-white/20 hover:bg-white/[0.04]"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            whileHover={{ scale: 1.02 }}
-          >
-            <span className="text-3xl">📊</span>
-            <h3 className="mt-3 text-lg font-bold text-white">Dating Wrapped</h3>
-            <p className="mt-2 text-xs sm:text-sm text-gray-400 leading-relaxed">
-              Upload ton export RGPD et decouvre tes vrais stats : swipes, matches, ghost rate, temps perdu...
-            </p>
-            <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-brand-400 group-hover:text-brand-300 transition">
-              Analyser mes donnees
-              <span className="rounded bg-brand-600/30 px-1.5 py-0.5 text-[10px]">NEW</span>
-            </span>
-          </motion.a>
+            {/* Feature CTAs */}
+            <section className="px-4 py-8 sm:py-12">
+              <div className="mx-auto max-w-4xl grid gap-4 sm:gap-6 sm:grid-cols-2">
+                <a
+                  href="/wrapped"
+                  className="group rounded-2xl border border-white/10 bg-gradient-to-br from-brand-900/30 to-purple-900/20 p-6 sm:p-8 text-center transition hover:border-white/20 hover:bg-white/[0.04]"
+                >
+                  <span className="text-3xl">&#x1F4CA;</span>
+                  <h3 className="mt-3 text-lg font-bold text-white">Dating Wrapped</h3>
+                  <p className="mt-2 text-xs sm:text-sm text-gray-400 leading-relaxed">
+                    Upload ton export RGPD et decouvre tes vrais stats : swipes, matches, ghost rate, temps perdu...
+                  </p>
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-brand-400 group-hover:text-brand-300 transition">
+                    Analyser mes donnees
+                  </span>
+                </a>
 
-          <motion.a
-            href="/coach"
-            className="group rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-900/20 to-gray-900 p-6 sm:p-8 text-center transition hover:border-white/20 hover:bg-white/[0.04]"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
-            whileHover={{ scale: 1.02 }}
-          >
-            <span className="text-3xl">💬</span>
-            <h3 className="mt-3 text-lg font-bold text-white">Message Coach</h3>
-            <p className="mt-2 text-xs sm:text-sm text-gray-400 leading-relaxed">
-              Colle ta conversation et recois 3 suggestions calibrees — du safe a l'audacieux.
-            </p>
-            <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400 group-hover:text-emerald-300 transition">
-              Lancer le coach
-              <span className="rounded bg-emerald-600/30 px-1.5 py-0.5 text-[10px]">NEW</span>
-            </span>
-          </motion.a>
-        </div>
-      </section>
+                <a
+                  href="/coach"
+                  className="group rounded-2xl border border-white/10 bg-gradient-to-br from-brand-900/20 to-gray-900 p-6 sm:p-8 text-center transition hover:border-white/20 hover:bg-white/[0.04]"
+                >
+                  <span className="text-3xl">&#x1F4AC;</span>
+                  <h3 className="mt-3 text-lg font-bold text-white">Message Coach</h3>
+                  <p className="mt-2 text-xs sm:text-sm text-gray-400 leading-relaxed">
+                    Colle ta conversation et recois 3 suggestions calibrees — du safe a l'audacieux.
+                  </p>
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-brand-400 group-hover:text-brand-300 transition">
+                    Lancer le coach
+                  </span>
+                </a>
+              </div>
+            </section>
 
-      {/* ── Methodology teaser ───────────────────────── */}
-      <section className="px-4 py-8 sm:py-12">
-        <motion.div
-          className="mx-auto max-w-2xl rounded-2xl border border-white/10 bg-gradient-to-br from-gray-900 to-brand-900/20 p-6 sm:p-8 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          whileHover={{ borderColor: "rgba(255,255,255,0.15)" }}
-        >
-          <h2 className="text-lg sm:text-xl font-bold">Donnees 100% transparentes</h2>
-          <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-400 leading-relaxed">
-            DateDetox n'invente rien. Chaque app a ses propres patterns d'activite,
-            calibres sur les publications officielles (Tinder Year in Swipe,
-            Hinge Blog, Bumble PR) et les etudes tierces (Nielsen, Ogury).
-          </p>
-          <a
-            href="/methodology"
-            className="mt-4 sm:mt-5 inline-block rounded-lg bg-white/5 px-5 sm:px-6 py-2 text-sm font-medium text-gray-200 transition hover:bg-white/10 hover:text-white"
-          >
-            Voir la methodologie
-          </a>
-        </motion.div>
-      </section>
+            {/* Methodology teaser */}
+            <section className="px-4 py-8 sm:py-12">
+              <div className="mx-auto max-w-2xl rounded-2xl border border-white/10 bg-gradient-to-br from-gray-900 to-brand-900/20 p-6 sm:p-8 text-center">
+                <h2 className="text-lg sm:text-xl font-bold">Donnees 100% transparentes</h2>
+                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-400 leading-relaxed">
+                  DatePulse n'invente rien. Chaque app a ses propres patterns d'activite,
+                  calibres sur les publications officielles (Tinder Year in Swipe,
+                  Hinge Blog, Bumble PR) et les etudes tierces (Nielsen, Ogury).
+                </p>
+                <a
+                  href="/methodology"
+                  className="mt-4 sm:mt-5 inline-block rounded-lg bg-white/5 px-5 sm:px-6 py-2 text-sm font-medium text-gray-200 transition hover:bg-white/10 hover:text-white"
+                >
+                  Voir la methodologie
+                </a>
+              </div>
+            </section>
 
-      {/* ── Email Signup ──────────────────────────────── */}
-      <section className="px-4 py-8 sm:py-12">
-        <div className="mx-auto max-w-2xl">
-          <EmailSignup />
-        </div>
-      </section>
+            {/* Email Signup */}
+            <section className="px-4 py-8 sm:py-12">
+              <div className="mx-auto max-w-2xl">
+                <EmailSignup />
+              </div>
+            </section>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Footer ───────────────────────────────────── */}
       <footer className="border-t border-white/5 px-4 py-6 sm:py-8">
         <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-gray-600 space-y-2">
           <p className="font-medium text-gray-500">
-            DateDetox — Swipe less. Match more.
+            DatePulse — Swipe when it matters.
           </p>
           <p>
             <a href="/methodology" className="hover:text-gray-400 transition">Methodologie</a>
@@ -531,6 +514,8 @@ export default function Home() {
             <a href="/coach" className="hover:text-gray-400 transition">Coach</a>
             <span className="mx-2 text-gray-700">|</span>
             <a href="/wrapped" className="hover:text-gray-400 transition">Wrapped</a>
+            <span className="mx-2 text-gray-700">|</span>
+            <a href="/tracker" className="hover:text-gray-400 transition">Tracker</a>
             <span className="mx-2 text-gray-700">|</span>
             <span>@EvolvedMonkey</span>
           </p>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { track } from "@vercel/analytics";
 import type { AppName } from "../lib/data";
 import type { AuditResult, AuditItem } from "../lib/profileAudit";
 import {
@@ -109,6 +110,7 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
         images.map((entry) => resizeImage(entry.file))
       );
 
+      track("audit_started", { app: selectedApp, images: base64Images.length });
       const auditResult = await analyzeProfile(base64Images, selectedApp);
       setResult(auditResult);
       setState("result");
@@ -465,7 +467,7 @@ function RateLimitedView() {
         className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 cursor-not-allowed opacity-60"
         disabled
       >
-        Passe a Detox Pro pour des audits illimites &#x2192;
+        Passe a Pulse Pro pour des audits illimites &#x2192;
       </motion.button>
       <p className="mt-2 text-xs text-gray-600">Bientot disponible</p>
     </motion.div>

@@ -1,4 +1,4 @@
-import type { DetoxSession } from "./sessionTracker";
+import type { PulseSession } from "./sessionTracker";
 import { getSessions } from "./sessionTracker";
 
 // ── Types ───────────────────────────────────────────────────────
@@ -60,10 +60,10 @@ function getWeekEnd(monday: Date): Date {
 
 /** Filter sessions within [start, end]. */
 function filterSessionsInRange(
-  sessions: DetoxSession[],
+  sessions: PulseSession[],
   start: Date,
   end: Date
-): DetoxSession[] {
+): PulseSession[] {
   return sessions.filter((s) => {
     const t = new Date(s.date).getTime();
     return t >= start.getTime() && t <= end.getTime();
@@ -72,7 +72,7 @@ function filterSessionsInRange(
 
 // ── Aggregation ─────────────────────────────────────────────────
 
-function aggregateWeek(sessions: DetoxSession[]): {
+function aggregateWeek(sessions: PulseSession[]): {
   totalTime: number;
   sessionsCount: number;
   completedSessions: number;
@@ -192,7 +192,7 @@ function buildEmptyDaily(): DailyData[] {
 // ── Main function ───────────────────────────────────────────────
 
 export function generateWeeklyReport(
-  sessions?: DetoxSession[],
+  sessions?: PulseSession[],
   weekOffset = 0
 ): WeeklyReport {
   const allSessions = sessions ?? getSessions();
@@ -249,7 +249,7 @@ export function generateWeeklyReport(
 export function getInsight(report: WeeklyReport): string {
   // Priority order: best insight first
   if (report.sessionsCount === 0) {
-    return "Aucune session cette semaine. Lance ta premiere session pendant un Green Light !";
+    return "Aucune session cette semaine. Lance ta premiere session pendant un momentum !";
   }
 
   // Less time + more matches = ideal detox
@@ -260,12 +260,12 @@ export function getInsight(report: WeeklyReport): string {
 
   // High green light adherence
   if (report.pctGreenLight >= 80) {
-    return `${report.pctGreenLight}% de tes sessions en Green Light. Tu maitrises le timing.`;
+    return `${report.pctGreenLight}% de tes sessions en momentum. Tu maitrises le timing.`;
   }
 
   // Low green light adherence
   if (report.pctGreenLight < 50 && report.sessionsCount >= 3) {
-    return "Tu swibes encore en Red Light. Les creneaux Green Light donnent plus de matches.";
+    return "Tu swipes encore hors pic. Les creneaux momentum donnent plus de matches.";
   }
 
   // Efficiency improving
@@ -279,7 +279,7 @@ export function getInsight(report: WeeklyReport): string {
   }
 
   // Fallback
-  return "Astuce : les sessions de 15 min en Green Light sont les plus efficaces.";
+  return "Astuce : les sessions de 15 min en momentum sont les plus efficaces.";
 }
 
 // ── Helper: check if any sessions exist ─────────────────────────

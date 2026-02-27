@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { track } from "@vercel/analytics";
 import type { WrappedMetrics } from "../lib/wrappedMetrics";
 import { generateShareImage, shareImage } from "../lib/shareImage";
 import type { ShareTemplate } from "../lib/shareImage";
@@ -82,6 +83,7 @@ export default function WrappedShare({ metrics, onClose }: WrappedShareProps) {
     setSharing(true);
     try {
       await shareImage(blob, "Mon Dating Wrapped");
+      track("share_clicked", { template });
     } finally {
       setSharing(false);
     }

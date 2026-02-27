@@ -75,7 +75,7 @@ def generate_nudge() -> dict:
         subject = f"Soiree moyenne — {best_score}/100 sur {best_app.capitalize()}"
         emoji = "🟡"
     else:
-        subject = f"Red Light ce soir — evite les apps ({best_score}/100)"
+        subject = f"Hors pic ce soir — evite les apps ({best_score}/100)"
         emoji = "🔴"
 
     # Event info
@@ -107,19 +107,19 @@ def generate_nudge() -> dict:
 
 {apps_summary}{event_info}{peak_info}
 
-{'👉 Ouvre DateDetox et lance une session de 15 min' if best_score >= 36 else '🛑 Pas la peine de swiper ce soir. Fais autre chose.'}
+{'👉 Ouvre DatePulse et lance une session de 15 min' if best_score >= 36 else '🛑 Pas la peine de swiper ce soir. Fais autre chose.'}
 
 {APP_URL}
 
 ---
-DateDetox — Swipe less. Match more.
+DatePulse — Swipe when it matters.
 """
 
     # HTML version
     body_html = f"""
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; background: #030712; color: #f3f4f6; border-radius: 16px;">
-  <h1 style="font-size: 24px; background: linear-gradient(to right, #f472b6, #db2777); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0 0 8px;">
-    DateDetox
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; background: #080b14; color: #f3f4f6; border-radius: 16px;">
+  <h1 style="font-size: 24px; background: linear-gradient(to right, #818cf8, #4f46e5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0 0 8px;">
+    DatePulse
   </h1>
   <p style="color: #9ca3af; font-size: 14px; margin: 0 0 24px;">Ton nudge du soir</p>
 
@@ -140,11 +140,11 @@ DateDetox — Swipe less. Match more.
   {f'<p style="color: #9ca3af; font-size: 14px;">{peak_info.strip()}</p>' if peak_info else ''}
 
   <a href="{APP_URL}" style="display: block; text-align: center; background: linear-gradient(to right, #db2777, #059669); color: white; padding: 14px 24px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 16px; margin-top: 24px;">
-    {'Ouvrir DateDetox' if best_score >= 36 else 'Voir le score en direct'}
+    {'Ouvrir DatePulse' if best_score >= 36 else 'Voir le score en direct'}
   </a>
 
   <p style="color: #4b5563; font-size: 12px; text-align: center; margin-top: 24px;">
-    DateDetox — Swipe less. Match more.
+    DatePulse — Swipe when it matters.
   </p>
 </div>
 """
@@ -216,7 +216,7 @@ def send_via_beehiiv(nudge: dict) -> bool:
 # ── Main ─────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="DateDetox Smart Nudge Email")
+    parser = argparse.ArgumentParser(description="DatePulse Smart Nudge Email")
     parser.add_argument("--dry-run", action="store_true", help="Print nudge content without sending")
     args = parser.parse_args()
 

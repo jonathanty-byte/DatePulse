@@ -7,7 +7,7 @@ import {
   saveActiveSessionState,
   endSession,
 } from "../lib/sessionTracker";
-import type { DetoxSession } from "../lib/sessionTracker";
+import type { PulseSession } from "../lib/sessionTracker";
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -16,7 +16,7 @@ interface SessionTimerProps {
   activeSession: ActiveSessionState;
   weatherCondition?: string;
   trendModifier?: number;
-  onSessionEnd: (session: DetoxSession) => void;
+  onSessionEnd: (session: PulseSession) => void;
 }
 
 const DURATION_OPTIONS = [10, 15, 20, 30] as const;
@@ -144,7 +144,7 @@ export default function SessionTimer({
       transition={{ duration: 0.5 }}
     >
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-brand-900/20 to-gray-950" />
+      <div className="absolute inset-0 bg-gradient-to-b from-brand-900/20 to-[#080b14]" />
 
       {/* Pulsing session glow */}
       <motion.div

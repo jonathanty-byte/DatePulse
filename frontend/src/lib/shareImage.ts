@@ -15,11 +15,11 @@ export async function generateShareImage(
   canvas.height = height;
   const ctx = canvas.getContext("2d")!;
 
-  // Background gradient (dark theme matching DateDetox)
+  // Background gradient (dark theme matching DatePulse)
   const gradient = ctx.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, "#030712"); // gray-950
-  gradient.addColorStop(0.5, "#1a0a2e"); // brand dark purple
-  gradient.addColorStop(1, "#030712"); // gray-950
+  gradient.addColorStop(0, "#080b14"); // dark
+  gradient.addColorStop(0.5, "#1e1b4b"); // indigo-950
+  gradient.addColorStop(1, "#080b14"); // dark
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height);
 
@@ -32,8 +32,8 @@ export async function generateShareImage(
     height * 0.1,
     300
   );
-  circleGradient.addColorStop(0, "rgba(236, 72, 153, 0.15)"); // brand-500
-  circleGradient.addColorStop(1, "rgba(236, 72, 153, 0)");
+  circleGradient.addColorStop(0, "rgba(99, 102, 241, 0.15)"); // indigo-500
+  circleGradient.addColorStop(1, "rgba(99, 102, 241, 0)");
   ctx.fillStyle = circleGradient;
   ctx.fillRect(0, 0, width, height);
 
@@ -49,8 +49,8 @@ export async function generateShareImage(
     width * 0.7,
     titleY + 50
   );
-  titleGrad.addColorStop(0, "#f472b6"); // brand-400
-  titleGrad.addColorStop(1, "#db2777"); // brand-600
+  titleGrad.addColorStop(0, "#818cf8"); // indigo-400
+  titleGrad.addColorStop(1, "#4f46e5"); // indigo-600
   ctx.fillStyle = titleGrad;
   ctx.fillText("DATING WRAPPED", width / 2, titleY);
 
@@ -72,7 +72,7 @@ export async function generateShareImage(
     { value: `${metrics.estimatedTotalHours}h`, label: "Temps total" },
     {
       value: `${metrics.matchesInGreenLightPct}%`,
-      label: "Matches en Green Light",
+      label: "Matches en momentum",
     },
   ];
 
@@ -91,8 +91,8 @@ export async function generateShareImage(
       width * 0.7,
       y + 30
     );
-    statGrad.addColorStop(0, "#f472b6");
-    statGrad.addColorStop(1, "#34d399");
+    statGrad.addColorStop(0, "#818cf8"); // indigo-400
+    statGrad.addColorStop(1, "#fbbf24"); // amber-400
     ctx.fillStyle = statGrad;
     ctx.fillText(stat.value, width / 2, y);
 
@@ -113,15 +113,15 @@ export async function generateShareImage(
     width * 0.7,
     brandingY + 20
   );
-  brandGrad.addColorStop(0, "#f472b6");
-  brandGrad.addColorStop(1, "#db2777");
+  brandGrad.addColorStop(0, "#818cf8"); // indigo-400
+  brandGrad.addColorStop(1, "#4f46e5"); // indigo-600
   ctx.fillStyle = brandGrad;
-  ctx.fillText("DateDetox", width / 2, brandingY);
+  ctx.fillText("DatePulse", width / 2, brandingY);
 
   ctx.font =
     "400 24px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   ctx.fillStyle = "#4b5563"; // gray-600
-  ctx.fillText("Swipe less. Match more.", width / 2, brandingY + 40);
+  ctx.fillText("Swipe when it matters.", width / 2, brandingY + 40);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(

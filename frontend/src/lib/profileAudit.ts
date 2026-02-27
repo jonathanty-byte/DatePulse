@@ -20,8 +20,17 @@ export interface AuditResult {
 
 // ── Rate limiting ───────────────────────────────────────────────
 
-const RATE_LIMIT_KEY = "datedetox_last_audit";
+const RATE_LIMIT_KEY = "datepulse_last_audit";
+const OLD_RATE_LIMIT_KEY = "datedetox_last_audit";
 const RATE_LIMIT_DAYS = 30;
+
+// Migrate old localStorage key (one-time)
+try {
+  if (!localStorage.getItem(RATE_LIMIT_KEY) && localStorage.getItem(OLD_RATE_LIMIT_KEY)) {
+    localStorage.setItem(RATE_LIMIT_KEY, localStorage.getItem(OLD_RATE_LIMIT_KEY)!);
+    localStorage.removeItem(OLD_RATE_LIMIT_KEY);
+  }
+} catch { /* ignore */ }
 
 export function getLastAuditDate(): Date | null {
   try {

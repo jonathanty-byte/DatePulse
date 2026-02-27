@@ -321,7 +321,7 @@ export default function MatchTrackerInline({ currentApp }: Props) {
           <span className="text-red-400 font-medium">{stats.lowScoreMatches}</span> score &lt;40
           {stats.highScoreMatches > stats.lowScoreMatches && stats.total >= 5 && (
             <span className="block mt-1 text-brand-400 font-medium text-[10px] sm:text-xs">
-              Tu matches plus quand DateDetox est haut !
+              Tu matches plus quand DatePulse est haut !
             </span>
           )}
         </div>

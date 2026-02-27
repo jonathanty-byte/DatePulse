@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { track } from "@vercel/analytics";
 import type { CoachContext, CoachResult, CoachSuggestion } from "../lib/messageCoach";
 import { analyzeConversation } from "../lib/messageCoach";
 
@@ -125,6 +126,7 @@ export default function MessageCoach() {
       );
       setResult(coachResult);
       setState("result");
+      track("coach_analyzed", { context, inputMode });
     } catch (err) {
       setErrorMsg(
         err instanceof Error ? err.message : "Erreur inconnue. Reessaie."

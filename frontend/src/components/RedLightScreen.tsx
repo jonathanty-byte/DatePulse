@@ -48,7 +48,7 @@ export default function RedLightScreen({ score, event, app, now }: RedLightScree
     >
       {/* Pulsing red background */}
       <motion.div
-        className="absolute inset-0 bg-gradient-to-b from-red-950/40 to-gray-950"
+        className="absolute inset-0 bg-gradient-to-b from-red-950/40 to-[#080b14]"
         animate={{ opacity: [0.6, 1, 0.6] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -61,7 +61,7 @@ export default function RedLightScreen({ score, event, app, now }: RedLightScree
           transition={{ delay: 0.1, duration: 0.4 }}
         >
           <span className="inline-block rounded-full bg-red-600/20 border border-red-500/30 px-5 py-1.5 text-sm sm:text-base font-bold tracking-widest text-red-400 uppercase">
-            Stop
+            Hors pic
           </span>
         </motion.div>
 
@@ -72,7 +72,7 @@ export default function RedLightScreen({ score, event, app, now }: RedLightScree
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
         >
-          NE SWIPE PAS
+          ATTENDS LE CRENEAU
         </motion.h2>
 
         <motion.p
@@ -114,7 +114,7 @@ export default function RedLightScreen({ score, event, app, now }: RedLightScree
           >
             <span className="text-2xl sm:text-3xl">&#x1F7E2;</span>
             <div className="text-left">
-              <p className="text-xs sm:text-sm text-gray-400">Prochain Green Light</p>
+              <p className="text-xs sm:text-sm text-gray-400">Prochain momentum</p>
               <p className="text-base sm:text-lg font-bold text-green-400">
                 {formatCountdown(nextGreen)}
                 <span className="ml-2 text-xs sm:text-sm font-normal text-gray-500">

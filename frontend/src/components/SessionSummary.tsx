@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import type { AppName } from "../lib/data";
 import { DAY_NAMES_FULL } from "../lib/data";
-import type { DetoxSession } from "../lib/sessionTracker";
+import type { PulseSession } from "../lib/sessionTracker";
 import { getEfficiencyPercentile, getSessionStats, getSessions } from "../lib/sessionTracker";
 import { getNextPeak } from "../lib/scoring";
 import type { NextPeak } from "../lib/scoring";
@@ -13,7 +13,7 @@ function capitalize(s: string) {
 }
 
 interface SessionSummaryProps {
-  session: DetoxSession;
+  session: PulseSession;
   app: AppName;
   onClose: () => void;
   onNewSession: () => void;
@@ -64,7 +64,7 @@ export default function SessionSummary({
       transition={{ duration: 0.5 }}
     >
       {/* Celebratory gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-green-950/30 to-gray-950" />
+      <div className="absolute inset-0 bg-gradient-to-b from-green-950/30 to-[#080b14]" />
 
       <div className="relative mx-auto max-w-md flex flex-col items-center text-center">
         {/* Success badge */}
@@ -171,7 +171,7 @@ export default function SessionSummary({
           >
             <span className="text-xl">&#x1F7E2;</span>
             <div className="text-left">
-              <p className="text-xs text-gray-400">Prochaine fenetre verte</p>
+              <p className="text-xs text-gray-400">Prochain momentum</p>
               <p className="text-sm font-bold text-green-400">
                 {formatNext(nextGreen)}
               </p>

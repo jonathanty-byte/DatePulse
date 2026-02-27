@@ -11,7 +11,7 @@ export default function Wrapped() {
   const [showShare, setShowShare] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <div className="min-h-screen bg-[#080b14] text-gray-100">
       <NavBar />
       <section className="px-4 py-8 sm:py-12">
         <div className="mx-auto max-w-2xl">
@@ -39,7 +39,7 @@ export default function Wrapped() {
       </section>
       <footer className="border-t border-white/5 px-4 py-6 sm:py-8">
         <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-gray-600 space-y-2">
-          <p className="font-medium text-gray-500">DateDetox — Swipe less. Match more.</p>
+          <p className="font-medium text-gray-500">DatePulse — Swipe when it matters.</p>
           <p>
             <a href="/" className="hover:text-gray-400 transition">Accueil</a>
             <span className="mx-2 text-gray-700">|</span>

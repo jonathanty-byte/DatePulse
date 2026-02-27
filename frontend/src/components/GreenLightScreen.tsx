@@ -47,7 +47,7 @@ export default function GreenLightScreen({ score, event, app, now, onStartSessio
       transition={{ duration: 0.5 }}
     >
       {/* Green gradient background */}
-      <div className={`absolute inset-0 bg-gradient-to-b ${bgFrom} to-gray-950`} />
+      <div className={`absolute inset-0 bg-gradient-to-b ${bgFrom} to-[#080b14]`} />
 
       {/* Peak glow effect */}
       {isPeak && (
@@ -72,7 +72,7 @@ export default function GreenLightScreen({ score, event, app, now, onStartSessio
                 : "bg-amber-600/20 border-amber-500/30 text-amber-400"
             }`}
           >
-            {isPeak ? "Peak" : isStrong ? "Go" : "Amber"}
+            {isPeak ? "Momentum optimal" : isStrong ? "Momentum" : "Transition"}
           </span>
         </motion.div>
 

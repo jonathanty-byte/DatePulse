@@ -1,7 +1,7 @@
-// LLM service — OpenRouter API wrapper
-// TODO: Phase 2 — migrate to Vercel Edge Function to hide API key
+// LLM service — Calls /api/llm edge function (prod) or OpenRouter directly (dev)
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const PROXY_URL = "/api/llm";
 const DEFAULT_MODEL = "deepseek/deepseek-chat-v3-0324";
 const TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 1;
@@ -41,14 +41,9 @@ export class LLMError extends Error {
 // ── Main function ───────────────────────────────────────────────
 
 export async function callLLM(options: LLMCallOptions): Promise<string> {
-  const apiKey = import.meta.env.VITE_OPENROUTER_KEY;
-  if (!apiKey) {
-    throw new LLMError(
-      "Cle API OpenRouter manquante. Ajoute VITE_OPENROUTER_KEY dans .env.local.",
-      undefined,
-      false
-    );
-  }
+  // Dev fallback: use VITE_OPENROUTER_KEY directly if present
+  const devApiKey = import.meta.env.VITE_OPENROUTER_KEY as string | undefined;
+  const useProxy = !devApiKey;
 
   const model = options.model ?? DEFAULT_MODEL;
   const body = {
@@ -61,6 +56,17 @@ export async function callLLM(options: LLMCallOptions): Promise<string> {
     temperature: options.temperature ?? 0.3,
   };
 
+  const url = useProxy ? PROXY_URL : OPENROUTER_URL;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (!useProxy && devApiKey) {
+    headers["Authorization"] = `Bearer ${devApiKey}`;
+    headers["HTTP-Referer"] = "https://datepulse.app";
+    headers["X-Title"] = "DatePulse";
+  }
+
   let lastError: LLMError | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -68,14 +74,9 @@ export async function callLLM(options: LLMCallOptions): Promise<string> {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-      const res = await fetch(OPENROUTER_URL, {
+      const res = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-          "HTTP-Referer": "https://datedetox.app",
-          "X-Title": "DateDetox",
-        },
+        headers,
         body: JSON.stringify(body),
         signal: controller.signal,
       });
@@ -87,13 +88,12 @@ export async function callLLM(options: LLMCallOptions): Promise<string> {
         const retryable = RETRYABLE_CODES.includes(res.status);
 
         lastError = new LLMError(
-          `OpenRouter API error ${res.status}: ${errorBody.slice(0, 200)}`,
+          `API error ${res.status}: ${errorBody.slice(0, 200)}`,
           res.status,
           retryable
         );
 
         if (retryable && attempt < MAX_RETRIES) {
-          // Wait before retry (exponential backoff)
           await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
           continue;
         }

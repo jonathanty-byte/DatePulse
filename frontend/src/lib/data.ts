@@ -1,4 +1,4 @@
-// DateDetox V1 (ex-DatePulse V3) — Static lookup tables (Feminine scoring model)
+// DatePulse V3 — Static lookup tables (Feminine scoring model)
 // Sources: Adjust Benchmarks 2024, Sensor Tower FR Q1-Q4 2024/Q1 2025,
 //          data.ai Jan 2024, Tinder Year in Swipe, Hinge Blog, Bumble PR, Nielsen, Ogury,
 //          SwipeStats (gender split), Reincubate (F 25-34), BMC Psychology 2024,

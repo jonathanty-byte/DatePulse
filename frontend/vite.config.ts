@@ -15,12 +15,12 @@ export default defineConfig({
         "robots.txt",
       ],
       manifest: {
-        name: "DateDetox — Swipe less. Match more.",
-        short_name: "DateDetox",
+        name: "DatePulse — Swipe when it matters.",
+        short_name: "DatePulse",
         description:
-          "La seule app de dating qui te dit de MOINS utiliser les apps de dating. Score temps reel, fenetres optimales, detox intentionnelle.",
-        theme_color: "#030712",
-        background_color: "#030712",
+          "Sais exactement quand les apps de dating sont actives. Score temps reel, fenetres optimales, optimisation intelligente.",
+        theme_color: "#080b14",
+        background_color: "#080b14",
         display: "standalone",
         orientation: "portrait",
         scope: "/",

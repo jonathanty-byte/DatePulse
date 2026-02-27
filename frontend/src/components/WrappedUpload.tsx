@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { track } from "@vercel/analytics";
 import { parseUploadedFile } from "../lib/wrappedParser";
 import { computeWrappedMetrics } from "../lib/wrappedMetrics";
 import type { WrappedMetrics } from "../lib/wrappedMetrics";
@@ -67,6 +68,7 @@ export default function WrappedUpload({ onDataParsed }: WrappedUploadProps) {
       try {
         const parsed = await parseUploadedFile(file);
         const metrics = computeWrappedMetrics(parsed);
+        track("wrapped_uploaded", { source: parsed.source, swipes: metrics.totalSwipes });
         onDataParsed(metrics);
       } catch (err) {
         setErrorMsg(

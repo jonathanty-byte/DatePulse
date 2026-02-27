@@ -19,7 +19,7 @@ export default function EmailSignup() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, utm_source: "datedetox_app" }),
+          body: JSON.stringify({ email, utm_source: "datepulse_app" }),
         }
       );
 
@@ -49,7 +49,7 @@ export default function EmailSignup() {
     >
       <span className="text-3xl">&#x1F7E2;</span>
       <h2 className="mt-3 text-lg sm:text-xl font-bold text-white">
-        Recois ton Green Light par email
+        Recois ton momentum par email
       </h2>
       <p className="mt-2 text-sm text-gray-400 max-w-md mx-auto">
         Un email par jour a 20h45 avec ton score du soir et tes meilleurs creneaux.

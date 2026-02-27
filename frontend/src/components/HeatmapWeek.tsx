@@ -188,7 +188,7 @@ export default function HeatmapWeek({ now, app = "tinder" }: HeatmapWeekProps) {
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm bg-green-400/90" />
-          Green Light
+          Momentum
         </span>
       </div>
     </div>

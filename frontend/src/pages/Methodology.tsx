@@ -64,7 +64,7 @@ function Table({
 
 export default function Methodology() {
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <div className="min-h-screen bg-[#080b14] text-gray-100">
       <NavBar />
       <main className="mx-auto max-w-4xl space-y-12 px-4 py-8 sm:py-12">
         {/* Title */}
@@ -79,13 +79,13 @@ export default function Methodology() {
             Methodologie
           </h1>
           <p className="mt-3 text-lg text-gray-400">
-            Comment DateDetox calcule le score d'activite de chaque app de
+            Comment DatePulse calcule le score d'activite de chaque app de
             rencontre, heure par heure.
           </p>
         </motion.div>
 
-        {/* ── Pourquoi DateDetox ──────────────────────────── */}
-        <Section title="Pourquoi DateDetox ?" delay={0.02}>
+        {/* ── Pourquoi DatePulse ──────────────────────────── */}
+        <Section title="Pourquoi DatePulse ?" delay={0.02}>
           <div className="space-y-3 text-gray-400">
             <p>
               <strong className="text-white">Le probleme :</strong> les apps de
@@ -96,13 +96,13 @@ export default function Methodology() {
             <p>
               <strong className="text-white">L'approche data-driven :</strong> l'activite
               sur les apps suit des patterns previsibles a 99% (confirme par
-              correlation r=0.995 avec Google Trends FR). DateDetox exploite ces
+              correlation r=0.995 avec Google Trends FR). DatePulse exploite ces
               donnees publiques pour te dire exactement quand les apps sont
               actives.
             </p>
             <p>
               <strong className="text-white">Pourquoi "moins = mieux" :</strong> 15
-              minutes pendant un Green Light valent plus que 2 heures en Red Light.
+              minutes pendant un momentum valent plus que 2 heures hors pic.
               En swipant au bon moment, tu maximises tes matches tout en
               recuperant du temps.
             </p>
@@ -119,7 +119,7 @@ export default function Methodology() {
             independants.
           </p>
           <p className="text-gray-400">
-            DateDetox agrege ces donnees publiques et les traduit en un score
+            DatePulse agrege ces donnees publiques et les traduit en un score
             0-100 calcule <strong className="text-white">100% cote client</strong>.
             Aucune donnee utilisateur n'est collectee, aucune API externe n'est
             appelee en temps reel. Le calcul est deterministe et reproductible.
@@ -161,7 +161,7 @@ export default function Methodology() {
           </ul>
           <p className="text-gray-400">
             Le resultat est borne entre 0 et 100, puis converti en label
-            contextuel : RED LIGHT, AMBER, GREEN LIGHT, GREEN LIGHT+, PEAK.
+            contextuel : HORS PIC, TRANSITION, MOMENTUM, MOMENTUM+, MOMENTUM OPTIMAL.
           </p>
         </Section>
 
@@ -409,7 +409,7 @@ export default function Methodology() {
         {/* ── Per-app calibration ────────────────────────── */}
         <Section title="Calibrage par app" delay={0.2}>
           <p className="text-gray-400">
-            Chaque app a ses propres patterns. DateDetox maintient des tables
+            Chaque app a ses propres patterns. DatePulse maintient des tables
             separees pour Tinder, Bumble, Hinge et Happn, calibrees sur les
             publications specifiques de chaque app.
           </p>
@@ -542,7 +542,7 @@ export default function Methodology() {
           <ul className="list-inside list-disc space-y-2 text-gray-400">
             <li>
               <strong className="text-gray-200">Donnees publiques uniquement</strong>{" "}
-              — DateDetox n'a pas acces aux donnees internes des apps (DAU, MAU
+              — DatePulse n'a pas acces aux donnees internes des apps (DAU, MAU
               en temps reel, nombre de swipes). Les indices sont derives de
               publications officielles et d'etudes tierces.
             </li>
@@ -602,7 +602,7 @@ export default function Methodology() {
       <footer className="border-t border-white/5 px-4 py-8">
         <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-gray-600 space-y-2">
           <p className="font-medium text-gray-500">
-            DateDetox — Swipe less. Match more.
+            DatePulse — Swipe when it matters.
           </p>
           <p>
             <a href="/methodology" className="hover:text-gray-400 transition">Methodologie</a>
