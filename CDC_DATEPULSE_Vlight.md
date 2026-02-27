@@ -1,8 +1,8 @@
-# CDC — DatePulse V3.2 (Ship 12 — Projet #3)
+# CDC — DatePulse V3.3 (Ship 12 — Projet #3)
 
 > **"C'est le bon moment pour swiper." — Un score simple, basé sur de la vraie data.**
 >
-> **Mise à jour : 26/02/2026** — Sprint UI (pulse jauge, heatmap responsive), PWA offline, Match Tracker inline, Auto Swiper.
+> **Mise à jour : 27/02/2026** — Météo temps réel, Google Trends live modifier (r=0.93), YearlyChart multi-app, page méthodologie.
 
 ---
 
@@ -139,15 +139,27 @@ Notre analyse de corrélation entre cette courbe théorique et les données Goog
 
 → **Les patterns sont suffisamment prévisibles pour qu'une lookup table statique soit aussi précise qu'un pipeline live complexe.**
 
+### 2.5 Proxy terms Google Trends (découverte V3.3)
+
+Recherche exhaustive de termes publics FR dont la saisonnalité corrèle avec APP_MONTHLY Tinder. Résultat : une combinaison pondérée de 3 termes non-dating atteint r=0.93 :
+
+| Terme | Poids | r solo | Logique |
+|---|---|---|---|
+| `serie` | 0.50 | 0.71 | Proxy ennui hivernal → activité dating |
+| `site de rencontre` | 0.30 | 0.59 | Signal intention dating directe |
+| `rencontre` | 0.20 | 0.49 | Signal généraliste engagement social |
+
+→ Cette corrélation alimente le **trend modifier live** (F11) qui ajuste le score en comparant l'activité Google Trends réelle vs la prédiction statique du modèle.
+
 ---
 
 ## 3. Formule de Scoring
 
-### 3.1 Score déterministe (V3 — MVP)
+### 3.1 Score déterministe (V3 — base statique)
 
 ```
-score(t) = hourly_index[hour(t)] 
-         × weekly_index[dayOfWeek(t)] / 100 
+score(t) = hourly_index[hour(t)]
+         × weekly_index[dayOfWeek(t)] / 100
          × monthly_index[month(t)] / 100
          × event_multiplier(t)
 ```
@@ -162,14 +174,19 @@ score = 100 × (100/100) × (100/100) × 1.0 = 100 → "En feu 🔥"
 score = 28 × (55/100) × (50/100) × 1.0 = 7.7 → "Mort plat 💀"
 ```
 
-### 3.2 Score enrichi (V3.1 — post-MVP, optionnel)
+### 3.2 Score enrichi (V3.3 — live) ✅ IMPLÉMENTÉ
 
 ```
-score_enriched(t) = score(t) × 0.85 + live_signal(t) × 0.15
+score(t) = hourly[h] × weekly[d] × monthly[m] / 10000
+         × event_multiplier(t)
+         × weather_modifier(t)
+         × trend_modifier(t)
 ```
 
-Où `live_signal` = Google Trends FR "tinder" temps réel (via pytrends, 1 appel/heure max).
-→ Ajoute les anomalies (buzz TV, événement imprévu) mais pas indispensable.
+- **weather_modifier** : basé sur la météo temps réel Paris (wttr.in). Clair 0.95, nuages 1.00, pluie 1.10, neige 1.27, orage 1.15.
+- **trend_modifier** : basé sur Google Trends FR en temps réel. Combinaison pondérée de 3 proxy terms (r=0.93 avec APP_MONTHLY Tinder). Clampé [0.70, 1.40].
+
+**Règle de cohérence** : seul `computeScore()` applique les modificateurs dynamiques (events, météo, trends). La heatmap, best times, countdown et yearly chart utilisent la formule statique.
 
 ### 3.3 Mapping score → labels UX
 
@@ -316,6 +333,51 @@ Pas de landing séparée. La home page EST la landing :
 
 **Stockage :** 100% localStorage — mention "Stocké localement — rien n'est envoyé"
 
+### F10 — Météo temps réel ✅ IMPLÉMENTÉ
+
+**Ce que l'utilisateur voit :**
+- Badge météo sous le score : condition + température + impact sur le score (ex: "Pluie +10% sur le score")
+- Apparaît instantanément grâce au cache localStorage (30min TTL)
+
+**Logique :**
+- Fetch `wttr.in/Paris?format=j1` (gratuit, CORS OK, pas d'API key)
+- Fallback : `/weather.json` statique si wttr.in est down
+- Mapping condition → modificateur : clair 0.95, nuages 1.00, pluie 1.10, neige 1.27, orage 1.15
+- Sources : études OKCupid (pluie = +10% activité), Hinge (tempêtes = pic messages)
+- **N'affecte que le score temps réel** — heatmap et best times restent statiques
+
+### F11 — Google Trends live modifier ✅ IMPLÉMENTÉ
+
+**Ce que l'utilisateur voit :**
+- Badge tendance sous le score : icône direction (📈/📉) + pourcentage (ex: "+4% ce mois")
+- Opacité variable selon la confiance (3 termes OK = pleine, 2 = 75%, 1 = 50%)
+- Caché si variation nulle ou confiance trop faible
+
+**Logique :**
+- Script Python `trends_live.py` (cron toutes les 2h via Task Scheduler)
+- Fetch 90 jours de Google Trends FR pour 3 proxy terms pondérés :
+  - `serie` (poids 0.50, r=0.71 solo avec APP_MONTHLY Tinder)
+  - `site de rencontre` (poids 0.30, r=0.59)
+  - `rencontre` (poids 0.20, r=0.49)
+  - Combinaison pondérée : r=0.93 avec la courbe mensuelle Tinder
+- Chaque terme est fetch individuellement (évite l'écrasement par normalisation Google)
+- Algorithme : déviation relative — compare la déviation du mois courant par rapport à sa fenêtre
+- Modifier clampé [0.70, 1.40], écrit dans `frontend/public/trends.json`
+- Dégradation gracieuse : si 1-2 termes échouent, recalcule avec les restants
+- **N'affecte que le score temps réel** — heatmap et best times restent statiques
+
+### F12 — Yearly Activity Chart ✅ IMPLÉMENTÉ
+
+**Ce que l'utilisateur voit :**
+- Graphique annuel des courbes d'activité par app (Recharts AreaChart)
+- Légende interactive : chips cliquables pour toggle n'importe quelle combinaison d'apps
+- Apps sélectionnées en stroke plein + gradient fill, non sélectionnées en fantôme (10% opacité)
+- Point pulsant + ligne de référence pointillée sur le mois en cours
+
+**Logique :**
+- Données source : `APP_MONTHLY` depuis data.ts (indexes mensuels statiques par app)
+- Aucun modificateur dynamique (météo, trends, events) — courbes purement statiques
+
 ---
 
 ## 5. Architecture technique
@@ -358,16 +420,20 @@ DatePulse/
 │   │   │   ├── CountdownNext.tsx      # Countdown vers prochain pic
 │   │   │   ├── AppSelector.tsx        # Sélecteur Tinder/Bumble/Hinge/Happn
 │   │   │   ├── PoolFreshness.tsx      # Indicateur fraîcheur du pool + classement Play Store
-│   │   │   └── MatchTrackerInline.tsx # Match Tracker inline (form + stats + chart + historique)
+│   │   │   ├── MatchTrackerInline.tsx # Match Tracker inline (form + stats + chart + historique)
+│   │   │   └── YearlyChart.tsx        # Courbes activité annuelles (recharts AreaChart, multi-app)
 │   │   ├── pages/
-│   │   │   └── Home.tsx               # Page principale (tout intégré sur une seule page)
+│   │   │   ├── Home.tsx               # Page principale (score + météo + trends + heatmap + yearly)
+│   │   │   └── Methodology.tsx        # Page méthodologie (sources, formule, events, météo)
 │   │   └── styles/
 │   │       └── globals.css            # Tailwind base + scrollbar + font smoothing
 │   ├── public/
 │   │   ├── favicon.svg                # Icône SVG
 │   │   ├── icon-192.svg              # Icône PWA 192x192
 │   │   ├── icon-maskable.svg         # Icône PWA maskable 512x512
-│   │   └── og-image.png              # Open Graph image
+│   │   ├── og-image.png              # Open Graph image
+│   │   ├── weather.json               # Fallback météo statique (si wttr.in down)
+│   │   └── trends.json                # Google Trends live modifier (mis à jour par cron 2h)
 │   ├── index.html                     # SEO meta tags + OG + PWA meta
 │   ├── package.json
 │   ├── vite.config.ts                 # Vite + vite-plugin-pwa
@@ -376,18 +442,22 @@ DatePulse/
 │
 ├── scripts/                           # Automation locale (PC Windows)
 │   ├── scoring_engine.py              # Port Python de data.ts + scoring.ts
+│   ├── trends_live.py                 # Google Trends live modifier (cron 2h → trends.json)
 │   ├── auto_trigger.py                # Script principal (cron + serveur HTTP + CLI)
 │   ├── auto_trigger_config.json       # Config utilisateur (seuil, apps, chrome path)
 │   ├── sessions.jsonl                 # Historique des sessions Auto Swiper
-│   └── auto_trigger.log              # Logs d'exécution
+│   ├── auto_trigger.log              # Logs d'exécution
+│   └── trends_live.log               # Logs fetch Google Trends
 ```
 
-### 5.3 Double architecture : Frontend + Automation locale
+### 5.3 Triple architecture : Frontend + Data live + Automation locale
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  FRONTEND (Vercel)                                       │
 │  React SPA — calcul score côté client                    │
+│  + Météo temps réel (wttr.in, cache localStorage 30min)  │
+│  + Google Trends modifier (trends.json, cache 2h)        │
 │  Bouton "Lancer Auto Swiper" → POST localhost:5555       │
 └──────────────────────┬──────────────────────────────────┘
                        │ HTTP (localhost uniquement)
@@ -401,10 +471,11 @@ DatePulse/
 └──────────────────────┬──────────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────────┐
-│  CRON (Windows Task Scheduler, toutes les 30 min)        │
-│  python auto_trigger.py                                  │
-│  Si score >= seuil (70) → lance l'app avec le meilleur   │
-│  score automatiquement                                   │
+│  CRON (Windows Task Scheduler)                           │
+│  auto_trigger.py — toutes les 30 min                     │
+│    Si score >= seuil (70) → lance l'app auto             │
+│  trends_live.py — toutes les 2h                          │
+│    Fetch Google Trends FR → écrit trends.json            │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -549,7 +620,7 @@ Articles blog ciblés :
 
 - ❌ Base de données
 - ❌ Bot Telegram
-- ❌ Collecteurs de données (pytrends, Wikipedia, Bluesky, etc.)
+- ❌ Collecteurs de données lourds (Wikipedia, Bluesky, etc.)
 - ❌ Comptes utilisateur / authentification
 - ❌ Paiement / Stripe
 - ❌ Multi-villes (Paris only pour MVP, les patterns sont nationaux)
@@ -570,6 +641,14 @@ Articles blog ciblés :
 - ✅ PWA : installable offline (vite-plugin-pwa, service worker, manifest, icônes)
 - ✅ Match Tracker inline : saisie matches, stats, corrélation score/matches, graphique, historique
 - ✅ Tout sur une seule page (pas de page séparée pour le tracker)
+
+**Ce qui a été ajouté en V3.3 :**
+- ✅ Météo temps réel : badge wttr.in + impact score (pluie +10%, neige +27%, etc.)
+- ✅ Google Trends live modifier : corrélation r=0.93 avec APP_MONTHLY via 3 proxy terms pondérés
+- ✅ Script cron `trends_live.py` (pytrends 90j, déviation relative, dégradation gracieuse)
+- ✅ YearlyChart : courbes activité annuelles multi-app (Recharts AreaChart, légende interactive)
+- ✅ Page /methodology : sources, formule, événements, météo
+- ✅ Validation corrélation out-of-sample (r=0.995 confirmé sur données indépendantes)
 
 ---
 
