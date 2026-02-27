@@ -9,7 +9,7 @@ interface BestTimesProps {
   count?: number;
 }
 
-export default function BestTimes({ now, app = "tinder", count = 5 }: BestTimesProps) {
+export default function BestTimes({ now, app = "tinder", count = 3 }: BestTimesProps) {
   const bestTimes = useMemo(() => computeBestTimes(now, app, count), [now, app, count]);
 
   return (

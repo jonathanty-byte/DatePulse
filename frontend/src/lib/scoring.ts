@@ -97,16 +97,16 @@ export function computeScore(
 
 export function getScoreLabel(score: number): ScoreLabel {
   if (score >= 91)
-    return { label: "En feu", color: "#ef4444", colorBg: "#ef444422", icon: "\u{1F680}", message: "Moment optimal ! Fonce !" };
+    return { label: "PEAK", color: "#22C55E", colorBg: "#22C55E22", icon: "\u{1F680}", message: "Moment optimal. Fonce !" };
   if (score >= 76)
-    return { label: "Tres actif", color: "#f97316", colorBg: "#f9731622", icon: "\u{26A1}", message: "Excellente activite !" };
+    return { label: "GREEN LIGHT+", color: "#22C55E", colorBg: "#22C55E22", icon: "\u{26A1}", message: "Excellent creneau !" };
   if (score >= 56)
-    return { label: "Actif", color: "#eab308", colorBg: "#eab30822", icon: "\u{1F525}", message: "Bon moment pour swiper" };
+    return { label: "GREEN LIGHT", color: "#16A34A", colorBg: "#16A34A22", icon: "\u{1F7E2}", message: "Bon moment. Session de 15 min recommandee." };
   if (score >= 36)
-    return { label: "Moyen", color: "#facc15", colorBg: "#facc1522", icon: "\u{1F324}\u{FE0F}", message: "Activite correcte" };
+    return { label: "AMBER", color: "#F59E0B", colorBg: "#F59E0B22", icon: "\u{1F7E1}", message: "Activite correcte. 15 min si tu veux." };
   if (score >= 16)
-    return { label: "Calme", color: "#60a5fa", colorBg: "#60a5fa22", icon: "\u{1F634}", message: "Peu d'activite en ce moment" };
-  return { label: "Tres calme", color: "#6b7280", colorBg: "#6b728022", icon: "\u{1F319}", message: "Evite de swiper maintenant" };
+    return { label: "RED LIGHT", color: "#DC2626", colorBg: "#DC262622", icon: "\u{1F534}", message: "Pas maintenant." };
+  return { label: "RED LIGHT", color: "#DC2626", colorBg: "#DC262622", icon: "\u{26D4}", message: "Zero activite. Ferme l'app." };
 }
 
 // ── Heatmap (7 days x 24 hours) ────────────────────────────────

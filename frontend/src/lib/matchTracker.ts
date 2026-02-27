@@ -7,7 +7,7 @@ export interface MatchEntry {
   id: string;
   app: AppName;
   timestamp: string; // ISO string
-  score: number; // DatePulse score at that moment (auto-computed)
+  score: number; // DateDetox score at that moment (auto-computed)
   note: string;
   rating?: number; // User compatibility rating 1-10
 }

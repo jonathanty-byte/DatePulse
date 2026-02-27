@@ -149,7 +149,7 @@ export default function Tracker() {
                 href="/"
                 className="text-xs sm:text-sm text-gray-500 hover:text-gray-300 transition"
               >
-                &larr; DatePulse
+                &larr; DateDetox
               </a>
               <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight">
                 <span className="bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">
@@ -162,7 +162,7 @@ export default function Tracker() {
             </div>
             <motion.button
               onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-500 to-pink-500 px-4 sm:px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 active:scale-95"
+              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-500 to-emerald-500 px-4 sm:px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 active:scale-95"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
@@ -321,7 +321,7 @@ export default function Tracker() {
               </p>
               {stats.highScoreMatches > stats.lowScoreMatches && stats.total >= 5 && (
                 <p className="mt-2 text-brand-400 font-medium">
-                  Tu matches plus quand DatePulse est haut — continue de swiper aux bons moments !
+                  Tu matches plus quand DateDetox est haut — continue de swiper aux bons moments !
                 </p>
               )}
             </div>

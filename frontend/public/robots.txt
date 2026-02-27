@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://datepulse.fr/sitemap.xml
+Sitemap: https://datedetox.app/sitemap.xml

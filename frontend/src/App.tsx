@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import Home from "./pages/Home";
-import Methodology from "./pages/Methodology";
+const Methodology = lazy(() => import("./pages/Methodology"));
+const Audit = lazy(() => import("./pages/Audit"));
+const Coach = lazy(() => import("./pages/Coach"));
+const Wrapped = lazy(() => import("./pages/Wrapped"));
 
 /**
  * Minimal SPA routing.
  * /            -> Home (score + heatmap + best times + match tracker)
  * /methodology -> Methodology
+ * /audit       -> AI Profile Audit
  */
 export default function App() {
   const [page, setPage] = useState(() => getPage());
@@ -31,16 +35,26 @@ export default function App() {
     return () => document.removeEventListener("click", handler);
   }, []);
 
-  switch (page) {
-    case "methodology":
-      return <Methodology />;
-    default:
-      return <Home />;
-  }
+  if (page === "home") return <Home />;
+
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-950">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+        </div>
+      }
+    >
+      {page === "methodology" ? <Methodology /> : page === "coach" ? <Coach /> : page === "wrapped" ? <Wrapped /> : <Audit />}
+    </Suspense>
+  );
 }
 
 function getPage(path?: string): string {
   const p = path || window.location.pathname;
   if (p.startsWith("/methodology")) return "methodology";
+  if (p.startsWith("/audit")) return "audit";
+  if (p.startsWith("/coach")) return "coach";
+  if (p.startsWith("/wrapped")) return "wrapped";
   return "home";
 }

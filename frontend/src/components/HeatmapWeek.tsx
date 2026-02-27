@@ -8,19 +8,17 @@ import { getParisDateParts } from "../lib/franceTime";
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 function scoreToColor(score: number): string {
-  if (score >= 75) return "bg-red-500/90";
-  if (score >= 55) return "bg-orange-500/80";
-  if (score >= 35) return "bg-yellow-500/60";
-  if (score >= 15) return "bg-blue-400/40";
-  return "bg-blue-900/30";
+  if (score >= 76) return "bg-green-400/90";
+  if (score >= 56) return "bg-green-500/70";
+  if (score >= 35) return "bg-amber-500/60";
+  return "bg-red-600/60";
 }
 
 function scoreToHex(score: number): string {
-  if (score >= 75) return "#ef4444";
-  if (score >= 55) return "#f97316";
-  if (score >= 35) return "#eab308";
-  if (score >= 15) return "#60a5fa";
-  return "#1e3a5f";
+  if (score >= 76) return "#4ade80";
+  if (score >= 56) return "#22c55e";
+  if (score >= 35) return "#f59e0b";
+  return "#dc2626";
 }
 
 interface HeatmapWeekProps {
@@ -181,16 +179,16 @@ export default function HeatmapWeek({ now, app = "tinder" }: HeatmapWeekProps) {
       {/* Legend */}
       <div className="mt-3 flex items-center justify-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-gray-500">
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm bg-blue-900/30" />
-          Calme
+          <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm bg-red-600/60" />
+          Zone morte
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm bg-yellow-500/60" />
-          Moyen
+          <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm bg-amber-500/60" />
+          Amber
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm bg-red-500/90" />
-          Intense
+          <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm bg-green-400/90" />
+          Green Light
         </span>
       </div>
     </div>

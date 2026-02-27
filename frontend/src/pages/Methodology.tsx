@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import NavBar from "../components/NavBar";
 
 const fade = (delay: number) => ({
   initial: { opacity: 0, y: 16 },
@@ -64,32 +65,49 @@ function Table({
 export default function Methodology() {
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      {/* Header */}
-      <header className="border-b border-white/5 px-4 py-6">
-        <div className="mx-auto flex max-w-4xl items-center justify-between">
-          <a
-            href="/"
-            className="text-sm font-medium text-gray-400 transition hover:text-white"
-          >
-            &larr; Retour au dashboard
-          </a>
-          <span className="bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-lg font-bold text-transparent">
-            DatePulse
-          </span>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-4xl space-y-12 px-4 py-12">
+      <NavBar />
+      <main className="mx-auto max-w-4xl space-y-12 px-4 py-8 sm:py-12">
         {/* Title */}
         <motion.div {...fade(0)}>
+          <a
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition mb-6"
+          >
+            &#x2190; Retour
+          </a>
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
             Methodologie
           </h1>
           <p className="mt-3 text-lg text-gray-400">
-            Comment DatePulse calcule le score d'activite de chaque app de
+            Comment DateDetox calcule le score d'activite de chaque app de
             rencontre, heure par heure.
           </p>
         </motion.div>
+
+        {/* ── Pourquoi DateDetox ──────────────────────────── */}
+        <Section title="Pourquoi DateDetox ?" delay={0.02}>
+          <div className="space-y-3 text-gray-400">
+            <p>
+              <strong className="text-white">Le probleme :</strong> les apps de
+              dating sont concues pour te garder le plus longtemps possible. Le
+              doomscroll dating — scroller sans but a des heures creuses —
+              gaspille ton temps et tue ta motivation.
+            </p>
+            <p>
+              <strong className="text-white">L'approche data-driven :</strong> l'activite
+              sur les apps suit des patterns previsibles a 99% (confirme par
+              correlation r=0.995 avec Google Trends FR). DateDetox exploite ces
+              donnees publiques pour te dire exactement quand les apps sont
+              actives.
+            </p>
+            <p>
+              <strong className="text-white">Pourquoi "moins = mieux" :</strong> 15
+              minutes pendant un Green Light valent plus que 2 heures en Red Light.
+              En swipant au bon moment, tu maximises tes matches tout en
+              recuperant du temps.
+            </p>
+          </div>
+        </Section>
 
         {/* ── Principe ──────────────────────────────────── */}
         <Section title="Principe general" delay={0.05}>
@@ -101,7 +119,7 @@ export default function Methodology() {
             independants.
           </p>
           <p className="text-gray-400">
-            DatePulse agrege ces donnees publiques et les traduit en un score
+            DateDetox agrege ces donnees publiques et les traduit en un score
             0-100 calcule <strong className="text-white">100% cote client</strong>.
             Aucune donnee utilisateur n'est collectee, aucune API externe n'est
             appelee en temps reel. Le calcul est deterministe et reproductible.
@@ -143,7 +161,7 @@ export default function Methodology() {
           </ul>
           <p className="text-gray-400">
             Le resultat est borne entre 0 et 100, puis converti en label
-            contextuel : Mort plat, Calme, Moyen, Actif, Tres actif, En feu.
+            contextuel : RED LIGHT, AMBER, GREEN LIGHT, GREEN LIGHT+, PEAK.
           </p>
         </Section>
 
@@ -391,7 +409,7 @@ export default function Methodology() {
         {/* ── Per-app calibration ────────────────────────── */}
         <Section title="Calibrage par app" delay={0.2}>
           <p className="text-gray-400">
-            Chaque app a ses propres patterns. DatePulse maintient des tables
+            Chaque app a ses propres patterns. DateDetox maintient des tables
             separees pour Tinder, Bumble, Hinge et Happn, calibrees sur les
             publications specifiques de chaque app.
           </p>
@@ -493,12 +511,38 @@ export default function Methodology() {
           />
         </Section>
 
+        {/* ── AI Profile Audit ──────────────────────────── */}
+        <Section title="Comment fonctionne l'audit IA" delay={0.28}>
+          <p className="text-gray-400">
+            L'AI Profile Audit analyse tes screenshots de profil via un modele
+            de vision (DeepSeek V3 via OpenRouter). Le scoring evalue 5 criteres :
+          </p>
+          <Table
+            headers={["Critere", "Poids", "Ce qui est evalue"]}
+            rows={[
+              ["Qualite des photos", "40%", "Eclairage, cadrage, resolution, sourire, contact visuel"],
+              ["Bio / prompts", "20%", "Originalite, longueur, humour, conversation starters"],
+              ["Variete / storytelling", "20%", "Mix activites, social, voyage — pas que des selfies"],
+              ["Ordre des photos", "10%", "La plus forte en premier, progression logique"],
+              ["Features de l'app", "10%", "Prompts Hinge, Spotify anthem, interets"],
+            ]}
+          />
+          <p className="mt-3 text-gray-400">
+            Les recommandations s'appuient sur les etudes publiees par Hinge et
+            Tinder. Score moyen attendu : 40-60. Un 80+ est rare.
+          </p>
+          <div className="mt-3 flex items-center gap-2 text-xs text-gray-600">
+            <span>&#x1F512;</span>
+            <span>Tes photos ne sont pas stockees. Elles sont envoyees a l'IA pour analyse puis supprimees.</span>
+          </div>
+        </Section>
+
         {/* ── Limites ───────────────────────────────────── */}
         <Section title="Limites et transparence" delay={0.3}>
           <ul className="list-inside list-disc space-y-2 text-gray-400">
             <li>
               <strong className="text-gray-200">Donnees publiques uniquement</strong>{" "}
-              — DatePulse n'a pas acces aux donnees internes des apps (DAU, MAU
+              — DateDetox n'a pas acces aux donnees internes des apps (DAU, MAU
               en temps reel, nombre de swipes). Les indices sont derives de
               publications officielles et d'etudes tierces.
             </li>
@@ -556,12 +600,19 @@ export default function Methodology() {
 
       {/* Footer */}
       <footer className="border-t border-white/5 px-4 py-8">
-        <div className="mx-auto max-w-4xl text-center text-sm text-gray-600">
+        <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-gray-600 space-y-2">
+          <p className="font-medium text-gray-500">
+            DateDetox — Swipe less. Match more.
+          </p>
           <p>
-            Construit sur des donnees publiques. Independant.{" "}
-            <a href="/" className="underline transition hover:text-gray-400">
-              Retour au dashboard
-            </a>
+            <a href="/methodology" className="hover:text-gray-400 transition">Methodologie</a>
+            <span className="mx-2 text-gray-700">|</span>
+            <a href="/audit" className="hover:text-gray-400 transition">Audit</a>
+            <span className="mx-2 text-gray-700">|</span>
+            <span>@EvolvedMonkey</span>
+          </p>
+          <p className="text-gray-700">
+            Aucune donnee personnelle stockee sur nos serveurs.
           </p>
         </div>
       </footer>

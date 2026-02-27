@@ -15,10 +15,10 @@ export default defineConfig({
         "robots.txt",
       ],
       manifest: {
-        name: "DatePulse — Score dating temps reel",
-        short_name: "DatePulse",
+        name: "DateDetox — Swipe less. Match more.",
+        short_name: "DateDetox",
         description:
-          "Decouvrez le meilleur moment pour ouvrir votre app de dating. Scores en temps reel pour Tinder, Bumble, Hinge et Happn.",
+          "La seule app de dating qui te dit de MOINS utiliser les apps de dating. Score temps reel, fenetres optimales, detox intentionnelle.",
         theme_color: "#030712",
         background_color: "#030712",
         display: "standalone",

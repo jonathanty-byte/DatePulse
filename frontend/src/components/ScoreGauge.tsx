@@ -1,18 +1,30 @@
 import { motion } from "framer-motion";
 import { getScoreLabel } from "../lib/scoring";
 
+export type GaugeMode = "red" | "amber" | "green" | "peak";
+
+const MODE_COLORS: Record<GaugeMode, string> = {
+  red: "#DC2626",
+  amber: "#F59E0B",
+  green: "#16A34A",
+  peak: "#22C55E",
+};
+
 interface ScoreGaugeProps {
   score: number;
   size?: number;
+  mode?: GaugeMode;
 }
 
-export default function ScoreGauge({ score, size = 220 }: ScoreGaugeProps) {
+export default function ScoreGauge({ score, size = 220, mode }: ScoreGaugeProps) {
   const strokeWidth = 14;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
   const progress = score / 100;
-  const { color, icon } = getScoreLabel(score);
+  const labelData = getScoreLabel(score);
+  const color = mode ? MODE_COLORS[mode] : labelData.color;
+  const icon = labelData.icon;
 
   // Pulse intensity based on score: high score = stronger pulse
   const pulseOpacity = score >= 70 ? [0.25, 0.55] : score >= 40 ? [0.2, 0.4] : [0.15, 0.25];

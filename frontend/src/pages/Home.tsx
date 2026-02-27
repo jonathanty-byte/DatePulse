@@ -1,22 +1,29 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { computeScore } from "../lib/scoring";
 import type { ScoreResult } from "../lib/scoring";
 import { WEATHER_MODIFIERS } from "../lib/data";
 import type { AppName } from "../lib/data";
 import { formatParisDay, formatParisTime } from "../lib/franceTime";
-import ScoreGauge from "../components/ScoreGauge";
-import ScoreLabel from "../components/ScoreLabel";
 import AppSelector from "../components/AppSelector";
 import HeatmapWeek from "../components/HeatmapWeek";
 import BestTimes from "../components/BestTimes";
-import CountdownNext from "../components/CountdownNext";
 import PoolFreshness from "../components/PoolFreshness";
 import MatchTrackerInline from "../components/MatchTrackerInline";
 import YearlyChart from "../components/YearlyChart";
+import BoostOptimizer from "../components/BoostOptimizer";
+import RedLightScreen from "../components/RedLightScreen";
+import GreenLightScreen from "../components/GreenLightScreen";
+import SessionTimer from "../components/SessionTimer";
+import SessionSummary from "../components/SessionSummary";
+import WeeklyReportCard from "../components/WeeklyReportCard";
+import EmailSignup from "../components/EmailSignup";
+import NavBar from "../components/NavBar";
+import type { DetoxSession, ActiveSessionState } from "../lib/sessionTracker";
+import { startSession, getActiveSessionState } from "../lib/sessionTracker";
+import { addMatch } from "../lib/matchTracker";
 
-const TRIGGER_URL = "http://localhost:5555/trigger";
-const SWIPEABLE_APPS = new Set(["tinder", "bumble"]);
+type SessionPhase = "idle" | "session_active" | "session_complete";
 
 const WEATHER_EMOJI: Record<string, string> = {
   clear: "\u2600\uFE0F", clouds: "\u2601\uFE0F", rain: "\uD83C\uDF27\uFE0F",
@@ -50,7 +57,53 @@ export default function Home() {
   const [app, setApp] = useState<AppName>("tinder");
   const [now, setNow] = useState(new Date());
   const [result, setResult] = useState<ScoreResult>(() => computeScore(new Date(), "tinder"));
-  const [triggerStatus, setTriggerStatus] = useState<"idle" | "launching" | "ok" | "error">("idle");
+
+  // Session Timer state machine
+  const [sessionPhase, setSessionPhase] = useState<SessionPhase>(() => {
+    // Resume active session from localStorage on load
+    const active = getActiveSessionState();
+    return active ? "session_active" : "idle";
+  });
+  const [activeSession, setActiveSession] = useState<ActiveSessionState | null>(
+    () => getActiveSessionState()
+  );
+  const [completedSession, setCompletedSession] = useState<DetoxSession | null>(null);
+
+  const handleStartSession = useCallback(
+    (duration: number) => {
+      const session = startSession(app, duration, result.score);
+      setActiveSession(session);
+      setSessionPhase("session_active");
+    },
+    [app, result.score]
+  );
+
+  const handleSessionEnd = useCallback(
+    (session: DetoxSession) => {
+      // Also add matches to the existing Match Tracker for compatibility
+      for (let i = 0; i < session.matches; i++) {
+        addMatch(session.app, new Date(), "Session DateDetox");
+      }
+      setCompletedSession(session);
+      setActiveSession(null);
+      setSessionPhase("session_complete");
+    },
+    []
+  );
+
+  const handleSessionClose = useCallback(() => {
+    setCompletedSession(null);
+    setSessionPhase("idle");
+  }, []);
+
+  const handleNewSession = useCallback(
+    () => {
+      setCompletedSession(null);
+      setSessionPhase("idle");
+    },
+    []
+  );
+
   const [weatherData, setWeatherData] = useState<{ condition: string; temp: number } | null>(() => {
     try {
       const cached = localStorage.getItem("dp_weather");
@@ -157,11 +210,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      {/* ── Hero ────────────────────────────────────── */}
-      <section className="relative overflow-hidden px-4 pb-12 pt-10 sm:pb-16 sm:pt-20">
-        <div className="absolute inset-0 bg-gradient-to-b from-brand-900/20 to-transparent" />
+      <NavBar />
+
+      {/* ── Header: Title + App selector + Context badges ──── */}
+      <section className="relative overflow-hidden px-4 pb-4 pt-8 sm:pb-6 sm:pt-12">
+        <div className="absolute inset-0 bg-gradient-to-b from-brand-900/10 to-transparent" />
         <div className="relative mx-auto max-w-4xl">
-          {/* Title */}
           <motion.div
             className="text-center"
             initial={{ opacity: 0, y: -20 }}
@@ -169,15 +223,14 @@ export default function Home() {
           >
             <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
               <span className="bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">
-                DatePulse
+                DateDetox
               </span>
             </h1>
             <p className="mx-auto mt-2 max-w-xl text-base sm:text-lg text-gray-400">
-              C'est le bon moment pour swiper ?
+              Swipe less. Match more.
             </p>
           </motion.div>
 
-          {/* App selector */}
           <motion.div
             className="mt-6 sm:mt-8 flex justify-center"
             initial={{ opacity: 0, y: 10 }}
@@ -187,8 +240,8 @@ export default function Home() {
             <AppSelector selected={app} onChange={setApp} />
           </motion.div>
 
-          {/* Score display */}
-          <div className="mt-8 sm:mt-10 flex flex-col items-center gap-4 sm:gap-6">
+          {/* Context badges: time, weather, trends */}
+          <div className="mt-4 sm:mt-6 flex flex-col items-center gap-2">
             <motion.p
               className="text-xs sm:text-sm font-medium uppercase tracking-wider text-gray-500"
               initial={{ opacity: 0 }}
@@ -234,50 +287,49 @@ export default function Home() {
                 </span>
               </motion.div>
             )}
-            <ScoreGauge score={result.score} />
-            <ScoreLabel score={result.score} event={result.event} app={app} now={now} />
-            <CountdownNext app={app} />
-
-            {/* Auto Swiper launch button (Tinder & Bumble only) */}
-            {SWIPEABLE_APPS.has(app) && <motion.button
-              onClick={async () => {
-                setTriggerStatus("launching");
-                try {
-                  const res = await fetch(TRIGGER_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ app }),
-                  });
-                  if (res.ok) {
-                    setTriggerStatus("ok");
-                  } else {
-                    setTriggerStatus("error");
-                  }
-                } catch {
-                  setTriggerStatus("error");
-                }
-                setTimeout(() => setTriggerStatus("idle"), 5000);
-              }}
-              disabled={triggerStatus === "launching"}
-              className="mt-2 sm:mt-4 flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-500 to-pink-500 px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-95 disabled:opacity-50"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
-                <path fillRule="evenodd" d="M2 10a.75.75 0 0 1 .75-.75h12.59l-2.1-1.95a.75.75 0 1 1 1.02-1.1l3.5 3.25a.75.75 0 0 1 0 1.1l-3.5 3.25a.75.75 0 1 1-1.02-1.1l2.1-1.95H2.75A.75.75 0 0 1 2 10Z" clipRule="evenodd" />
-              </svg>
-              {triggerStatus === "launching"
-                ? "Lancement en cours..."
-                : triggerStatus === "ok"
-                  ? "Auto Swiper lance !"
-                  : triggerStatus === "error"
-                    ? "Erreur — serveur local actif ?"
-                    : `Lancer Auto Swiper — ${capitalize(app)}`}
-            </motion.button>}
           </div>
         </div>
       </section>
+
+      {/* ── Session state machine: idle / active / complete ── */}
+      <AnimatePresence mode="wait">
+        {sessionPhase === "session_active" && activeSession ? (
+          <SessionTimer
+            key="timer"
+            app={app}
+            activeSession={activeSession}
+            weatherCondition={weatherData?.condition}
+            trendModifier={trendsData?.trend_modifier}
+            onSessionEnd={handleSessionEnd}
+          />
+        ) : sessionPhase === "session_complete" && completedSession ? (
+          <SessionSummary
+            key="summary"
+            session={completedSession}
+            app={app}
+            onClose={handleSessionClose}
+            onNewSession={handleNewSession}
+            isGreenLight={result.score >= 35}
+          />
+        ) : result.score < 35 ? (
+          <RedLightScreen
+            key="red"
+            score={result.score}
+            event={result.event}
+            app={app}
+            now={now}
+          />
+        ) : (
+          <GreenLightScreen
+            key="green"
+            score={result.score}
+            event={result.event}
+            app={app}
+            now={now}
+            onStartSession={handleStartSession}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── Heatmap + Best Times ─────────────────────── */}
       <section className="px-4 py-8 sm:py-12">
@@ -310,7 +362,7 @@ export default function Home() {
                 transition={{ delay: 0.3, duration: 0.5 }}
               >
                 <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-white">
-                  Meilleurs creneaux
+                  Tes 3 fenetres de la semaine
                 </h2>
                 <BestTimes now={now} app={app} />
               </motion.div>
@@ -322,10 +374,24 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Boost Optimizer ─────────────────────────── */}
+      <section className="px-4 py-2 sm:py-4">
+        <div className="mx-auto max-w-6xl">
+          <BoostOptimizer app={app} now={now} />
+        </div>
+      </section>
+
       {/* ── Yearly activity chart ────────────────────── */}
       <section className="px-4 py-2 sm:py-4">
         <div className="mx-auto max-w-6xl">
           <YearlyChart app={app} now={now} />
+        </div>
+      </section>
+
+      {/* ── Weekly Detox Report ──────────────────────── */}
+      <section className="px-4 py-4 sm:py-6">
+        <div className="mx-auto max-w-6xl">
+          <WeeklyReportCard />
         </div>
       </section>
 
@@ -344,18 +410,18 @@ export default function Home() {
             {[
               {
                 num: "1",
-                title: "On agrege",
-                desc: "Publications officielles de Tinder, Bumble, Hinge + etudes Nielsen, Ogury, SwipeStats",
+                title: "On analyse",
+                desc: "Donnees officielles Tinder, Bumble, Hinge, Happn + etudes independantes. On sait quand les apps sont actives.",
               },
               {
                 num: "2",
-                title: "On calcule",
-                desc: "Score par app : heure x jour x mois x evenements. Calibre sur les donnees publiees par chaque app.",
+                title: "On te dit quand",
+                desc: "Red Light = ferme l'app. Green Light = c'est le bon moment. 15 min max, pas plus.",
               },
               {
                 num: "3",
-                title: "Tu agis",
-                desc: "Ouvre ton app au meilleur moment. Plus d'activite = plus de matches.",
+                title: "Tu detox",
+                desc: "Moins de temps perdu, plus de matches. Swipe moins, swipe mieux.",
               },
             ].map((step, i) => (
               <motion.div
@@ -377,6 +443,49 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Feature CTAs: Wrapped + Coach ────────────── */}
+      <section className="px-4 py-8 sm:py-12">
+        <div className="mx-auto max-w-4xl grid gap-4 sm:gap-6 sm:grid-cols-2">
+          <motion.a
+            href="/wrapped"
+            className="group rounded-2xl border border-white/10 bg-gradient-to-br from-brand-900/30 to-purple-900/20 p-6 sm:p-8 text-center transition hover:border-white/20 hover:bg-white/[0.04]"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            whileHover={{ scale: 1.02 }}
+          >
+            <span className="text-3xl">📊</span>
+            <h3 className="mt-3 text-lg font-bold text-white">Dating Wrapped</h3>
+            <p className="mt-2 text-xs sm:text-sm text-gray-400 leading-relaxed">
+              Upload ton export RGPD et decouvre tes vrais stats : swipes, matches, ghost rate, temps perdu...
+            </p>
+            <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-brand-400 group-hover:text-brand-300 transition">
+              Analyser mes donnees
+              <span className="rounded bg-brand-600/30 px-1.5 py-0.5 text-[10px]">NEW</span>
+            </span>
+          </motion.a>
+
+          <motion.a
+            href="/coach"
+            className="group rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-900/20 to-gray-900 p-6 sm:p-8 text-center transition hover:border-white/20 hover:bg-white/[0.04]"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+            whileHover={{ scale: 1.02 }}
+          >
+            <span className="text-3xl">💬</span>
+            <h3 className="mt-3 text-lg font-bold text-white">Message Coach</h3>
+            <p className="mt-2 text-xs sm:text-sm text-gray-400 leading-relaxed">
+              Colle ta conversation et recois 3 suggestions calibrees — du safe a l'audacieux.
+            </p>
+            <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400 group-hover:text-emerald-300 transition">
+              Lancer le coach
+              <span className="rounded bg-emerald-600/30 px-1.5 py-0.5 text-[10px]">NEW</span>
+            </span>
+          </motion.a>
+        </div>
+      </section>
+
       {/* ── Methodology teaser ───────────────────────── */}
       <section className="px-4 py-8 sm:py-12">
         <motion.div
@@ -388,7 +497,7 @@ export default function Home() {
         >
           <h2 className="text-lg sm:text-xl font-bold">Donnees 100% transparentes</h2>
           <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-400 leading-relaxed">
-            Nous n'inventons rien. Chaque app a ses propres patterns d'activite,
+            DateDetox n'invente rien. Chaque app a ses propres patterns d'activite,
             calibres sur les publications officielles (Tinder Year in Swipe,
             Hinge Blog, Bumble PR) et les etudes tierces (Nielsen, Ogury).
           </p>
@@ -401,11 +510,32 @@ export default function Home() {
         </motion.div>
       </section>
 
+      {/* ── Email Signup ──────────────────────────────── */}
+      <section className="px-4 py-8 sm:py-12">
+        <div className="mx-auto max-w-2xl">
+          <EmailSignup />
+        </div>
+      </section>
+
       {/* ── Footer ───────────────────────────────────── */}
       <footer className="border-t border-white/5 px-4 py-6 sm:py-8">
-        <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-gray-500">
+        <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-gray-600 space-y-2">
+          <p className="font-medium text-gray-500">
+            DateDetox — Swipe less. Match more.
+          </p>
           <p>
-            Construit sur des donnees publiques. Independant.
+            <a href="/methodology" className="hover:text-gray-400 transition">Methodologie</a>
+            <span className="mx-2 text-gray-700">|</span>
+            <a href="/audit" className="hover:text-gray-400 transition">Audit</a>
+            <span className="mx-2 text-gray-700">|</span>
+            <a href="/coach" className="hover:text-gray-400 transition">Coach</a>
+            <span className="mx-2 text-gray-700">|</span>
+            <a href="/wrapped" className="hover:text-gray-400 transition">Wrapped</a>
+            <span className="mx-2 text-gray-700">|</span>
+            <span>@EvolvedMonkey</span>
+          </p>
+          <p className="text-gray-700">
+            Aucune donnee personnelle stockee sur nos serveurs.
           </p>
         </div>
       </footer>

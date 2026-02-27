@@ -185,7 +185,7 @@ export default function MatchTrackerInline({ currentApp }: Props) {
         </div>
         <motion.button
           onClick={() => { if (showForm) resetForm(); else setShowForm(true); }}
-          className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-pink-600 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-md shadow-brand-500/20 transition hover:shadow-brand-500/30 active:scale-95"
+          className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-emerald-600 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-md shadow-brand-500/20 transition hover:shadow-brand-500/30 active:scale-95"
           whileTap={{ scale: 0.95 }}
         >
           <span>{showForm ? "\u2715" : "+"}</span>
@@ -321,7 +321,7 @@ export default function MatchTrackerInline({ currentApp }: Props) {
           <span className="text-red-400 font-medium">{stats.lowScoreMatches}</span> score &lt;40
           {stats.highScoreMatches > stats.lowScoreMatches && stats.total >= 5 && (
             <span className="block mt-1 text-brand-400 font-medium text-[10px] sm:text-xs">
-              Tu matches plus quand DatePulse est haut !
+              Tu matches plus quand DateDetox est haut !
             </span>
           )}
         </div>

@@ -5,7 +5,13 @@
   "rewrites": [
     { "source": "/methodology", "destination": "/index.html" },
     { "source": "/methodology/(.*)", "destination": "/index.html" },
-    { "source": "/tracker", "destination": "/index.html" }
+    { "source": "/tracker", "destination": "/index.html" },
+    { "source": "/audit", "destination": "/index.html" },
+    { "source": "/audit/(.*)", "destination": "/index.html" },
+    { "source": "/coach", "destination": "/index.html" },
+    { "source": "/coach/(.*)", "destination": "/index.html" },
+    { "source": "/wrapped", "destination": "/index.html" },
+    { "source": "/wrapped/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {
