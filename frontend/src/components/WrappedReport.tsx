@@ -290,7 +290,7 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
       {/* 6. Timing — swipes by hour bar chart */}
       <Card delay={0.25}>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Quand tu swipes
+          Tes horaires d'activite
         </h3>
         <div className="flex items-center justify-around mb-4">
           <BigStat
