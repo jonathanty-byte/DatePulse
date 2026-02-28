@@ -199,9 +199,9 @@ Local match logging stored in `localStorage` (key: `datepulse_matches`).
 `/wrapped` page — Spotify Wrapped-style analysis of RGPD dating app data exports.
 
 - **Upload**: Drop zone for .json/.zip Tinder RGPD exports (Bumble/Hinge stubs ready)
-- **Parser** (`wrappedParser.ts`): Defensive parsing with auto-detection of app source, handles format variations
-- **Metrics** (`wrappedMetrics.ts`): Volume, conversion, conversations, timing, DatePulse correlation, time estimates, monthly trends
-- **Report** (`WrappedReport.tsx`): 9 animated sections with Recharts BarChart/AreaChart, circular percentages, verdict CTA
+- **Parser** (`wrappedParser.ts`): Defensive parsing with auto-detection of app source. Supports Tinder Format A (pre-2024, arrays of date strings) and Format B (2024+, `Usage` with `{date: count}` dicts). `dailyOnly` flag when export has no per-swipe timestamps. Extracts message timestamps as hourly activity proxy.
+- **Metrics** (`wrappedMetrics.ts`): Volume, conversion, conversations, timing, DatePulse correlation (hidden when `dailyOnly`), time estimates (swipe-based: 2s/swipe + 30s/msg + 20s/app-open), monthly trends. `bestMonth`/`worstMonth` use match rate (matches/likes), not absolute count.
+- **Report** (`WrappedReport.tsx`): 9 animated sections with Recharts. Monthly chart uses ComposedChart: swipes as bars (left axis) + match rate as line with best/worst dots (right axis %) + match count labels (amber) above each bar. Hourly chart uses message timestamps as proxy when `dailyOnly` (indigo bars with disclaimer).
 - **Share** (`WrappedShare.tsx`): Canvas-generated images (1080×1920 story, 1080×1080 square) + Web Share API with download fallback
 - **Privacy**: All processing is 100% client-side. No data leaves the browser.
 
