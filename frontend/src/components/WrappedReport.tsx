@@ -350,7 +350,8 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
             size="sm"
           />
         </div>
-        {metrics.rightSwipeRate > 70 && (
+        {/* Hinge doesn't log passes so rightSwipeRate is always ~100% — skip this warning */}
+        {metrics.rightSwipeRate > 70 && metrics.source !== "hinge" && (
           <motion.div
             className="mt-4 rounded-xl bg-amber-950/30 border border-amber-500/20 px-4 py-3"
             initial={{ opacity: 0 }}

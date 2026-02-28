@@ -252,28 +252,37 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
 
   if (data.purchases) {
     purchasesTotal = 0;
-    if (data.purchases.subscription) {
-      subscriptionType = data.purchases.subscription.productType;
-      // Estimate subscription cost: months between create and expire
-      const subCreate = data.purchases.subscription.createDate;
-      const subExpire = data.purchases.subscription.expireDate;
-      if (subExpire) {
-        const subMonths = Math.max(1, Math.ceil(
-          (subExpire.getTime() - subCreate.getTime()) / (1000 * 60 * 60 * 24 * 30)
-        ));
-        const pricePerMonth = SUBSCRIPTION_PRICES[subscriptionType.toLowerCase()] ?? SUBSCRIPTION_PRICES["unknown"];
-        purchasesTotal += subMonths * pricePerMonth;
-      } else {
-        // Assume subscription lasted the data period
-        const periodMonths = Math.max(1, Math.ceil(totalPeriodDays / 30));
-        const pricePerMonth = SUBSCRIPTION_PRICES[subscriptionType.toLowerCase()] ?? SUBSCRIPTION_PRICES["unknown"];
-        purchasesTotal += periodMonths * pricePerMonth;
+
+    // Hinge: exact EUR total from subscriptions.json
+    if (data.purchases._hingeTotalEur && data.purchases._hingeTotalEur > 0) {
+      purchasesTotal = Math.round(data.purchases._hingeTotalEur * 100) / 100;
+      if (data.purchases.subscription) {
+        subscriptionType = data.purchases.subscription.productType;
+      }
+    } else {
+      // Tinder: estimate from subscription type + duration
+      if (data.purchases.subscription) {
+        subscriptionType = data.purchases.subscription.productType;
+        const subCreate = data.purchases.subscription.createDate;
+        const subExpire = data.purchases.subscription.expireDate;
+        if (subExpire) {
+          const subMonths = Math.max(1, Math.ceil(
+            (subExpire.getTime() - subCreate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+          ));
+          const pricePerMonth = SUBSCRIPTION_PRICES[subscriptionType.toLowerCase()] ?? SUBSCRIPTION_PRICES["unknown"];
+          purchasesTotal += subMonths * pricePerMonth;
+        } else {
+          const periodMonths = Math.max(1, Math.ceil(totalPeriodDays / 30));
+          const pricePerMonth = SUBSCRIPTION_PRICES[subscriptionType.toLowerCase()] ?? SUBSCRIPTION_PRICES["unknown"];
+          purchasesTotal += periodMonths * pricePerMonth;
+        }
+      }
+      if (data.purchases.consumables) {
+        boostCount = data.purchases.consumables.count;
+        purchasesTotal += boostCount * CONSUMABLE_PRICE;
       }
     }
-    if (data.purchases.consumables) {
-      boostCount = data.purchases.consumables.count;
-      purchasesTotal += boostCount * CONSUMABLE_PRICE;
-    }
+
     if (totalMatches > 0 && purchasesTotal > 0) {
       costPerMatch = Math.round((purchasesTotal / totalMatches) * 10) / 10;
     }
@@ -399,7 +408,8 @@ export function getVerdict(m: WrappedMetrics): Verdict {
     };
   }
 
-  if (m.rightSwipeRate > 70) {
+  // Hinge doesn't log passes, so rightSwipeRate is always ~100% — skip this verdict
+  if (m.rightSwipeRate > 70 && m.source !== "hinge") {
     return {
       icon: "\u{1F6A8}",
       title: "Tu likes tout le monde",

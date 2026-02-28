@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { track } from "@vercel/analytics";
-import { parseUploadedFile } from "../lib/wrappedParser";
+import { parseUploadedFiles } from "../lib/wrappedParser";
 import { computeWrappedMetrics } from "../lib/wrappedMetrics";
 import type { WrappedMetrics } from "../lib/wrappedMetrics";
 
@@ -44,20 +44,23 @@ export default function WrappedUpload({ onDataParsed }: WrappedUploadProps) {
     return () => clearInterval(interval);
   }, [state]);
 
-  const processFile = useCallback(
-    async (file: File) => {
-      // Validate extension
-      const name = file.name.toLowerCase();
-      const validExt = ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext));
-      if (!validExt) {
-        setErrorMsg("Format non supporte. Uploade un fichier .json ou .zip.");
-        setState("error");
-        return;
+  const processFiles = useCallback(
+    async (files: File[]) => {
+      // Validate extensions
+      for (const file of files) {
+        const name = file.name.toLowerCase();
+        const validExt = ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext));
+        if (!validExt) {
+          setErrorMsg("Format non supporte. Uploade des fichiers .json ou .zip.");
+          setState("error");
+          return;
+        }
       }
 
-      // Validate size
-      if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-        setErrorMsg(`Fichier trop volumineux (max ${MAX_SIZE_MB}MB).`);
+      // Validate total size
+      const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+      if (totalSize > MAX_SIZE_MB * 1024 * 1024) {
+        setErrorMsg(`Fichiers trop volumineux (max ${MAX_SIZE_MB}MB au total).`);
         setState("error");
         return;
       }
@@ -66,7 +69,7 @@ export default function WrappedUpload({ onDataParsed }: WrappedUploadProps) {
       setLoadingMsg(LOADING_MESSAGES[0]);
 
       try {
-        const parsed = await parseUploadedFile(file);
+        const parsed = await parseUploadedFiles(files);
         const metrics = computeWrappedMetrics(parsed);
         track("wrapped_uploaded", { source: parsed.source, swipes: metrics.totalSwipes });
         onDataParsed(metrics);
@@ -85,9 +88,9 @@ export default function WrappedUpload({ onDataParsed }: WrappedUploadProps) {
   const handleFileSelect = useCallback(
     (files: FileList | null) => {
       if (!files || files.length === 0) return;
-      processFile(files[0]);
+      processFiles(Array.from(files));
     },
-    [processFile]
+    [processFiles]
   );
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -136,6 +139,7 @@ export default function WrappedUpload({ onDataParsed }: WrappedUploadProps) {
               <input
                 ref={fileInputRef}
                 type="file"
+                multiple
                 accept={[...ACCEPTED_EXTENSIONS, ...ACCEPTED_MIME].join(",")}
                 className="hidden"
                 onChange={(e) => {
@@ -151,6 +155,9 @@ export default function WrappedUpload({ onDataParsed }: WrappedUploadProps) {
               </p>
               <p className="mt-1.5 text-xs text-gray-500">
                 ou clique pour selectionner — .json ou .zip — max {MAX_SIZE_MB}MB
+              </p>
+              <p className="mt-1 text-[11px] text-gray-600">
+                Hinge : selectionne matches.json + subscriptions.json + user.json ensemble
               </p>
             </div>
 
@@ -191,9 +198,12 @@ export default function WrappedUpload({ onDataParsed }: WrappedUploadProps) {
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600/20 text-xs font-bold text-brand-400">
                     3
                   </span>
-                  <p className="text-sm text-gray-300">
-                    Upload le fichier .json ou .zip ici
-                  </p>
+                  <div className="text-sm text-gray-300">
+                    <p>Upload le fichier .json ou .zip ici</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      <span className="text-violet-400 font-medium">Hinge</span> : selectionne les 3 fichiers ensemble (matches.json, subscriptions.json, user.json)
+                    </p>
+                  </div>
                 </li>
               </ol>
             </motion.div>
