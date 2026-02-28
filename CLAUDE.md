@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-DateDetox V3 is a lightweight Single Page App that shows real-time dating app activity scores (0-100). Scores are computed 100% client-side using feminine-calibrated lookup tables derived from official publications by Tinder, Bumble, Hinge, and third-party studies (Nielsen, Ogury, SwipeStats, Reincubate, BMC Psychology, Sumter, Hily).
+DatePulse is a lightweight Single Page App that shows real-time dating app activity scores (0-100). Tagline: "Swipe when it matters." Scores are computed 100% client-side using feminine-calibrated lookup tables derived from official publications by Tinder, Bumble, Hinge, and third-party studies (Nielsen, Ogury, SwipeStats, Reincubate, BMC Psychology, Sumter, Hily).
 
 **Key insight**: Activity patterns on dating apps are 99% predictable from 3 variables (hour, day of week, month) — confirmed by r=0.995 correlation with Google Trends FR data. The model targets female activity patterns (the global data is 76% male / 24% female — we isolate the female signal).
 
@@ -14,14 +14,15 @@ DateDetox V3 is a lightweight Single Page App that shows real-time dating app ac
 Frontend (Vercel): Static lookup tables -> Client-side scoring -> React UI
                    + Real-time weather from wttr.in (localStorage cache, 30min TTL)
                    + Google Trends modifier from trends.json (localStorage cache, 2h TTL)
-                   + LLM features via OpenRouter (Profile Audit, Message Coach)
+                   + LLM features via Vercel Edge Function proxy -> OpenRouter (Profile Audit, Message Coach)
+                   + @vercel/analytics (page views + custom events)
 Automation (local): Python scoring engine -> Chrome + Auto Swiper via pyautogui
                     Python trends_live.py -> Google Trends fetch -> trends.json (cron 2h)
                     Python nudge_email.py -> Smart Nudge via Beehiiv (cron daily 20h45)
 Bridge: Frontend button -> POST localhost:5555/trigger -> Python server
 ```
 
-**Frontend**: React 18 + TypeScript + Vite + Tailwind CSS + Framer Motion + Recharts. No backend, no database. External data: wttr.in for weather (with static fallback), trends.json for Google Trends modifier, OpenRouter for LLM features.
+**Frontend**: React 18 + TypeScript + Vite + Tailwind CSS + Framer Motion + Recharts + @vercel/analytics. LLM calls proxied through Vercel Edge Function (`frontend/api/llm.ts`) to hide API key. External data: wttr.in for weather (with static fallback), trends.json for Google Trends modifier.
 **Automation**: Python scripts running locally on Windows (Task Scheduler cron + HTTP server).
 
 ## Project Structure
@@ -30,16 +31,16 @@ Bridge: Frontend button -> POST localhost:5555/trigger -> Python server
 DatePulse/
 ├── frontend/                          # SPA React (deployed on Vercel)
 │   ├── src/
-│   │   ├── App.tsx                    # SPA routing (/, /methodology, /audit, /coach, /wrapped)
+│   │   ├── App.tsx                    # SPA routing (/, /methodology, /audit, /coach, /wrapped, /tracker)
 │   │   ├── main.tsx                   # Entry point
 │   │   ├── lib/
 │   │   │   ├── data.ts               # Per-app lookup tables (feminine model) + events psy + WEATHER_MODIFIERS
 │   │   │   ├── scoring.ts            # computeScore(date, app, weather), heatmap, best times, countdown
 │   │   │   ├── matchTracker.ts       # Match logging (CRUD), stats, weekly aggregation (localStorage)
 │   │   │   ├── franceTime.ts         # Europe/Paris timezone helpers + getParisHour()
-│   │   │   ├── llmService.ts         # OpenRouter API wrapper (callLLM, retry, timeout)
+│   │   │   ├── llmService.ts         # LLM wrapper — uses /api/llm proxy (prod) or VITE_OPENROUTER_KEY (dev)
 │   │   │   ├── profileAudit.ts       # Profile audit logic (analyzeProfile, resizeImage, rate limiting)
-│   │   │   ├── sessionTracker.ts     # Session timer logic (start, end, persist to localStorage)
+│   │   │   ├── sessionTracker.ts     # Session timer (PulseSession type, localStorage migration from datedetox_*)
 │   │   │   ├── weeklyReport.ts       # Weekly report aggregation (sessions, matches, streaks)
 │   │   │   ├── boostOptimizer.ts     # Boost ROI optimizer (efficiency heatmap, recommendations)
 │   │   │   ├── messageCoach.ts       # Message Coach (analyzeConversation, LLM-powered suggestions)
@@ -57,11 +58,11 @@ DatePulse/
 │   │   │   ├── MatchTrackerInline.tsx # Match Tracker (log, edit, delete, rate 1-10)
 │   │   │   ├── YearlyChart.tsx        # Yearly activity curves (recharts AreaChart, multi-app select)
 │   │   │   ├── NavBar.tsx             # Sticky nav with mobile hamburger + badge support
-│   │   │   ├── RedLightScreen.tsx     # Red light UI (score < 35)
-│   │   │   ├── GreenLightScreen.tsx   # Green light UI (score >= 35) + session launcher
+│   │   │   ├── RedLightScreen.tsx     # "Hors pic" UI (score < 35) — wait for momentum
+│   │   │   ├── GreenLightScreen.tsx   # "Momentum" UI (score >= 35) + session launcher
 │   │   │   ├── SessionTimer.tsx       # Active session countdown + match counter
 │   │   │   ├── SessionSummary.tsx     # Post-session summary card
-│   │   │   ├── WeeklyReportCard.tsx   # Weekly detox report with streaks
+│   │   │   ├── WeeklyReportCard.tsx   # Weekly report with streaks
 │   │   │   ├── EmailSignup.tsx        # Beehiiv email signup form
 │   │   │   ├── ProfileAudit.tsx       # AI profile audit UI (upload → analyze → results)
 │   │   │   ├── BoostOptimizer.tsx     # Boost ROI optimizer (recommendation + efficiency heatmap)
@@ -70,16 +71,19 @@ DatePulse/
 │   │   │   ├── WrappedReport.tsx      # Dating Wrapped report (9 animated slides + charts)
 │   │   │   └── WrappedShare.tsx       # Share modal (canvas image + Web Share API)
 │   │   ├── pages/
-│   │   │   ├── Home.tsx               # Main page (score + heatmap + boost + CTA cards + report)
+│   │   │   ├── Home.tsx               # Main page (score above fold + progressive disclosure)
 │   │   │   ├── Methodology.tsx        # Methodology page (sources, formula, events, weather)
 │   │   │   ├── Audit.tsx              # AI Profile Audit page
 │   │   │   ├── Coach.tsx              # Message Coach page
-│   │   │   └── Wrapped.tsx            # Dating Wrapped page (upload → report → share)
+│   │   │   ├── Wrapped.tsx            # Dating Wrapped page (upload → report → share)
+│   │   │   └── Tracker.tsx            # Match Tracker + Weekly Report page
 │   │   └── styles/
 │   │       └── globals.css            # Tailwind base styles
 │   ├── public/
 │   │   ├── weather.json               # Static weather fallback (used if wttr.in is down)
 │   │   └── trends.json                # Google Trends live modifier (updated by trends_live.py cron)
+│   ├── api/
+│   │   └── llm.ts                     # Vercel Edge Function — proxies LLM calls (hides OPENROUTER_KEY)
 │   ├── index.html                     # SEO meta tags + OG
 │   ├── package.json
 │   ├── vite.config.ts
@@ -146,7 +150,12 @@ Psychological variables operationalized in the model:
 - **VALIDATION**: Peak 19-20h post-work, Monday Bumble dominant
 - **STRESS/SAD**: Winter Darkness, Cuffing attenuated, Rentree
 
-Output: 0-100 with contextual labels (Tres calme / Calme / Moyen / Actif / Tres actif / En feu).
+Output: 0-100 with contextual labels:
+- 91-100: MOMENTUM OPTIMAL
+- 76-90: MOMENTUM+
+- 56-75: MOMENTUM
+- 36-55: TRANSITION
+- 0-35: HORS PIC
 
 ### Scoring consistency rules
 
@@ -191,7 +200,7 @@ Local match logging stored in `localStorage` (key: `datepulse_matches`).
 
 - **Upload**: Drop zone for .json/.zip Tinder RGPD exports (Bumble/Hinge stubs ready)
 - **Parser** (`wrappedParser.ts`): Defensive parsing with auto-detection of app source, handles format variations
-- **Metrics** (`wrappedMetrics.ts`): Volume, conversion, conversations, timing, DateDetox correlation, time estimates, monthly trends
+- **Metrics** (`wrappedMetrics.ts`): Volume, conversion, conversations, timing, DatePulse correlation, time estimates, monthly trends
 - **Report** (`WrappedReport.tsx`): 9 animated sections with Recharts BarChart/AreaChart, circular percentages, verdict CTA
 - **Share** (`WrappedShare.tsx`): Canvas-generated images (1080×1920 story, 1080×1080 square) + Web Share API with download fallback
 - **Privacy**: All processing is 100% client-side. No data leaves the browser.
@@ -201,8 +210,8 @@ Local match logging stored in `localStorage` (key: `datepulse_matches`).
 `scripts/nudge_email.py` — Daily email notification at 20h45 via Beehiiv API.
 
 - **Content**: Tonight's score at 21h for all apps, best app recommendation, active event, next peak window
-- **Targeting**: Subject line and CTA adapt to score level (Green Light → session CTA, Red Light → avoid CTA)
-- **HTML**: Styled email matching DateDetox dark theme with gradient scores
+- **Targeting**: Subject line and CTA adapt to score level (Momentum → session CTA, Hors pic → avoid CTA)
+- **HTML**: Styled email matching DatePulse dark theme with indigo gradients
 - **Config**: Requires `BEEHIIV_API_KEY` and `BEEHIIV_PUB_ID` env vars. Use `--dry-run` without them.
 
 ## Yearly Activity Chart
@@ -239,9 +248,10 @@ A weighted combination of 3 Google Trends FR proxy terms correlates at r=0.93 wi
 
 ## Design System
 
-- **Theme**: Dark (bg-gray-950), glass morphism cards (`rounded-2xl border border-white/10 bg-white/[0.02]`)
-- **Brand palette**: Rose/pink (#ec4899 brand-500), defined in tailwind.config.js (brand-50 to brand-900)
+- **Theme**: Dark (bg-[#080b14]), glass morphism cards (`rounded-2xl border border-white/10 bg-white/[0.02]`)
+- **Brand palette**: Indigo (#6366f1 brand-500), defined in tailwind.config.js (brand-50 #eef2ff to brand-900 #312e81)
 - **App colors**: Tinder #ec4899 (pink), Bumble #f59e0b (amber), Hinge #8b5cf6 (violet), Happn #f97316 (orange)
+- **Scoring colors**: Green=good (unchanged), Red=bad (unchanged) — only brand palette changed
 - **Animations**: Framer Motion entrance (opacity 0→1, y 20→0, scale 0.98→1), staggered delays, hover scale
 - **Charts**: Recharts with dark-themed custom tooltips, SVG pulse animations
 - **Typography**: text-gray-100 primary, text-gray-400/500 secondary, gradient titles (from-brand-400 to-brand-600)
@@ -249,9 +259,16 @@ A weighted combination of 3 Google Trends FR proxy terms correlates at r=0.93 wi
 ## Deployment
 
 - **Frontend**: Vercel (vercel.json configured) — https://frontend-sigma-gules-59.vercel.app
+- **Edge Function**: `frontend/api/llm.ts` — auto-detected by Vercel, requires `OPENROUTER_KEY` env var (no VITE_ prefix)
+- **Analytics**: @vercel/analytics — activate in Vercel dashboard (Settings → Analytics)
 - **Automation**: Local only (Windows PC, not deployed)
 - **CI**: GitHub Actions build check on push (.github/workflows/test.yml)
 - **Cache busting**: Use `npx vercel --prod --yes --force` to bypass build cache. PWA service worker may also cache old bundles — clear via browser DevTools if needed.
+
+### Vercel Environment Variables
+| Variable | Scope | Description |
+|----------|-------|-------------|
+| `OPENROUTER_KEY` | Production, Preview | OpenRouter API key (read by Edge Function, NOT exposed to client) |
 
 ## Auto Swiper Integration
 
