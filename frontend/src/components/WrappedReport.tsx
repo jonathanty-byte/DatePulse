@@ -4,11 +4,15 @@ import {
   Bar,
   AreaChart,
   Area,
+  ComposedChart,
+  Line,
+  CartesianGrid,
+  ReferenceLine,
+  Cell,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import type { WrappedMetrics } from "../lib/wrappedMetrics";
 
@@ -127,36 +131,53 @@ function DarkTooltip({
   );
 }
 
-/** Custom tooltip for normalized monthly chart — shows real values, not %. */
+/** ComposedChart tooltip — swipes, matches, taux + best/worst badge. */
 function MonthlyTooltip({
   active,
   payload,
   label,
+  bestMonth,
+  worstMonth,
 }: {
   active?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload?: Array<{ name: string; value: number; color: string; dataKey: string; payload?: any }>;
   label?: string;
+  bestMonth?: string;
+  worstMonth?: string;
 }) {
   if (!active || !payload?.length) return null;
-  const d = payload[0]?.payload ?? {};
+  const sw = payload.find((p) => p.dataKey === "swipes");
+  const ma = payload.find((p) => p.dataKey === "matches");
+  const rt = payload.find((p) => p.dataKey === "rate");
+  const isBest = label === bestMonth;
+  const isWorst = label === worstMonth;
   return (
-    <div className="rounded-xl border border-white/10 bg-gray-900/95 px-3 py-2.5 shadow-xl backdrop-blur-sm">
-      <p className="mb-1.5 text-xs font-semibold text-gray-300">{label}</p>
-      <div className="flex items-center gap-2 text-xs font-medium">
-        <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#818cf8" }} />
-        <span className="text-gray-400">Swipes</span>
-        <span className="ml-auto text-white">{(d.swipes ?? 0).toLocaleString("fr-FR")}</span>
-      </div>
-      <div className="flex items-center gap-2 text-xs font-medium">
-        <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#fbbf24" }} />
-        <span className="text-gray-400">Matches</span>
-        <span className="ml-auto text-white">{d.matches ?? 0}</span>
-      </div>
-      <div className="flex items-center gap-2 text-xs font-medium">
-        <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#34d399" }} />
-        <span className="text-gray-400">Taux</span>
-        <span className="ml-auto text-white">{d.ratio ?? 0}%</span>
+    <div className="rounded-xl border border-white/10 bg-[#181a20]/95 px-4 py-3 shadow-2xl min-w-[160px]">
+      <p className="mb-1 text-sm font-bold text-gray-200">
+        {label}
+        {isBest && <span className="ml-2 text-[11px] font-medium text-emerald-400">★ BEST</span>}
+        {isWorst && <span className="ml-2 text-[11px] font-medium text-red-400">▼ WORST</span>}
+      </p>
+      <div className="flex flex-col gap-0.5 text-[13px]">
+        {sw && (
+          <div className="flex justify-between" style={{ color: "#6C7AE0" }}>
+            <span>Swipes</span>
+            <span className="font-bold ml-4">{sw.value.toLocaleString("fr-FR")}</span>
+          </div>
+        )}
+        {ma && (
+          <div className="flex justify-between" style={{ color: "#F5A623" }}>
+            <span>Matches</span>
+            <span className="font-bold ml-4">{ma.value}</span>
+          </div>
+        )}
+        {rt && (
+          <div className="flex justify-between border-t border-white/10 mt-1 pt-1" style={{ color: "#34d399" }}>
+            <span>Taux</span>
+            <span className="font-bold ml-4">{rt.value}%</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -171,21 +192,18 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
     swipes: metrics.swipesByHour[h] || 0,
   }));
 
-  // Prepare monthly chart data — normalize each metric to 0-100 for comparable curves
-  const rawMonthly = metrics.monthlyData.map((d) => {
+  // Prepare monthly chart data for ComposedChart (bars + line)
+  const monthlyData = metrics.monthlyData.map((d) => {
     const likes = Math.round(d.swipes * d.rightSwipeRate / 100);
-    const ratio = likes > 0 ? Math.round((d.matches / likes) * 1000) / 10 : 0;
-    return { month: formatMonth(d.month), swipes: d.swipes, matches: d.matches, ratio };
+    const rate = likes > 0 ? Math.round((d.matches / likes) * 1000) / 10 : 0;
+    return { month: formatMonth(d.month), swipes: d.swipes, matches: d.matches, rate };
   });
-  const maxS = Math.max(...rawMonthly.map((d) => d.swipes), 1);
-  const maxM = Math.max(...rawMonthly.map((d) => d.matches), 1);
-  const maxR = Math.max(...rawMonthly.map((d) => d.ratio), 0.1);
-  const monthlyData = rawMonthly.map((d) => ({
-    ...d,
-    swipesN: Math.round((d.swipes / maxS) * 100),
-    matchesN: Math.round((d.matches / maxM) * 100),
-    ratioN: Math.round((d.ratio / maxR) * 100),
-  }));
+  const bestMonthLabel = metrics.bestMonth ? formatMonth(metrics.bestMonth) : "";
+  const worstMonthLabel = metrics.worstMonth ? formatMonth(metrics.worstMonth) : "";
+  const avgRate = monthlyData.length > 0
+    ? Math.round(monthlyData.reduce((s, d) => s + d.rate, 0) / monthlyData.length * 10) / 10
+    : 0;
+  const maxRate = Math.max(...monthlyData.map((d) => d.rate), 1);
 
   // Determine verdict
   const verdict = getVerdict(metrics);
@@ -410,99 +428,152 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         </Card>
       )}
 
-      {/* 8. Monthly trends — 3 normalized curves */}
+      {/* 8. Monthly trends — ComposedChart (bars + line) */}
       {monthlyData.length > 1 && (
         <Card delay={0.35}>
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-            Evolution mensuelle
-          </h3>
-          <p className="text-[10px] text-gray-600 mb-3">
-            Chaque courbe est relative a son propre max — survole pour les vrais chiffres
-          </p>
-          <div className="h-44 sm:h-52 w-full">
+          {/* Header + stat pills */}
+          <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Evolution mensuelle
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] border"
+                style={{ background: "rgba(108,122,224,0.06)", borderColor: "rgba(108,122,224,0.15)", color: "#6C7AE0" }}>
+                <span className="text-gray-500">Swipes</span>
+                <span className="font-bold">{metrics.totalSwipes.toLocaleString("fr-FR")}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] border"
+                style={{ background: "rgba(245,166,35,0.06)", borderColor: "rgba(245,166,35,0.15)", color: "#F5A623" }}>
+                <span className="text-gray-500">Matches</span>
+                <span className="font-bold">{metrics.monthlyData.reduce((s, d) => s + d.matches, 0)}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] border"
+                style={{ background: "rgba(52,211,153,0.06)", borderColor: "rgba(52,211,153,0.15)", color: "#34d399" }}>
+                <span className="text-gray-500">Moy.</span>
+                <span className="font-bold">{avgRate}%</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Custom legend */}
+          <div className="flex justify-end gap-4 text-[11px] mb-3 pr-1">
+            {[
+              { color: "#6C7AE0", label: "Swipes", shape: "square" as const },
+              { color: "#F5A623", label: "Matches", shape: "square" as const },
+              { color: "#34d399", label: "Taux match", shape: "line" as const },
+            ].map(({ color, label, shape }) => (
+              <span key={label} className="inline-flex items-center gap-1.5">
+                {shape === "square" ? (
+                  <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
+                ) : (
+                  <span className="inline-block w-3.5 rounded-sm" style={{ height: 2.5, background: color }} />
+                )}
+                <span className="text-gray-500">{label}</span>
+              </span>
+            ))}
+          </div>
+
+          {/* ComposedChart */}
+          <div className="h-56 sm:h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyData}>
-                <defs>
-                  <linearGradient id="gSwipes" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#818cf8" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gMatches" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#fbbf24" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gRatio" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#34d399" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <ComposedChart data={monthlyData} barGap={1} barCategoryGap="18%">
+                <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" />
                 <XAxis
                   dataKey="month"
-                  axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "#6b7280", fontSize: 10 }}
+                  axisLine={false}
+                  tick={{ fill: "#6b7085", fontSize: 11 }}
                 />
-                <YAxis hide domain={[0, 105]} />
+                {/* Left axis — volume */}
+                <YAxis
+                  yAxisId="volume"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#6b7085", fontSize: 10 }}
+                  width={42}
+                />
+                {/* Right axis — rate % */}
+                <YAxis
+                  yAxisId="rate"
+                  orientation="right"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#34d399", fontSize: 10 }}
+                  width={38}
+                  tickFormatter={(v: number) => `${v}%`}
+                  domain={[0, Math.ceil(maxRate * 1.3)]}
+                />
                 <Tooltip
-                  content={<MonthlyTooltip />}
-                  cursor={{ stroke: "rgba(255,255,255,0.1)" }}
+                  content={<MonthlyTooltip bestMonth={bestMonthLabel} worstMonth={worstMonthLabel} />}
+                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
                 />
-                <Legend
-                  verticalAlign="top"
-                  align="right"
-                  iconType="circle"
-                  iconSize={6}
-                  wrapperStyle={{ fontSize: 10, color: "#9ca3af", paddingBottom: 4 }}
+                {/* Average rate reference line */}
+                <ReferenceLine
+                  yAxisId="rate"
+                  y={avgRate}
+                  stroke="#6b7085"
+                  strokeDasharray="5 4"
+                  strokeWidth={1}
                 />
-                <Area
+                {/* Bars */}
+                <Bar yAxisId="volume" dataKey="swipes" radius={[3, 3, 0, 0]} maxBarSize={30}>
+                  {monthlyData.map((_, i) => (
+                    <Cell key={i} fill="rgba(108,122,224,0.55)" />
+                  ))}
+                </Bar>
+                <Bar yAxisId="volume" dataKey="matches" radius={[3, 3, 0, 0]} maxBarSize={18}>
+                  {monthlyData.map((_, i) => (
+                    <Cell key={i} fill="rgba(245,166,35,0.7)" />
+                  ))}
+                </Bar>
+                {/* Rate line with best/worst dots */}
+                <Line
+                  yAxisId="rate"
                   type="monotone"
-                  dataKey="swipesN"
-                  name="Swipes"
-                  stroke="#818cf8"
-                  strokeWidth={2}
-                  fill="url(#gSwipes)"
-                  dot={false}
-                  activeDot={{ r: 3, fill: "#818cf8" }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="matchesN"
-                  name="Matches"
-                  stroke="#fbbf24"
-                  strokeWidth={2}
-                  fill="url(#gMatches)"
-                  dot={false}
-                  activeDot={{ r: 3, fill: "#fbbf24" }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="ratioN"
-                  name="Taux match"
+                  dataKey="rate"
                   stroke="#34d399"
-                  strokeWidth={2}
-                  fill="url(#gRatio)"
-                  dot={false}
-                  activeDot={{ r: 3, fill: "#34d399" }}
+                  strokeWidth={2.5}
+                  dot={(props: { cx: number; cy: number; payload: { month: string; rate: number }; key?: string }) => {
+                    const { cx, cy, payload } = props;
+                    const isBest = payload.month === bestMonthLabel;
+                    const isWorst = payload.month === worstMonthLabel;
+                    if (isBest || isWorst) {
+                      const c = isBest ? "#34d399" : "#ef4444";
+                      return (
+                        <g key={props.key}>
+                          <circle cx={cx} cy={cy} r={7} fill={c} opacity={0.15} />
+                          <circle cx={cx} cy={cy} r={4} fill={c} />
+                          <text x={cx} y={cy - 14} textAnchor="middle" fill={c} fontSize={11} fontWeight={700}>
+                            {payload.rate}%
+                          </text>
+                        </g>
+                      );
+                    }
+                    return <circle key={props.key} cx={cx} cy={cy} r={2.5} fill="#34d399" opacity={0.5} />;
+                  }}
+                  activeDot={{ r: 5, fill: "#34d399", stroke: "#181a20", strokeWidth: 2 }}
                 />
-              </AreaChart>
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
 
+          {/* Bottom annotations */}
           {metrics.bestMonth && (
-            <p className="mt-3 text-xs text-gray-500 text-center">
-              Meilleur mois :{" "}
-              <span className="text-emerald-400 font-medium">
-                {formatMonth(metrics.bestMonth)}
+            <div className="flex justify-center gap-4 mt-2 text-xs">
+              <span>
+                Meilleur mois : <strong className="text-emerald-400">{bestMonthLabel}</strong>
+                <span className="text-gray-500"> ({monthlyData.find((d) => d.month === bestMonthLabel)?.rate ?? 0}%)</span>
               </span>
               {metrics.worstMonth && metrics.worstMonth !== metrics.bestMonth && (
                 <>
-                  {" "} — Pire mois :{" "}
-                  <span className="text-red-400 font-medium">
-                    {formatMonth(metrics.worstMonth)}
+                  <span className="text-gray-600">—</span>
+                  <span>
+                    Pire mois : <strong className="text-red-400">{worstMonthLabel}</strong>
+                    <span className="text-gray-500"> ({monthlyData.find((d) => d.month === worstMonthLabel)?.rate ?? 0}%)</span>
                   </span>
                 </>
               )}
-            </p>
+            </div>
           )}
         </Card>
       )}
