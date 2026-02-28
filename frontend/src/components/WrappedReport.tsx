@@ -161,14 +161,20 @@ function MonthlyTooltip({
       </p>
       <div className="flex flex-col gap-0.5 text-[13px]">
         {sw && (
-          <div className="flex justify-between" style={{ color: "#6C7AE0" }}>
-            <span>Swipes</span>
+          <div className="flex justify-between items-center" style={{ color: "#6C7AE0" }}>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-sm" style={{ background: "#6C7AE0" }} />
+              Swipes
+            </span>
             <span className="font-bold ml-4">{sw.value.toLocaleString("fr-FR")}</span>
           </div>
         )}
         {ma && (
-          <div className="flex justify-between" style={{ color: "#F5A623" }}>
-            <span>Matches</span>
+          <div className="flex justify-between items-center" style={{ color: "#F5A623" }}>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-3" style={{ height: 2, background: "#F5A623", borderRadius: 1 }} />
+              Matches
+            </span>
             <span className="font-bold ml-4">{ma.value}</span>
           </div>
         )}
@@ -198,12 +204,17 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
     const rate = likes > 0 ? Math.round((d.matches / likes) * 1000) / 10 : 0;
     return { month: formatMonth(d.month), swipes: d.swipes, matches: d.matches, rate };
   });
-  const bestMonthLabel = metrics.bestMonth ? formatMonth(metrics.bestMonth) : "";
-  const worstMonthLabel = metrics.worstMonth ? formatMonth(metrics.worstMonth) : "";
+  // Compute best/worst from chart-ready data (by rate) for guaranteed consistency
+  const ratedMonths = monthlyData.filter((d) => d.rate > 0);
+  const bestMonthLabel = ratedMonths.length > 0
+    ? ratedMonths.reduce((best, curr) => curr.rate > best.rate ? curr : best).month
+    : "";
+  const worstMonthLabel = ratedMonths.length > 0
+    ? ratedMonths.reduce((worst, curr) => curr.rate < worst.rate ? curr : worst).month
+    : "";
   const avgRate = monthlyData.length > 0
     ? Math.round(monthlyData.reduce((s, d) => s + d.rate, 0) / monthlyData.length * 10) / 10
     : 0;
-  const maxRate = Math.max(...monthlyData.map((d) => d.rate), 1);
 
   // Determine verdict
   const verdict = getVerdict(metrics);
@@ -459,24 +470,28 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
           <div className="flex justify-end gap-4 text-[11px] mb-3 pr-1">
             {[
               { color: "#6C7AE0", label: "Swipes", shape: "square" as const },
-              { color: "#F5A623", label: "Matches", shape: "square" as const },
+              { color: "#F5A623", label: "Matches", shape: "line" as const },
               { color: "#34d399", label: "Taux match", shape: "line" as const },
             ].map(({ color, label, shape }) => (
               <span key={label} className="inline-flex items-center gap-1.5">
                 {shape === "square" ? (
                   <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
                 ) : (
-                  <span className="inline-block w-3.5 rounded-sm" style={{ height: 2.5, background: color }} />
+                  <span className="inline-flex items-center gap-0.5">
+                    <span className="inline-block w-1 h-1 rounded-full" style={{ background: color }} />
+                    <span className="inline-block w-2.5 rounded-sm" style={{ height: 2, background: color }} />
+                    <span className="inline-block w-1 h-1 rounded-full" style={{ background: color }} />
+                  </span>
                 )}
                 <span className="text-gray-500">{label}</span>
               </span>
             ))}
           </div>
 
-          {/* ComposedChart */}
+          {/* ComposedChart — bars (swipes) + 2 lines (matches, rate) */}
           <div className="h-56 sm:h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={monthlyData} barGap={1} barCategoryGap="18%">
+              <ComposedChart data={monthlyData} barCategoryGap="20%">
                 <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" />
                 <XAxis
                   dataKey="month"
@@ -484,13 +499,22 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
                   axisLine={false}
                   tick={{ fill: "#6b7085", fontSize: 11 }}
                 />
-                {/* Left axis — volume */}
+                {/* Left axis — swipes volume */}
                 <YAxis
-                  yAxisId="volume"
+                  yAxisId="swipes"
                   tickLine={false}
                   axisLine={false}
                   tick={{ fill: "#6b7085", fontSize: 10 }}
                   width={42}
+                  tickFormatter={(v: number) =>
+                    v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k` : `${v}`
+                  }
+                />
+                {/* Hidden axis — matches (auto-scales to match range) */}
+                <YAxis
+                  yAxisId="matches"
+                  orientation="right"
+                  hide
                 />
                 {/* Right axis — rate % */}
                 <YAxis
@@ -501,7 +525,6 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
                   tick={{ fill: "#34d399", fontSize: 10 }}
                   width={38}
                   tickFormatter={(v: number) => `${v}%`}
-                  domain={[0, Math.ceil(maxRate * 1.3)]}
                 />
                 <Tooltip
                   content={<MonthlyTooltip bestMonth={bestMonthLabel} worstMonth={worstMonthLabel} />}
@@ -515,18 +538,23 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
                   strokeDasharray="5 4"
                   strokeWidth={1}
                 />
-                {/* Bars */}
-                <Bar yAxisId="volume" dataKey="swipes" radius={[3, 3, 0, 0]} maxBarSize={30}>
+                {/* Swipes bars — left axis */}
+                <Bar yAxisId="swipes" dataKey="swipes" radius={[3, 3, 0, 0]} maxBarSize={28}>
                   {monthlyData.map((_, i) => (
-                    <Cell key={i} fill="rgba(108,122,224,0.55)" />
+                    <Cell key={i} fill="rgba(108,122,224,0.45)" />
                   ))}
                 </Bar>
-                <Bar yAxisId="volume" dataKey="matches" radius={[3, 3, 0, 0]} maxBarSize={18}>
-                  {monthlyData.map((_, i) => (
-                    <Cell key={i} fill="rgba(245,166,35,0.7)" />
-                  ))}
-                </Bar>
-                {/* Rate line with best/worst dots */}
+                {/* Matches line — hidden axis (auto-scaled, always visible) */}
+                <Line
+                  yAxisId="matches"
+                  type="monotone"
+                  dataKey="matches"
+                  stroke="#F5A623"
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: "#F5A623", stroke: "#181a20", strokeWidth: 1.5 }}
+                  activeDot={{ r: 5, fill: "#F5A623", stroke: "#181a20", strokeWidth: 2 }}
+                />
+                {/* Rate line — right axis (with best/worst highlighted dots) */}
                 <Line
                   yAxisId="rate"
                   type="monotone"
@@ -558,13 +586,13 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
           </div>
 
           {/* Bottom annotations */}
-          {metrics.bestMonth && (
+          {bestMonthLabel && (
             <div className="flex justify-center gap-4 mt-2 text-xs">
               <span>
                 Meilleur mois : <strong className="text-emerald-400">{bestMonthLabel}</strong>
                 <span className="text-gray-500"> ({monthlyData.find((d) => d.month === bestMonthLabel)?.rate ?? 0}%)</span>
               </span>
-              {metrics.worstMonth && metrics.worstMonth !== metrics.bestMonth && (
+              {worstMonthLabel && worstMonthLabel !== bestMonthLabel && (
                 <>
                   <span className="text-gray-600">—</span>
                   <span>

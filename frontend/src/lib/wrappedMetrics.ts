@@ -283,19 +283,25 @@ function computeMonthlyData(
     }));
 }
 
+function matchRate(d: MonthlyData): number {
+  const likes = Math.round(d.swipes * d.rightSwipeRate / 100);
+  return likes > 0 ? d.matches / likes : 0;
+}
+
 function findBestMonth(data: MonthlyData[]): string {
   if (data.length === 0) return "";
-  return data.reduce((best, curr) =>
-    curr.matches > best.matches ? curr : best
+  const active = data.filter((d) => d.swipes > 0 && matchRate(d) > 0);
+  if (active.length === 0) return "";
+  return active.reduce((best, curr) =>
+    matchRate(curr) > matchRate(best) ? curr : best
   ).month;
 }
 
 function findWorstMonth(data: MonthlyData[]): string {
   if (data.length === 0) return "";
-  // Only consider months with activity
-  const active = data.filter((d) => d.swipes > 0);
+  const active = data.filter((d) => d.swipes > 0 && matchRate(d) > 0);
   if (active.length === 0) return "";
   return active.reduce((worst, curr) =>
-    curr.matches < worst.matches ? curr : worst
+    matchRate(curr) < matchRate(worst) ? curr : worst
   ).month;
 }
