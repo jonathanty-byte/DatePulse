@@ -126,6 +126,44 @@ function DarkTooltip({
   );
 }
 
+/** Custom tooltip for monthly chart showing swipes, matches, and ratio. */
+function MonthlyTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: Array<{ name: string; value: number; color: string; dataKey: string; payload?: any }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  const dataPoint = payload[0]?.payload ?? {};
+  const swipes = dataPoint.swipes ?? 0;
+  const matches = dataPoint.matches ?? 0;
+  const ratio = dataPoint.ratio ?? 0;
+  return (
+    <div className="rounded-xl border border-white/10 bg-gray-900/95 px-3 py-2.5 shadow-xl backdrop-blur-sm">
+      <p className="mb-1.5 text-xs font-semibold text-gray-300">{label}</p>
+      <div className="flex items-center gap-2 text-xs font-medium">
+        <span className="inline-block h-2 w-2 rounded-full bg-brand-400" />
+        <span className="text-gray-400">Swipes</span>
+        <span className="ml-auto text-white">{swipes.toLocaleString("fr-FR")}</span>
+      </div>
+      <div className="flex items-center gap-2 text-xs font-medium">
+        <span className="inline-block h-2 w-2 rounded-full bg-amber-400" />
+        <span className="text-gray-400">Matches</span>
+        <span className="ml-auto text-white">{matches}</span>
+      </div>
+      <div className="flex items-center gap-2 text-xs font-medium">
+        <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
+        <span className="text-gray-400">Taux</span>
+        <span className="ml-auto text-white">{ratio}%</span>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ──────────────────────────────────────────────
 
 export default function WrappedReport({ metrics, onShareClick }: WrappedReportProps) {
@@ -135,12 +173,17 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
     swipes: metrics.swipesByHour[h] || 0,
   }));
 
-  // Prepare monthly chart data
-  const monthlyData = metrics.monthlyData.map((d) => ({
-    month: formatMonth(d.month),
-    swipes: d.swipes,
-    matches: d.matches,
-  }));
+  // Prepare monthly chart data with match ratio
+  const monthlyData = metrics.monthlyData.map((d) => {
+    const likes = Math.round(d.swipes * d.rightSwipeRate / 100);
+    const ratio = likes > 0 ? Math.round((d.matches / likes) * 1000) / 10 : 0;
+    return {
+      month: formatMonth(d.month),
+      swipes: d.swipes,
+      matches: d.matches,
+      ratio,
+    };
+  });
 
   // Determine verdict
   const verdict = getVerdict(metrics);
@@ -342,42 +385,57 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         </Card>
       )}
 
-      {/* 7. DatePulse correlation — circular percentage */}
-      <Card delay={0.3}>
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Correlation DatePulse
-        </h3>
-        <div className="flex flex-col items-center">
-          <CirclePercent value={metrics.matchesInGreenLightPct} />
-          <p className="mt-3 text-sm text-gray-300 text-center max-w-sm">
-            <span className="font-semibold text-white">
-              {metrics.matchesInGreenLightPct}%
-            </span>{" "}
-            de tes matches sont arrives pendant les fenetres momentum de DatePulse
-          </p>
-          {metrics.estimatedTimeSavedHours > 0 && (
-            <p className="mt-2 text-xs text-emerald-400">
-              Tu aurais pu economiser ~{metrics.estimatedTimeSavedHours}h en ne swipant que pendant les fenetres optimales
+      {/* 7. DatePulse correlation — only show when hourly swipe data is available */}
+      {!metrics.dailyOnly && (
+        <Card delay={0.3}>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Correlation DatePulse
+          </h3>
+          <div className="flex flex-col items-center">
+            <CirclePercent value={metrics.matchesInGreenLightPct} />
+            <p className="mt-3 text-sm text-gray-300 text-center max-w-sm">
+              <span className="font-semibold text-white">
+                {metrics.matchesInGreenLightPct}%
+              </span>{" "}
+              de tes matches sont arrives pendant les fenetres momentum de DatePulse
             </p>
-          )}
-        </div>
-      </Card>
+            {metrics.estimatedTimeSavedHours > 0 && (
+              <p className="mt-2 text-xs text-emerald-400">
+                Tu aurais pu economiser ~{metrics.estimatedTimeSavedHours}h en ne swipant que pendant les fenetres optimales
+              </p>
+            )}
+          </div>
+        </Card>
+      )}
 
-      {/* 8. Monthly trends */}
+      {/* 8. Monthly trends — swipes + match ratio */}
       {monthlyData.length > 1 && (
         <Card delay={0.35}>
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
             Evolution mensuelle
           </h3>
+          <div className="flex items-center justify-around mb-4">
+            <BigStat
+              value={metrics.monthlyData.length}
+              label="mois d'activite"
+              size="sm"
+            />
+            <div className="h-12 w-px bg-white/10" />
+            <BigStat
+              value={formatMonth(metrics.bestMonth)}
+              label="meilleur mois"
+              size="sm"
+            />
+          </div>
           <div className="h-48 sm:h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={monthlyData}>
                 <defs>
                   <linearGradient id="gradSwipes" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ec4899" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#ec4899" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#818cf8" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
                   </linearGradient>
-                  <linearGradient id="gradMatches" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="gradRatio" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#34d399" stopOpacity={0.3} />
                     <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
                   </linearGradient>
@@ -388,46 +446,54 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
                   tickLine={false}
                   tick={{ fill: "#6b7280", fontSize: 10 }}
                 />
-                <YAxis hide />
+                <YAxis
+                  yAxisId="swipes"
+                  hide
+                />
+                <YAxis
+                  yAxisId="ratio"
+                  orientation="right"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#6b7280", fontSize: 10 }}
+                  tickFormatter={(v: number) => `${v}%`}
+                  width={40}
+                />
                 <Tooltip
-                  content={<DarkTooltip />}
+                  content={<MonthlyTooltip />}
                   cursor={{ stroke: "rgba(255,255,255,0.06)" }}
                 />
                 <Area
+                  yAxisId="swipes"
                   type="monotone"
                   dataKey="swipes"
                   name="Swipes"
-                  stroke="#ec4899"
+                  stroke="#818cf8"
                   strokeWidth={2}
                   fill="url(#gradSwipes)"
                 />
                 <Area
+                  yAxisId="ratio"
                   type="monotone"
-                  dataKey="matches"
-                  name="Matches"
+                  dataKey="ratio"
+                  name="Taux de match"
                   stroke="#34d399"
                   strokeWidth={2}
-                  fill="url(#gradMatches)"
+                  fill="url(#gradRatio)"
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          {metrics.bestMonth && (
-            <p className="mt-2 text-xs text-gray-500 text-center">
-              Meilleur mois :{" "}
-              <span className="text-emerald-400 font-medium">
-                {formatMonth(metrics.bestMonth)}
-              </span>
-              {metrics.worstMonth && metrics.worstMonth !== metrics.bestMonth && (
-                <>
-                  {" "} — Pire mois :{" "}
-                  <span className="text-red-400 font-medium">
-                    {formatMonth(metrics.worstMonth)}
-                  </span>
-                </>
-              )}
-            </p>
-          )}
+          <div className="mt-2 flex items-center justify-center gap-5 text-[10px] text-gray-500">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full bg-brand-400" />
+              Swipes
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
+              Taux de match (likes &#x2192; match)
+            </span>
+          </div>
         </Card>
       )}
 
