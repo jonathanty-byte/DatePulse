@@ -133,15 +133,20 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
       : 0;
 
   // Estimated time spent on the app
+  // Swipe time: ~2s per swipe (Tinder UX is fast, most swipes are snap decisions)
+  // Overhead: browsing profiles, reading bios, checking messages, idle browsing
+  // Use swipe-based estimate + message overhead (30s per message sent/received)
   const totalPeriodDays = Math.max(
     1,
     Math.ceil(
       (period.end.getTime() - period.start.getTime()) / (1000 * 60 * 60 * 24)
     )
   );
-  const estimatedTotalHours = appOpens
-    ? Math.round((appOpens * 8) / 60) // 8 min per session average
-    : Math.round((totalSwipes * 3) / 3600); // 3 sec per swipe
+  const swipeHours = (totalSwipes * 2) / 3600; // 2s per swipe
+  const totalMsgs = matches.reduce((sum, m) => sum + m.messagesCount, 0);
+  const msgHours = (totalMsgs * 30) / 3600; // 30s per message (read + type)
+  const browseOverhead = appOpens ? (appOpens * 20) / 3600 : swipeHours * 0.5; // 20s per app open for non-swipe browsing
+  const estimatedTotalHours = Math.round(swipeHours + msgHours + browseOverhead);
 
   // Estimated time saved: if user only swiped during green light windows
   // Adjust for their actual green light match rate
