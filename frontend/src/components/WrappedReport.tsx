@@ -408,38 +408,44 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         </Card>
       )}
 
-      {/* 8. Monthly trends — swipes + match ratio */}
+      {/* 8. Monthly trends — two stacked charts */}
       {monthlyData.length > 1 && (
         <Card delay={0.35}>
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            Evolution mensuelle
+          {/* 8a. Swipes per month */}
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Swipes par mois
           </h3>
-          <div className="flex items-center justify-around mb-4">
-            <BigStat
-              value={metrics.monthlyData.length}
-              label="mois d'activite"
-              size="sm"
-            />
-            <div className="h-12 w-px bg-white/10" />
-            <BigStat
-              value={formatMonth(metrics.bestMonth)}
-              label="meilleur mois"
-              size="sm"
-            />
-          </div>
-          <div className="h-48 sm:h-56 w-full">
+          <div className="h-36 sm:h-40 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyData}>
-                <defs>
-                  <linearGradient id="gradSwipes" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#818cf8" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradRatio" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#34d399" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <BarChart data={monthlyData} barSize={20}>
+                <XAxis
+                  dataKey="month"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#6b7280", fontSize: 10 }}
+                />
+                <YAxis hide />
+                <Tooltip
+                  content={<DarkTooltip />}
+                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                />
+                <Bar
+                  dataKey="swipes"
+                  name="Swipes"
+                  fill="#818cf8"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* 8b. Match rate per month */}
+          <h3 className="mt-5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Taux de match par mois
+          </h3>
+          <div className="h-36 sm:h-40 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyData} barSize={20}>
                 <XAxis
                   dataKey="month"
                   axisLine={false}
@@ -447,53 +453,45 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
                   tick={{ fill: "#6b7280", fontSize: 10 }}
                 />
                 <YAxis
-                  yAxisId="swipes"
-                  hide
-                />
-                <YAxis
-                  yAxisId="ratio"
-                  orientation="right"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: "#6b7280", fontSize: 10 }}
                   tickFormatter={(v: number) => `${v}%`}
-                  width={40}
+                  width={35}
                 />
                 <Tooltip
                   content={<MonthlyTooltip />}
-                  cursor={{ stroke: "rgba(255,255,255,0.06)" }}
+                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
                 />
-                <Area
-                  yAxisId="swipes"
-                  type="monotone"
-                  dataKey="swipes"
-                  name="Swipes"
-                  stroke="#818cf8"
-                  strokeWidth={2}
-                  fill="url(#gradSwipes)"
-                />
-                <Area
-                  yAxisId="ratio"
-                  type="monotone"
+                <Bar
                   dataKey="ratio"
                   name="Taux de match"
-                  stroke="#34d399"
-                  strokeWidth={2}
-                  fill="url(#gradRatio)"
+                  fill="#34d399"
+                  radius={[4, 4, 0, 0]}
                 />
-              </AreaChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-2 flex items-center justify-center gap-5 text-[10px] text-gray-500">
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-2 w-2 rounded-full bg-brand-400" />
-              Swipes
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
-              Taux de match (likes &#x2192; match)
-            </span>
-          </div>
+          <p className="mt-1 text-[10px] text-gray-600 text-center">
+            % de tes likes qui ont donne un match
+          </p>
+
+          {metrics.bestMonth && (
+            <p className="mt-3 text-xs text-gray-500 text-center">
+              Meilleur mois :{" "}
+              <span className="text-emerald-400 font-medium">
+                {formatMonth(metrics.bestMonth)}
+              </span>
+              {metrics.worstMonth && metrics.worstMonth !== metrics.bestMonth && (
+                <>
+                  {" "} — Pire mois :{" "}
+                  <span className="text-red-400 font-medium">
+                    {formatMonth(metrics.worstMonth)}
+                  </span>
+                </>
+              )}
+            </p>
+          )}
         </Card>
       )}
 
