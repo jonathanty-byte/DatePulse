@@ -12,8 +12,14 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
 } from "recharts";
 import type { WrappedMetrics } from "../lib/wrappedMetrics";
+import { getVerdict } from "../lib/wrappedMetrics";
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -21,6 +27,14 @@ interface WrappedReportProps {
   metrics: WrappedMetrics;
   onShareClick?: () => void;
 }
+
+// ── App-source color theming ────────────────────────────────────
+
+const APP_COLORS: Record<string, { primary: string; gradient: string; bg: string }> = {
+  tinder: { primary: "#ec4899", gradient: "from-pink-400 to-pink-600", bg: "rgba(236,72,153,0.06)" },
+  bumble: { primary: "#f59e0b", gradient: "from-amber-400 to-amber-600", bg: "rgba(245,158,11,0.06)" },
+  hinge: { primary: "#8b5cf6", gradient: "from-violet-400 to-violet-600", bg: "rgba(139,92,246,0.06)" },
+};
 
 // ── Helpers ─────────────────────────────────────────────────────
 
@@ -74,24 +88,32 @@ function Card({
   );
 }
 
-/** Big number stat display. */
+/** Big number stat display with dynamic color. */
 function BigStat({
   value,
   label,
   size = "lg",
+  color,
 }: {
   value: string | number;
   label: string;
   size?: "lg" | "sm";
+  color?: string;
 }) {
   return (
     <div className="text-center">
       <p
-        className={`font-extrabold bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent ${
+        className={`font-extrabold ${
           size === "lg" ? "text-4xl sm:text-5xl" : "text-2xl sm:text-3xl"
         }`}
+        style={color ? { color } : undefined}
       >
-        {value}
+        {!color && (
+          <span className="bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">
+            {value}
+          </span>
+        )}
+        {color && value}
       </p>
       <p className="mt-1 text-sm text-gray-400">{label}</p>
     </div>
@@ -191,6 +213,8 @@ function MonthlyTooltip({
 // ── Main component ──────────────────────────────────────────────
 
 export default function WrappedReport({ metrics, onShareClick }: WrappedReportProps) {
+  const appColor = APP_COLORS[metrics.source] ?? APP_COLORS.tinder;
+
   // Prepare hour chart data
   const hourData = Array.from({ length: 24 }, (_, h) => ({
     hour: formatHour(h),
@@ -218,12 +242,6 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
   // Determine verdict
   const verdict = getVerdict(metrics);
 
-  // Hours per day
-  const hoursPerDay =
-    metrics.totalDays > 0
-      ? Math.round((metrics.estimatedTotalHours / metrics.totalDays) * 10) / 10
-      : 0;
-
   // Total matches
   const totalMatches =
     metrics.totalSwipes > 0
@@ -232,9 +250,16 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         )
       : 0;
 
+  // Day-of-week chart data
+  const dayData = metrics.swipesByDayOfWeek;
+  const maxDaySwipes = Math.max(...dayData.map((d) => d.swipes), 1);
+
+  // Source display name
+  const sourceName = metrics.source.charAt(0).toUpperCase() + metrics.source.slice(1);
+
   return (
     <div className="space-y-5">
-      {/* 1. Hero section */}
+      {/* ─── 1. Hero section ─── */}
       <motion.div
         className="text-center py-6 sm:py-8"
         initial={{ opacity: 0, scale: 0.95 }}
@@ -242,35 +267,64 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         transition={{ duration: 0.5 }}
       >
         <h2 className="text-3xl sm:text-4xl font-extrabold">
-          <span className="bg-gradient-to-r from-brand-400 via-purple-400 to-brand-600 bg-clip-text text-transparent">
+          <span className={`bg-gradient-to-r ${appColor.gradient} bg-clip-text text-transparent`}>
             TON DATING WRAPPED
           </span>
         </h2>
         <p className="mt-2 text-sm text-gray-400">
           {formatPeriod(metrics.periodStart, metrics.periodEnd)}
         </p>
-        <p className="mt-1 text-xs text-gray-600">
-          {metrics.source.charAt(0).toUpperCase() + metrics.source.slice(1)} — {metrics.totalDays} jours d'activite
+        <p className="mt-1 text-xs text-gray-500">
+          {sourceName} — {metrics.totalDays} jours d'activite
+          {metrics.tenureMonths && (
+            <span className="ml-1">
+              · Sur {sourceName} depuis {metrics.tenureMonths} mois
+            </span>
+          )}
         </p>
       </motion.div>
 
-      {/* 2. Time spent */}
+      {/* ─── 2. Temps investi (hoursPerMatch promoted to H2) ─── */}
       <Card delay={0.05}>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Temps passe
+          Temps investi
         </h3>
-        <div className="flex items-center justify-around">
-          <BigStat
-            value={`${metrics.estimatedTotalHours}h`}
-            label="temps total estime"
-          />
-          <div className="h-12 w-px bg-white/10" />
-          <BigStat
-            value={`${hoursPerDay}h`}
-            label="par jour en moyenne"
-            size="sm"
-          />
-        </div>
+        {metrics.hoursPerMatch > 0 ? (
+          <>
+            <div className="text-center mb-4">
+              <p className="text-4xl sm:text-5xl font-extrabold" style={{ color: appColor.primary }}>
+                {metrics.hoursPerMatch}h
+              </p>
+              <p className="mt-1 text-sm text-gray-300">par match obtenu</p>
+            </div>
+            <div className="flex items-center justify-around">
+              <BigStat
+                value={`${metrics.estimatedTotalHours}h`}
+                label="temps total estime"
+                size="sm"
+              />
+              <div className="h-12 w-px bg-white/10" />
+              <BigStat
+                value={`${metrics.totalDays > 0 ? Math.round((metrics.estimatedTotalHours / metrics.totalDays) * 10) / 10 : 0}h`}
+                label="par jour en moyenne"
+                size="sm"
+              />
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center justify-around">
+            <BigStat
+              value={`${metrics.estimatedTotalHours}h`}
+              label="temps total estime"
+            />
+            <div className="h-12 w-px bg-white/10" />
+            <BigStat
+              value={`${metrics.totalDays > 0 ? Math.round((metrics.estimatedTotalHours / metrics.totalDays) * 10) / 10 : 0}h`}
+              label="par jour en moyenne"
+              size="sm"
+            />
+          </div>
+        )}
         {metrics.estimatedTotalHours > 100 && (
           <p className="mt-3 text-xs text-amber-400 text-center">
             C'est plus de {Math.round(metrics.estimatedTotalHours / 24)} jours complets passes a swiper...
@@ -278,15 +332,16 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         )}
       </Card>
 
-      {/* 3. Swipes */}
+      {/* ─── 3. Volume (Swipes, contextualized) ─── */}
       <Card delay={0.1}>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Swipes
+          Volume de swipes
         </h3>
         <div className="flex items-center justify-around">
           <BigStat
             value={metrics.totalSwipes.toLocaleString("fr-FR")}
             label="swipes au total"
+            color={appColor.primary}
           />
           <div className="h-12 w-px bg-white/10" />
           <BigStat
@@ -310,13 +365,86 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         )}
       </Card>
 
-      {/* 4. Matches */}
+      {/* ─── 4. Tes meilleurs jours (NEW — day-of-week) ─── */}
       <Card delay={0.15}>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Matches
+          Tes meilleurs jours
         </h3>
+        <div className="h-48 sm:h-56 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={dayData} barSize={28}>
+              <XAxis
+                dataKey="day"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#9ca3af", fontSize: 12 }}
+              />
+              <YAxis hide />
+              <Tooltip
+                content={<DarkTooltip />}
+                cursor={{ fill: "rgba(255,255,255,0.03)" }}
+              />
+              <Bar dataKey="swipes" name="Swipes" radius={[6, 6, 0, 0]}>
+                {dayData.map((entry, i) => (
+                  <Cell
+                    key={i}
+                    fill={appColor.primary}
+                    opacity={entry.swipes === maxDaySwipes ? 1 : 0.35}
+                  />
+                ))}
+                <LabelList
+                  dataKey="matches"
+                  position="top"
+                  fill="#F5A623"
+                  fontSize={10}
+                  fontWeight={600}
+                  offset={6}
+                  formatter={(v: number) => v > 0 ? v : ""}
+                />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        {metrics.bestDay && (
+          <p className="mt-2 text-xs text-center text-gray-400">
+            <span className="font-semibold" style={{ color: appColor.primary }}>{metrics.bestDay}</span>
+            {" "}= ton jour de chance
+          </p>
+        )}
+        <p className="mt-3 text-[11px] text-gray-600 text-center">
+          DatePulse te dit aussi a quelle <strong className="text-gray-400">heure</strong> swiper →{" "}
+          <a href="/" className="underline hover:text-gray-300 transition">Voir les fenetres</a>
+        </p>
+      </Card>
+
+      {/* ─── 5. Conversion + Purchases ─── */}
+      <Card delay={0.2}>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+          {metrics.purchasesTotal ? "Conversion & Depenses" : "Matches"}
+        </h3>
+
+        {/* Purchases block */}
+        {metrics.purchasesTotal != null && metrics.purchasesTotal > 0 && (
+          <div className="mb-5 text-center">
+            <p className="text-4xl sm:text-5xl font-extrabold text-red-400">
+              {metrics.purchasesTotal}&euro;
+            </p>
+            <p className="mt-1 text-sm text-gray-400">depenses sur {sourceName}</p>
+            {metrics.costPerMatch != null && metrics.costPerMatch > 0 && (
+              <p className="mt-2 text-xs text-red-400/80">
+                soit {metrics.costPerMatch}&euro; par match obtenu
+              </p>
+            )}
+            <p className="mt-3 text-[11px] text-gray-600">
+              L'Audit DatePulse coute moins qu'un seul match sur {sourceName}
+            </p>
+            <div className="my-4 h-px bg-white/5" />
+          </div>
+        )}
+
+        {/* Matches stats (always shown) */}
         <div className="flex items-center justify-around">
-          <BigStat value={totalMatches} label="matches obtenus" />
+          <BigStat value={totalMatches} label="matches obtenus" color={appColor.primary} />
           <div className="h-12 w-px bg-white/10" />
           <BigStat
             value={`${metrics.swipeToMatchRate}%`}
@@ -324,15 +452,10 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
             size="sm"
           />
         </div>
-        {metrics.hoursPerMatch > 0 && (
-          <p className="mt-3 text-xs text-gray-500 text-center">
-            En moyenne, {metrics.hoursPerMatch}h de swipe par match obtenu
-          </p>
-        )}
       </Card>
 
-      {/* 5. Conversations */}
-      <Card delay={0.2}>
+      {/* ─── 6. Conversations (enriched with ghost empathy + sent/received) ─── */}
+      <Card delay={0.25}>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
           Conversations
         </h3>
@@ -353,94 +476,42 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
             size="sm"
           />
         </div>
-        {metrics.ghostRate > 50 && (
-          <p className="mt-3 text-xs text-red-400 text-center">
-            Plus de la moitie de tes matches ne menent a aucun message. Travaille tes premiers messages !
+
+        {/* Ghost empathy message */}
+        {metrics.ghostRate > 0 && (
+          <p className="mt-3 text-xs text-gray-500 text-center">
+            {metrics.ghostRate}% de tes matches n'ont jamais mene a un echange.{" "}
+            {metrics.ghostRate <= 60
+              ? "C'est normal — la moyenne est de ~60%."
+              : "C'est au-dessus de la moyenne (~60%)."}
           </p>
+        )}
+
+        {/* Sent/Received ratio */}
+        {metrics.sentReceivedRatio > 0 && (
+          <p className="mt-2 text-xs text-gray-500 text-center">
+            Tu envoies <span className="text-white font-medium">{metrics.sentReceivedRatio}x</span> plus de messages que tu n'en recois
+          </p>
+        )}
+
+        {/* CTA coach */}
+        {metrics.ghostRate > 50 && (
+          <motion.a
+            href="/coach"
+            className="mt-4 block text-center text-xs font-medium underline transition"
+            style={{ color: appColor.primary }}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            Le Coach DatePulse peut t'aider →
+          </motion.a>
         )}
       </Card>
 
-      {/* 6. Timing — hourly activity chart */}
-      {(!metrics.dailyOnly || metrics.hourlyFromMessages) && (
-        <Card delay={0.25}>
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            Tes horaires d'activite
-          </h3>
-          <div className="flex items-center justify-around mb-4">
-            <BigStat
-              value={formatHour(metrics.peakSwipeHour)}
-              label="pic d'activite"
-              size="sm"
-            />
-            {!metrics.hourlyFromMessages && (
-              <>
-                <div className="h-12 w-px bg-white/10" />
-                <BigStat
-                  value={formatHour(metrics.peakMatchHour)}
-                  label="pic de matches"
-                  size="sm"
-                />
-              </>
-            )}
-          </div>
-          <div className="h-40 sm:h-48 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={hourData} barSize={8}>
-                <XAxis
-                  dataKey="hour"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#6b7280", fontSize: 10 }}
-                  interval={3}
-                />
-                <YAxis hide />
-                <Tooltip
-                  content={<DarkTooltip />}
-                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
-                />
-                <Bar
-                  dataKey="swipes"
-                  name={metrics.hourlyFromMessages ? "Messages" : "Swipes"}
-                  fill={metrics.hourlyFromMessages ? "#818cf8" : "#ec4899"}
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          {metrics.hourlyFromMessages && (
-            <p className="mt-2 text-[10px] text-gray-600 text-center">
-              Base sur tes messages envoyes — l'export Tinder ne fournit pas l'heure exacte des swipes
-            </p>
-          )}
-        </Card>
-      )}
-
-      {/* 7. DatePulse correlation — only show when hourly swipe data is available */}
-      {!metrics.dailyOnly && (
-        <Card delay={0.3}>
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            Correlation DatePulse
-          </h3>
-          <div className="flex flex-col items-center">
-            <CirclePercent value={metrics.matchesInGreenLightPct} />
-            <p className="mt-3 text-sm text-gray-300 text-center max-w-sm">
-              <span className="font-semibold text-white">
-                {metrics.matchesInGreenLightPct}%
-              </span>{" "}
-              de tes matches sont arrives pendant les fenetres momentum de DatePulse
-            </p>
-            {metrics.estimatedTimeSavedHours > 0 && (
-              <p className="mt-2 text-xs text-emerald-400">
-                Tu aurais pu economiser ~{metrics.estimatedTimeSavedHours}h en ne swipant que pendant les fenetres optimales
-              </p>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* 8. Monthly trends — ComposedChart (bars + line) */}
+      {/* ─── 7. Evolution mensuelle (unchanged) ─── */}
       {monthlyData.length > 1 && (
-        <Card delay={0.35}>
+        <Card delay={0.3}>
           {/* Header + stat pills */}
           <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -587,7 +658,53 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         </Card>
       )}
 
-      {/* 9. Verdict */}
+      {/* ─── 8. Ton ADN Dating (RadarChart) ─── */}
+      <Card delay={0.35}>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+          Ton ADN Dating
+        </h3>
+        <motion.div
+          className="flex justify-center"
+          initial={{ opacity: 0, scale: 0 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
+          <div className="h-64 w-64 sm:h-80 sm:w-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={metrics.adnDating}>
+                <PolarGrid stroke="rgba(255,255,255,0.1)" />
+                <PolarAngleAxis
+                  dataKey="axis"
+                  tick={{ fill: "#9ca3af", fontSize: 12 }}
+                />
+                <PolarRadiusAxis tick={false} axisLine={false} domain={[0, 100]} />
+                <Radar
+                  dataKey="value"
+                  stroke={appColor.primary}
+                  fill={appColor.primary}
+                  fillOpacity={0.2}
+                  strokeWidth={2}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-gray-500">
+          {metrics.adnDating.map((a) => (
+            <div key={a.axis} className="flex items-center gap-1.5">
+              <span
+                className="inline-block h-2 w-2 rounded-full"
+                style={{ backgroundColor: appColor.primary, opacity: a.value / 100 }}
+              />
+              <span>{a.axis}</span>
+              <span className="ml-auto font-semibold text-gray-300">{a.value}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* ─── 9. Verdict ─── */}
       <Card delay={0.4} className="border-brand-500/20 bg-brand-950/10">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
           Verdict
@@ -600,7 +717,7 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
           <p className="mt-2 text-sm text-gray-400">{verdict.message}</p>
           <motion.a
             href={verdict.ctaHref}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-[0.98]"
+            className={`mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r ${appColor.gradient} px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]`}
             whileTap={{ scale: 0.98 }}
           >
             {verdict.ctaLabel}
@@ -609,11 +726,66 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         </div>
       </Card>
 
+      {/* ─── Hourly activity (moved down, optional) ─── */}
+      {(!metrics.dailyOnly || metrics.hourlyFromMessages) && (
+        <Card delay={0.45}>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Tes horaires d'activite
+          </h3>
+          <div className="flex items-center justify-around mb-4">
+            <BigStat
+              value={formatHour(metrics.peakSwipeHour)}
+              label="pic d'activite"
+              size="sm"
+            />
+            {!metrics.hourlyFromMessages && (
+              <>
+                <div className="h-12 w-px bg-white/10" />
+                <BigStat
+                  value={formatHour(metrics.peakMatchHour)}
+                  label="pic de matches"
+                  size="sm"
+                />
+              </>
+            )}
+          </div>
+          <div className="h-40 sm:h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={hourData} barSize={8}>
+                <XAxis
+                  dataKey="hour"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#6b7280", fontSize: 10 }}
+                  interval={3}
+                />
+                <YAxis hide />
+                <Tooltip
+                  content={<DarkTooltip />}
+                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                />
+                <Bar
+                  dataKey="swipes"
+                  name={metrics.hourlyFromMessages ? "Messages" : "Swipes"}
+                  fill={appColor.primary}
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          {metrics.hourlyFromMessages && (
+            <p className="mt-2 text-[10px] text-gray-600 text-center">
+              Base sur tes messages envoyes — l'export Tinder ne fournit pas l'heure exacte des swipes
+            </p>
+          )}
+        </Card>
+      )}
+
       {/* Share button */}
       {onShareClick && (
         <motion.button
           onClick={onShareClick}
-          className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3.5 text-sm sm:text-base font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-[0.98]"
+          className={`w-full flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r ${appColor.gradient} px-6 py-3.5 text-sm sm:text-base font-semibold text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]`}
           whileTap={{ scale: 0.98 }}
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -639,106 +811,4 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
       )}
     </div>
   );
-}
-
-// ── Circle percentage component ─────────────────────────────────
-
-function CirclePercent({ value }: { value: number }) {
-  const radius = 52;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (value / 100) * circumference;
-
-  return (
-    <div className="relative h-32 w-32 sm:h-40 sm:w-40">
-      <svg className="h-full w-full -rotate-90" viewBox="0 0 120 120">
-        {/* Background circle */}
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          fill="none"
-          stroke="rgba(255,255,255,0.05)"
-          strokeWidth="8"
-        />
-        {/* Progress circle */}
-        <motion.circle
-          cx="60"
-          cy="60"
-          r={radius}
-          fill="none"
-          stroke="#ec4899"
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          whileInView={{ strokeDashoffset: offset }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-2xl sm:text-3xl font-extrabold text-white">
-          {value}%
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// ── Verdict logic ───────────────────────────────────────────────
-
-interface Verdict {
-  icon: string;
-  title: string;
-  message: string;
-  ctaLabel: string;
-  ctaHref: string;
-}
-
-function getVerdict(m: WrappedMetrics): Verdict {
-  if (m.ghostRate > 50) {
-    return {
-      icon: "\u{1F47B}",
-      title: "Tu te fais ghoster trop souvent",
-      message:
-        "Plus de la moitie de tes matches ne menent a rien. Travaille tes premiers messages pour convertir plus de matches en conversations.",
-      ctaLabel: "Ameliorer mes messages",
-      ctaHref: "/coach",
-    };
-  }
-
-  if (m.rightSwipeRate > 70) {
-    return {
-      icon: "\u{1F6A8}",
-      title: "Tu likes tout le monde",
-      message:
-        "Un taux de like a " +
-        m.rightSwipeRate +
-        "% penalise ton algorithme. Sois plus selectif pour que l'app te montre de meilleurs profils.",
-      ctaLabel: "Optimiser ma strategie",
-      ctaHref: "/audit",
-    };
-  }
-
-  if (m.matchesInGreenLightPct > 60) {
-    return {
-      icon: "\u{2705}",
-      title: "Tu swipes deja aux bons moments !",
-      message:
-        "DatePulse valide — " +
-        m.matchesInGreenLightPct +
-        "% de tes matches arrivent pendant les fenetres optimales. Continue comme ca.",
-      ctaLabel: "Voir mes fenetres",
-      ctaHref: "/",
-    };
-  }
-
-  return {
-    icon: "\u{1F4CA}",
-    title: "Optimise tes sessions",
-    message:
-      "Utilise DatePulse pour swiper au bon moment et maximiser tes matches. Swipe when it matters.",
-    ctaLabel: "Voir les fenetres momentum",
-    ctaHref: "/",
-  };
 }

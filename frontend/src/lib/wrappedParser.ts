@@ -28,6 +28,16 @@ export interface ParsedData {
     bio?: string;
     photoCount?: number;
   };
+  purchases?: {
+    subscription?: { productType: string; createDate: Date; expireDate?: Date };
+    consumables?: { count: number; types: string[] };
+  };
+  /** Daily message received counts {date: count} — Format B only */
+  messagesReceived?: Record<string, number>;
+  /** Account creation date */
+  createDate?: Date;
+  /** Raw active_time from Tinder export (format varies) */
+  activeTime?: number | string;
 }
 
 // ── Main entry ──────────────────────────────────────────────────
@@ -99,6 +109,10 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
   let photoCount: number | undefined;
   let formatB = false;
   const messageTimestamps: Date[] = [];
+  let purchases: ParsedData["purchases"] | undefined;
+  let messagesReceived: Record<string, number> | undefined;
+  let createDate: Date | undefined;
+  let activeTime: number | string | undefined;
 
   try {
     // Tinder RGPD format varies between exports:
@@ -267,6 +281,54 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
         if (Array.isArray(pPhotos)) photoCount = pPhotos.length;
       }
     }
+
+    // Purchases
+    try {
+      const purchasesRaw = json["Purchases"] as Record<string, unknown> | undefined;
+      if (purchasesRaw) {
+        const subRaw = purchasesRaw["subscription"] as Record<string, unknown>[] | undefined;
+        const consRaw = purchasesRaw["consumable"] as Record<string, unknown>[] | undefined;
+        if (subRaw || consRaw) {
+          purchases = {};
+          if (Array.isArray(subRaw) && subRaw.length > 0) {
+            const first = subRaw[0];
+            const cd = parseDate(first["create_date"]);
+            if (cd) {
+              purchases.subscription = {
+                productType: String(first["product_type"] ?? "unknown"),
+                createDate: cd,
+                expireDate: parseDate(first["expire_date"]) ?? undefined,
+              };
+            }
+          }
+          if (Array.isArray(consRaw) && consRaw.length > 0) {
+            const types = new Set<string>();
+            for (const c of consRaw) {
+              if (c["product_type"]) types.add(String(c["product_type"]));
+            }
+            purchases.consumables = { count: consRaw.length, types: [...types] };
+          }
+        }
+      }
+    } catch { /* defensive */ }
+
+    // messages_received (Format B)
+    if (formatB && usage["messages_received"]) {
+      const mr = usage["messages_received"];
+      if (typeof mr === "object" && mr !== null) {
+        messagesReceived = mr as Record<string, number>;
+      }
+    }
+
+    // User.create_date + active_time
+    const userObj = json["User"] as Record<string, unknown> | undefined;
+    if (userObj) {
+      const cd = parseDate(userObj["create_date"]);
+      if (cd) createDate = cd;
+      if (userObj["active_time"] !== undefined) {
+        activeTime = userObj["active_time"] as number | string;
+      }
+    }
   } catch {
     /* defensive: if anything fails, return what we have */
   }
@@ -291,6 +353,10 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
     dailyOnly: formatB,
     messageTimestamps: formatB && messageTimestamps.length > 0 ? messageTimestamps : undefined,
     profile: bio || photoCount ? { bio, photoCount } : undefined,
+    purchases,
+    messagesReceived,
+    createDate,
+    activeTime,
   };
 }
 
@@ -423,7 +489,7 @@ async function parseZipFile(file: File): Promise<ParsedData> {
 
 // ── Format B helper: expand daily counts to individual swipes ───
 
-function expandDailyCountsToSwipes(
+export function expandDailyCountsToSwipes(
   dailyCounts: Record<string, number> | undefined,
   direction: "like" | "pass" | "superlike",
   out: RawSwipe[]
@@ -494,7 +560,7 @@ function parseDate(value: unknown): Date | null {
   return null;
 }
 
-function enrichMatchesWithMessages(
+export function enrichMatchesWithMessages(
   matches: RawMatch[],
   messages: Record<string, unknown>
 ): void {
@@ -543,7 +609,7 @@ function enrichMatchesWithMessages(
   }
 }
 
-function findClosestMatch(
+export function findClosestMatch(
   matches: RawMatch[],
   targetDate: Date
 ): RawMatch | null {

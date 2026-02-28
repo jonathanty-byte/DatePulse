@@ -2,6 +2,13 @@ import type { WrappedMetrics } from "./wrappedMetrics";
 
 export type ShareTemplate = "story" | "square";
 
+// App-source tinting colors (darker shades for gradient midpoint)
+const APP_TINT: Record<string, string> = {
+  tinder: "#be185d",   // pink-700
+  bumble: "#b45309",   // amber-700
+  hinge: "#6d28d9",    // violet-700
+};
+
 /** Generate a shareable image from wrapped metrics. */
 export async function generateShareImage(
   metrics: WrappedMetrics,
@@ -15,10 +22,11 @@ export async function generateShareImage(
   canvas.height = height;
   const ctx = canvas.getContext("2d")!;
 
-  // Background gradient (dark theme matching DatePulse)
+  // Background gradient (dark theme with app-source tint)
+  const tint = APP_TINT[metrics.source] ?? "#1e1b4b";
   const gradient = ctx.createLinearGradient(0, 0, width, height);
   gradient.addColorStop(0, "#080b14"); // dark
-  gradient.addColorStop(0.5, "#1e1b4b"); // indigo-950
+  gradient.addColorStop(0.5, tint);    // app-source tint
   gradient.addColorStop(1, "#080b14"); // dark
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height);
@@ -61,14 +69,15 @@ export async function generateShareImage(
   const periodText = `${metrics.periodStart.toLocaleDateString("fr-FR", { month: "short", year: "numeric" })} — ${metrics.periodEnd.toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}`;
   ctx.fillText(periodText, width / 2, titleY + 50);
 
-  // Stats section
+  // Stats section — reduced gap, added 6th stat (hoursPerMatch)
   const statsStartY = template === "story" ? 400 : 260;
-  const statGap = template === "story" ? 200 : 130;
+  const statGap = template === "story" ? 150 : 120;
 
   const stats = [
     { value: `${metrics.totalSwipes}`, label: "Swipes" },
     { value: `${metrics.rightSwipeRate}%`, label: "Taux de like" },
     { value: `${metrics.swipeToMatchRate}%`, label: "Conversion" },
+    { value: `${metrics.hoursPerMatch}h`, label: "Par match obtenu" },
     { value: `${metrics.estimatedTotalHours}h`, label: "Temps total" },
     {
       value: `${metrics.matchesInGreenLightPct}%`,
@@ -76,7 +85,7 @@ export async function generateShareImage(
     },
   ];
 
-  // Only show first 4 stats for square format
+  // Show first 4 stats for square, all 6 for story
   const displayStats = template === "square" ? stats.slice(0, 4) : stats;
 
   displayStats.forEach((stat, i) => {
@@ -103,8 +112,8 @@ export async function generateShareImage(
     ctx.fillText(stat.label, width / 2, y + 45);
   });
 
-  // Branding footer
-  const brandingY = height - (template === "story" ? 120 : 60);
+  // Branding footer — pushed to height-100
+  const brandingY = height - (template === "story" ? 100 : 60);
   ctx.font =
     "bold 36px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   const brandGrad = ctx.createLinearGradient(
