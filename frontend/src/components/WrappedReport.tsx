@@ -287,8 +287,8 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         )}
       </Card>
 
-      {/* 6. Timing — swipes by hour bar chart (only when hourly data is available) */}
-      {!metrics.dailyOnly && (
+      {/* 6. Timing — hourly activity chart */}
+      {(!metrics.dailyOnly || metrics.hourlyFromMessages) && (
         <Card delay={0.25}>
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
             Tes horaires d'activite
@@ -296,15 +296,19 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
           <div className="flex items-center justify-around mb-4">
             <BigStat
               value={formatHour(metrics.peakSwipeHour)}
-              label="pic de swipe"
+              label="pic d'activite"
               size="sm"
             />
-            <div className="h-12 w-px bg-white/10" />
-            <BigStat
-              value={formatHour(metrics.peakMatchHour)}
-              label="pic de matches"
-              size="sm"
-            />
+            {!metrics.hourlyFromMessages && (
+              <>
+                <div className="h-12 w-px bg-white/10" />
+                <BigStat
+                  value={formatHour(metrics.peakMatchHour)}
+                  label="pic de matches"
+                  size="sm"
+                />
+              </>
+            )}
           </div>
           <div className="h-40 sm:h-48 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -323,13 +327,18 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
                 />
                 <Bar
                   dataKey="swipes"
-                  name="Swipes"
-                  fill="#ec4899"
+                  name={metrics.hourlyFromMessages ? "Messages" : "Swipes"}
+                  fill={metrics.hourlyFromMessages ? "#818cf8" : "#ec4899"}
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
           </div>
+          {metrics.hourlyFromMessages && (
+            <p className="mt-2 text-[10px] text-gray-600 text-center">
+              Base sur tes messages envoyes — l'export Tinder ne fournit pas l'heure exacte des swipes
+            </p>
+          )}
         </Card>
       )}
 

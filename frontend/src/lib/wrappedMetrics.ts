@@ -58,12 +58,14 @@ export interface WrappedMetrics {
 
   // Data resolution: true when export only has daily totals (no hourly breakdown)
   dailyOnly: boolean;
+  /** true when hourly chart is based on message timestamps (proxy), not swipe timestamps */
+  hourlyFromMessages: boolean;
 }
 
 // ── Main function ───────────────────────────────────────────────
 
 export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
-  const { swipes, matches, source, period, appOpens, dailyOnly } = data;
+  const { swipes, matches, source, period, appOpens, dailyOnly, messageTimestamps } = data;
 
   // Map source to AppName for scoring (WrappedAppSource is a subset of AppName)
   const appName: AppName = source as AppName;
@@ -110,12 +112,15 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
   const longestConvo = convoLengths.length > 0 ? Math.max(...convoLengths) : 0;
 
   // ── Timing metrics ─────────────────────────────────────────
-  const swipesByHour = computeHourDistribution(
-    swipes.map((s) => s.timestamp)
-  );
-  const matchesByHour = computeHourDistribution(
-    matches.map((m) => m.timestamp)
-  );
+  // When daily-only, use message timestamps as hourly activity proxy
+  const hourlyFromMessages = !!dailyOnly && !!messageTimestamps && messageTimestamps.length > 0;
+  const hourlySource = hourlyFromMessages
+    ? messageTimestamps!
+    : swipes.map((s) => s.timestamp);
+  const swipesByHour = computeHourDistribution(hourlySource);
+  const matchesByHour = hourlyFromMessages
+    ? swipesByHour // same source, no separate match hours available
+    : computeHourDistribution(matches.map((m) => m.timestamp));
 
   const peakSwipeHour = findPeakHour(swipesByHour);
   const peakMatchHour = findPeakHour(matchesByHour);
@@ -196,6 +201,7 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
     totalDays: totalPeriodDays,
     source,
     dailyOnly: !!dailyOnly,
+    hourlyFromMessages,
   };
 }
 

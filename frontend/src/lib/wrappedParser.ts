@@ -22,6 +22,8 @@ export interface ParsedData {
   appOpens?: number;
   /** true when export only has daily totals (no per-swipe timestamps) */
   dailyOnly?: boolean;
+  /** Message timestamps — used as activity proxy when dailyOnly is true */
+  messageTimestamps?: Date[];
   profile?: {
     bio?: string;
     photoCount?: number;
@@ -96,6 +98,7 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
   let bio: string | undefined;
   let photoCount: number | undefined;
   let formatB = false;
+  const messageTimestamps: Date[] = [];
 
   try {
     // Tinder RGPD format varies between exports:
@@ -239,6 +242,19 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
       enrichMatchesWithMessages(matches, messages as Record<string, unknown>);
     }
 
+    // Extract message timestamps for hourly activity proxy (Format B)
+    if (formatB && Array.isArray(messages)) {
+      for (const conv of messages) {
+        if (typeof conv !== "object" || conv === null) continue;
+        const msgs = (conv as Record<string, unknown>)["messages"];
+        if (!Array.isArray(msgs)) continue;
+        for (const m of msgs) {
+          const ts = parseDate((m as Record<string, unknown>)["sent_date"]);
+          if (ts) messageTimestamps.push(ts);
+        }
+      }
+    }
+
     // Profile info (both formats)
     const profile = json["User"] ?? json["Profile"] ?? json["profile"];
     if (typeof profile === "object" && profile !== null) {
@@ -273,6 +289,7 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
     matches,
     appOpens,
     dailyOnly: formatB,
+    messageTimestamps: formatB && messageTimestamps.length > 0 ? messageTimestamps : undefined,
     profile: bio || photoCount ? { bio, photoCount } : undefined,
   };
 }
