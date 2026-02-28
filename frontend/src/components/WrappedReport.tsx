@@ -2,8 +2,6 @@ import { motion } from "framer-motion";
 import {
   BarChart,
   Bar,
-  AreaChart,
-  Area,
   ComposedChart,
   Line,
   CartesianGrid,
@@ -466,29 +464,19 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
             </div>
           </div>
 
-          {/* Custom legend */}
-          <div className="flex justify-end gap-4 text-[11px] mb-3 pr-1">
-            {[
-              { color: "#6C7AE0", label: "Swipes", shape: "square" as const },
-              { color: "#F5A623", label: "Matches", shape: "line" as const },
-              { color: "#34d399", label: "Taux match", shape: "line" as const },
-            ].map(({ color, label, shape }) => (
-              <span key={label} className="inline-flex items-center gap-1.5">
-                {shape === "square" ? (
-                  <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
-                ) : (
-                  <span className="inline-flex items-center gap-0.5">
-                    <span className="inline-block w-1 h-1 rounded-full" style={{ background: color }} />
-                    <span className="inline-block w-2.5 rounded-sm" style={{ height: 2, background: color }} />
-                    <span className="inline-block w-1 h-1 rounded-full" style={{ background: color }} />
-                  </span>
-                )}
-                <span className="text-gray-500">{label}</span>
-              </span>
-            ))}
+          {/* Legend */}
+          <div className="flex justify-end gap-5 text-[11px] mb-3 pr-1">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "#6C7AE0" }} />
+              <span className="text-gray-500">Swipes</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block w-3.5 rounded-sm" style={{ height: 2.5, background: "#34d399" }} />
+              <span className="text-gray-500">Taux de match</span>
+            </span>
           </div>
 
-          {/* ComposedChart — bars (swipes) + 2 lines (matches, rate) */}
+          {/* ComposedChart — swipes bars + rate line */}
           <div className="h-56 sm:h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={monthlyData} barCategoryGap="20%">
@@ -499,7 +487,7 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
                   axisLine={false}
                   tick={{ fill: "#6b7085", fontSize: 11 }}
                 />
-                {/* Left axis — swipes volume */}
+                {/* Left axis — swipes */}
                 <YAxis
                   yAxisId="swipes"
                   tickLine={false}
@@ -509,12 +497,6 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
                   tickFormatter={(v: number) =>
                     v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k` : `${v}`
                   }
-                />
-                {/* Hidden axis — matches (auto-scales to match range) */}
-                <YAxis
-                  yAxisId="matches"
-                  orientation="right"
-                  hide
                 />
                 {/* Right axis — rate % */}
                 <YAxis
@@ -530,7 +512,7 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
                   content={<MonthlyTooltip bestMonth={bestMonthLabel} worstMonth={worstMonthLabel} />}
                   cursor={{ fill: "rgba(255,255,255,0.03)" }}
                 />
-                {/* Average rate reference line */}
+                {/* Average rate dashed line */}
                 <ReferenceLine
                   yAxisId="rate"
                   y={avgRate}
@@ -538,23 +520,13 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
                   strokeDasharray="5 4"
                   strokeWidth={1}
                 />
-                {/* Swipes bars — left axis */}
-                <Bar yAxisId="swipes" dataKey="swipes" radius={[3, 3, 0, 0]} maxBarSize={28}>
+                {/* Swipes bars */}
+                <Bar yAxisId="swipes" dataKey="swipes" radius={[3, 3, 0, 0]} maxBarSize={32}>
                   {monthlyData.map((_, i) => (
-                    <Cell key={i} fill="rgba(108,122,224,0.45)" />
+                    <Cell key={i} fill="rgba(108,122,224,0.5)" />
                   ))}
                 </Bar>
-                {/* Matches line — hidden axis (auto-scaled, always visible) */}
-                <Line
-                  yAxisId="matches"
-                  type="monotone"
-                  dataKey="matches"
-                  stroke="#F5A623"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: "#F5A623", stroke: "#181a20", strokeWidth: 1.5 }}
-                  activeDot={{ r: 5, fill: "#F5A623", stroke: "#181a20", strokeWidth: 2 }}
-                />
-                {/* Rate line — right axis (with best/worst highlighted dots) */}
+                {/* Rate line with best/worst dots */}
                 <Line
                   yAxisId="rate"
                   type="monotone"
