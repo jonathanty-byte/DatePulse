@@ -287,49 +287,51 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         )}
       </Card>
 
-      {/* 6. Timing — swipes by hour bar chart */}
-      <Card delay={0.25}>
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Tes horaires d'activite
-        </h3>
-        <div className="flex items-center justify-around mb-4">
-          <BigStat
-            value={formatHour(metrics.peakSwipeHour)}
-            label="pic de swipe"
-            size="sm"
-          />
-          <div className="h-12 w-px bg-white/10" />
-          <BigStat
-            value={formatHour(metrics.peakMatchHour)}
-            label="pic de matches"
-            size="sm"
-          />
-        </div>
-        <div className="h-40 sm:h-48 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={hourData} barSize={8}>
-              <XAxis
-                dataKey="hour"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#6b7280", fontSize: 10 }}
-                interval={3}
-              />
-              <YAxis hide />
-              <Tooltip
-                content={<DarkTooltip />}
-                cursor={{ fill: "rgba(255,255,255,0.03)" }}
-              />
-              <Bar
-                dataKey="swipes"
-                name="Swipes"
-                fill="#ec4899"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </Card>
+      {/* 6. Timing — swipes by hour bar chart (only when hourly data is available) */}
+      {!metrics.dailyOnly && (
+        <Card delay={0.25}>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Tes horaires d'activite
+          </h3>
+          <div className="flex items-center justify-around mb-4">
+            <BigStat
+              value={formatHour(metrics.peakSwipeHour)}
+              label="pic de swipe"
+              size="sm"
+            />
+            <div className="h-12 w-px bg-white/10" />
+            <BigStat
+              value={formatHour(metrics.peakMatchHour)}
+              label="pic de matches"
+              size="sm"
+            />
+          </div>
+          <div className="h-40 sm:h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={hourData} barSize={8}>
+                <XAxis
+                  dataKey="hour"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#6b7280", fontSize: 10 }}
+                  interval={3}
+                />
+                <YAxis hide />
+                <Tooltip
+                  content={<DarkTooltip />}
+                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                />
+                <Bar
+                  dataKey="swipes"
+                  name="Swipes"
+                  fill="#ec4899"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      )}
 
       {/* 7. DatePulse correlation — circular percentage */}
       <Card delay={0.3}>

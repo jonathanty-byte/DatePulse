@@ -55,12 +55,15 @@ export interface WrappedMetrics {
 
   // App source
   source: string;
+
+  // Data resolution: true when export only has daily totals (no hourly breakdown)
+  dailyOnly: boolean;
 }
 
 // ── Main function ───────────────────────────────────────────────
 
 export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
-  const { swipes, matches, source, period, appOpens } = data;
+  const { swipes, matches, source, period, appOpens, dailyOnly } = data;
 
   // Map source to AppName for scoring (WrappedAppSource is a subset of AppName)
   const appName: AppName = source as AppName;
@@ -192,6 +195,7 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
     periodEnd: period.end,
     totalDays: totalPeriodDays,
     source,
+    dailyOnly: !!dailyOnly,
   };
 }
 

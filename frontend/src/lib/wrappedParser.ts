@@ -20,6 +20,8 @@ export interface ParsedData {
   swipes: RawSwipe[];
   matches: RawMatch[];
   appOpens?: number;
+  /** true when export only has daily totals (no per-swipe timestamps) */
+  dailyOnly?: boolean;
   profile?: {
     bio?: string;
     photoCount?: number;
@@ -93,6 +95,7 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
   let appOpens: number | undefined;
   let bio: string | undefined;
   let photoCount: number | undefined;
+  let formatB = false;
 
   try {
     // Tinder RGPD format varies between exports:
@@ -102,12 +105,12 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
     const usage = (json["Usage"] as Record<string, unknown>) ?? json;
 
     // Detect format: if usage has snake_case keys with dict values, it's Format B
-    const isFormatB =
+    formatB =
       typeof usage === "object" &&
       usage !== null &&
       ("swipes_likes" in usage || "swipes_passes" in usage || "app_opens" in usage);
 
-    if (isFormatB) {
+    if (formatB) {
       // Format B: { "swipes_likes": {"2025-04-15": 201}, ... }
       // Each key is a date, each value is a count — expand into individual swipes
       expandDailyCountsToSwipes(
@@ -269,6 +272,7 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
     swipes,
     matches,
     appOpens,
+    dailyOnly: formatB,
     profile: bio || photoCount ? { bio, photoCount } : undefined,
   };
 }
@@ -410,12 +414,10 @@ function expandDailyCountsToSwipes(
   if (!dailyCounts || typeof dailyCounts !== "object") return;
   for (const [dateStr, count] of Object.entries(dailyCounts)) {
     if (typeof count !== "number" || count <= 0) continue;
-    const d = new Date(dateStr);
+    const d = new Date(dateStr + "T12:00:00"); // noon — no fake hourly distribution
     if (isNaN(d.getTime())) continue;
-    // Create one swipe entry per count, spread across the day for better distribution
     for (let i = 0; i < count; i++) {
-      const offset = Math.floor((24 * 60 * 60 * 1000 * i) / Math.max(count, 1));
-      out.push({ timestamp: new Date(d.getTime() + offset), direction });
+      out.push({ timestamp: d, direction });
     }
   }
 }
