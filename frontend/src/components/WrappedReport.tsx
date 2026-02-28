@@ -8,6 +8,7 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
 import type { WrappedMetrics } from "../lib/wrappedMetrics";
 
@@ -126,7 +127,7 @@ function DarkTooltip({
   );
 }
 
-/** Custom tooltip for monthly chart showing swipes, matches, and ratio. */
+/** Custom tooltip for normalized monthly chart — shows real values, not %. */
 function MonthlyTooltip({
   active,
   payload,
@@ -138,27 +139,24 @@ function MonthlyTooltip({
   label?: string;
 }) {
   if (!active || !payload?.length) return null;
-  const dataPoint = payload[0]?.payload ?? {};
-  const swipes = dataPoint.swipes ?? 0;
-  const matches = dataPoint.matches ?? 0;
-  const ratio = dataPoint.ratio ?? 0;
+  const d = payload[0]?.payload ?? {};
   return (
     <div className="rounded-xl border border-white/10 bg-gray-900/95 px-3 py-2.5 shadow-xl backdrop-blur-sm">
       <p className="mb-1.5 text-xs font-semibold text-gray-300">{label}</p>
       <div className="flex items-center gap-2 text-xs font-medium">
-        <span className="inline-block h-2 w-2 rounded-full bg-brand-400" />
+        <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#818cf8" }} />
         <span className="text-gray-400">Swipes</span>
-        <span className="ml-auto text-white">{swipes.toLocaleString("fr-FR")}</span>
+        <span className="ml-auto text-white">{(d.swipes ?? 0).toLocaleString("fr-FR")}</span>
       </div>
       <div className="flex items-center gap-2 text-xs font-medium">
-        <span className="inline-block h-2 w-2 rounded-full bg-amber-400" />
+        <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#fbbf24" }} />
         <span className="text-gray-400">Matches</span>
-        <span className="ml-auto text-white">{matches}</span>
+        <span className="ml-auto text-white">{d.matches ?? 0}</span>
       </div>
       <div className="flex items-center gap-2 text-xs font-medium">
-        <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
+        <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#34d399" }} />
         <span className="text-gray-400">Taux</span>
-        <span className="ml-auto text-white">{ratio}%</span>
+        <span className="ml-auto text-white">{d.ratio ?? 0}%</span>
       </div>
     </div>
   );
@@ -173,17 +171,21 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
     swipes: metrics.swipesByHour[h] || 0,
   }));
 
-  // Prepare monthly chart data with match ratio
-  const monthlyData = metrics.monthlyData.map((d) => {
+  // Prepare monthly chart data — normalize each metric to 0-100 for comparable curves
+  const rawMonthly = metrics.monthlyData.map((d) => {
     const likes = Math.round(d.swipes * d.rightSwipeRate / 100);
     const ratio = likes > 0 ? Math.round((d.matches / likes) * 1000) / 10 : 0;
-    return {
-      month: formatMonth(d.month),
-      swipes: d.swipes,
-      matches: d.matches,
-      ratio,
-    };
+    return { month: formatMonth(d.month), swipes: d.swipes, matches: d.matches, ratio };
   });
+  const maxS = Math.max(...rawMonthly.map((d) => d.swipes), 1);
+  const maxM = Math.max(...rawMonthly.map((d) => d.matches), 1);
+  const maxR = Math.max(...rawMonthly.map((d) => d.ratio), 0.1);
+  const monthlyData = rawMonthly.map((d) => ({
+    ...d,
+    swipesN: Math.round((d.swipes / maxS) * 100),
+    matchesN: Math.round((d.matches / maxM) * 100),
+    ratioN: Math.round((d.ratio / maxR) * 100),
+  }));
 
   // Determine verdict
   const verdict = getVerdict(metrics);
@@ -408,73 +410,83 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         </Card>
       )}
 
-      {/* 8. Monthly trends — two stacked charts */}
+      {/* 8. Monthly trends — 3 normalized curves */}
       {monthlyData.length > 1 && (
         <Card delay={0.35}>
-          {/* 8a. Swipes per month */}
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            Swipes par mois
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+            Evolution mensuelle
           </h3>
-          <div className="h-36 sm:h-40 w-full">
+          <p className="text-[10px] text-gray-600 mb-3">
+            Chaque courbe est relative a son propre max — survole pour les vrais chiffres
+          </p>
+          <div className="h-44 sm:h-52 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData} barSize={20}>
+              <AreaChart data={monthlyData}>
+                <defs>
+                  <linearGradient id="gSwipes" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#818cf8" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gMatches" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#fbbf24" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gRatio" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#34d399" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <XAxis
                   dataKey="month"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: "#6b7280", fontSize: 10 }}
                 />
-                <YAxis hide />
-                <Tooltip
-                  content={<DarkTooltip />}
-                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
-                />
-                <Bar
-                  dataKey="swipes"
-                  name="Swipes"
-                  fill="#818cf8"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* 8b. Match rate per month */}
-          <h3 className="mt-5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            Taux de match par mois
-          </h3>
-          <div className="h-36 sm:h-40 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData} barSize={20}>
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#6b7280", fontSize: 10 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#6b7280", fontSize: 10 }}
-                  tickFormatter={(v: number) => `${v}%`}
-                  width={35}
-                />
+                <YAxis hide domain={[0, 105]} />
                 <Tooltip
                   content={<MonthlyTooltip />}
-                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                  cursor={{ stroke: "rgba(255,255,255,0.1)" }}
                 />
-                <Bar
-                  dataKey="ratio"
-                  name="Taux de match"
-                  fill="#34d399"
-                  radius={[4, 4, 0, 0]}
+                <Legend
+                  verticalAlign="top"
+                  align="right"
+                  iconType="circle"
+                  iconSize={6}
+                  wrapperStyle={{ fontSize: 10, color: "#9ca3af", paddingBottom: 4 }}
                 />
-              </BarChart>
+                <Area
+                  type="monotone"
+                  dataKey="swipesN"
+                  name="Swipes"
+                  stroke="#818cf8"
+                  strokeWidth={2}
+                  fill="url(#gSwipes)"
+                  dot={false}
+                  activeDot={{ r: 3, fill: "#818cf8" }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="matchesN"
+                  name="Matches"
+                  stroke="#fbbf24"
+                  strokeWidth={2}
+                  fill="url(#gMatches)"
+                  dot={false}
+                  activeDot={{ r: 3, fill: "#fbbf24" }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="ratioN"
+                  name="Taux match"
+                  stroke="#34d399"
+                  strokeWidth={2}
+                  fill="url(#gRatio)"
+                  dot={false}
+                  activeDot={{ r: 3, fill: "#34d399" }}
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
-          <p className="mt-1 text-[10px] text-gray-600 text-center">
-            % de tes likes qui ont donne un match
-          </p>
 
           {metrics.bestMonth && (
             <p className="mt-3 text-xs text-gray-500 text-center">
