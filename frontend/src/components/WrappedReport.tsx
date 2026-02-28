@@ -18,7 +18,7 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
 } from "recharts";
-import type { WrappedMetrics } from "../lib/wrappedMetrics";
+import type { WrappedMetrics, FunnelData } from "../lib/wrappedMetrics";
 import { getVerdict } from "../lib/wrappedMetrics";
 
 // ── Types ───────────────────────────────────────────────────────
@@ -116,6 +116,48 @@ function BigStat({
         {color && value}
       </p>
       <p className="mt-1 text-sm text-gray-400">{label}</p>
+    </div>
+  );
+}
+
+// ── Funnel visualization ────────────────────────────────────────
+
+function FunnelChart({ funnel, color, weMet }: { funnel: FunnelData; color: string; weMet: boolean }) {
+  const steps = [
+    { label: "Likes", value: funnel.likes, pct: 100 },
+    { label: "Matches", value: funnel.matches, pct: funnel.likeToMatchPct },
+    { label: "Convos", value: funnel.conversations, pct: funnel.matchToConvoPct },
+    ...(weMet ? [{ label: "Dates", value: funnel.dates, pct: funnel.convoToDatePct }] : []),
+  ];
+  const maxVal = Math.max(funnel.likes, 1);
+
+  return (
+    <div className="space-y-2">
+      {steps.map((step, i) => {
+        const widthPct = Math.max(4, (step.value / maxVal) * 100);
+        return (
+          <div key={step.label} className="flex items-center gap-3">
+            <span className="w-14 text-xs text-gray-400 text-right font-medium">{step.label}</span>
+            <div className="flex-1 h-7 rounded-md bg-white/5 overflow-hidden relative">
+              <motion.div
+                className="h-full rounded-md flex items-center px-2"
+                style={{ backgroundColor: color, opacity: 1 - i * 0.15 }}
+                initial={{ width: 0 }}
+                whileInView={{ width: `${widthPct}%` }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: i * 0.1 }}
+              >
+                <span className="text-[11px] font-bold text-white whitespace-nowrap">
+                  {step.value.toLocaleString("fr-FR")}
+                </span>
+              </motion.div>
+            </div>
+            <span className="w-12 text-[11px] text-gray-500 text-right">
+              {i === 0 ? "" : `${step.pct}%`}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -344,11 +386,20 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
             color={appColor.primary}
           />
           <div className="h-12 w-px bg-white/10" />
-          <BigStat
-            value={`${metrics.rightSwipeRate}%`}
-            label="de likes (right swipes)"
-            size="sm"
-          />
+          {/* Hinge doesn't log passes — show avg swipes/day instead of meaningless 99% rate */}
+          {metrics.source === "hinge" ? (
+            <BigStat
+              value={metrics.avgSwipesPerDay.toLocaleString("fr-FR")}
+              label="likes / jour en moy."
+              size="sm"
+            />
+          ) : (
+            <BigStat
+              value={`${metrics.rightSwipeRate}%`}
+              label="de likes (right swipes)"
+              size="sm"
+            />
+          )}
         </div>
         {/* Hinge doesn't log passes so rightSwipeRate is always ~100% — skip this warning */}
         {metrics.rightSwipeRate > 70 && metrics.source !== "hinge" && (
@@ -366,7 +417,22 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         )}
       </Card>
 
-      {/* ─── 4. Tes meilleurs jours (NEW — day-of-week) ─── */}
+      {/* ─── 4. Funnel (NEW — deep insight) ─── */}
+      {metrics.funnel && metrics.funnel.likes > 0 && (
+        <Card delay={0.12}>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Ton funnel
+          </h3>
+          <FunnelChart funnel={metrics.funnel} color={appColor.primary} weMet={!!metrics.funnel.dates} />
+          <p className="mt-3 text-xs text-gray-500 text-center">
+            {metrics.funnel.dates > 0
+              ? `Sur ${metrics.funnel.likes.toLocaleString("fr-FR")} likes, ${metrics.funnel.dates} date${metrics.funnel.dates > 1 ? "s" : ""} en vrai`
+              : `Sur ${metrics.funnel.likes.toLocaleString("fr-FR")} likes, ${metrics.funnel.conversations} conversation${metrics.funnel.conversations > 1 ? "s" : ""}`}
+          </p>
+        </Card>
+      )}
+
+      {/* ─── 5. Tes meilleurs jours (day-of-week) ─── */}
       <Card delay={0.15}>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
           Tes meilleurs jours
@@ -418,7 +484,52 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         </p>
       </Card>
 
-      {/* ─── 5. Conversion + Purchases ─── */}
+      {/* ─── 6. Impact du commentaire (Hinge only) ─── */}
+      {metrics.commentImpact && (
+        <Card delay={0.18}>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Impact du commentaire
+          </h3>
+          <div className="text-center mb-4">
+            <p className="text-4xl sm:text-5xl font-extrabold" style={{ color: appColor.primary }}>
+              x{metrics.commentImpact.boostFactor}
+            </p>
+            <p className="mt-1 text-sm text-gray-300">boost commentaire</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center">
+              <p className="text-lg font-bold text-emerald-400">{metrics.commentImpact.commentedMatchRate}%</p>
+              <p className="text-xs text-gray-400">match rate</p>
+              <p className="mt-1 text-[11px] text-gray-600">{metrics.commentImpact.commentedLikes} likes avec commentaire</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center">
+              <p className="text-lg font-bold text-gray-400">{metrics.commentImpact.plainMatchRate}%</p>
+              <p className="text-xs text-gray-400">match rate</p>
+              <p className="mt-1 text-[11px] text-gray-600">
+                {metrics.funnel ? metrics.funnel.likes - metrics.commentImpact.commentedLikes : "?"} likes sans commentaire
+              </p>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-gray-500 text-center">
+            Tu commentes {metrics.commentImpact.commentRate}% de tes likes.
+            {metrics.commentImpact.boostFactor > 1
+              ? " Les profils qui commentent toujours matchent encore plus."
+              : ""}
+          </p>
+          <motion.a
+            href="/coach"
+            className="mt-3 block text-center text-[11px] font-medium transition"
+            style={{ color: appColor.primary }}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            Le Coach DatePulse t'aide a ecrire le premier message parfait →
+          </motion.a>
+        </Card>
+      )}
+
+      {/* ─── 7. Conversion + Purchases ─── */}
       <Card delay={0.2}>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
           {metrics.purchasesTotal ? "Conversion & Depenses" : "Matches"}
@@ -455,7 +566,60 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         </div>
       </Card>
 
-      {/* ─── 6. Conversations (enriched with ghost empathy + sent/received) ─── */}
+      {/* ─── 8. Premium vs Free ─── */}
+      {metrics.premiumROI && (
+        <Card delay={0.22}>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Premium vs Free
+          </h3>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase mb-2">
+                Premium ({metrics.premiumROI.premiumMonths} mois)
+              </p>
+              <p className="text-2xl font-bold" style={{ color: appColor.primary }}>
+                {metrics.premiumROI.premiumMatchRate}%
+              </p>
+              <p className="text-xs text-gray-400">match rate</p>
+              <p className="mt-2 text-[11px] text-gray-600">
+                {metrics.premiumROI.totalSpent}&euro; depenses
+              </p>
+              {metrics.premiumROI.costPerPremiumMatch > 0 && (
+                <p className="text-[11px] text-gray-600">
+                  {metrics.premiumROI.costPerPremiumMatch}&euro;/match
+                </p>
+              )}
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase mb-2">
+                Free ({metrics.premiumROI.freeMonths} mois)
+              </p>
+              <p className="text-2xl font-bold text-gray-300">
+                {metrics.premiumROI.freeMatchRate}%
+              </p>
+              <p className="text-xs text-gray-400">match rate</p>
+              <p className="mt-2 text-[11px] text-gray-600">0&euro;</p>
+            </div>
+          </div>
+          {/* Worth-it badge */}
+          <div className="text-center">
+            {metrics.premiumROI.isWorthIt ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-950/40 border border-emerald-500/20 px-3 py-1 text-xs text-emerald-400">
+                Le premium vaut le coup (x{metrics.premiumROI.boostFactor})
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-950/40 border border-red-500/20 px-3 py-1 text-xs text-red-400">
+                Le premium ne change rien pour toi
+              </span>
+            )}
+          </div>
+          <p className="mt-3 text-[11px] text-gray-600 text-center">
+            L'Audit DatePulse coute 9.99&euro; — moins qu'un mois de {sourceName} Premium
+          </p>
+        </Card>
+      )}
+
+      {/* ─── 9. Conversations (enriched with ghost empathy + sent/received) ─── */}
       <Card delay={0.25}>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
           Conversations
@@ -510,7 +674,76 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         )}
       </Card>
 
-      {/* ─── 7. Evolution mensuelle (unchanged) ─── */}
+      {/* ─── 10. Temps de reponse ─── */}
+      {metrics.responseTime && (
+        <Card delay={0.27}>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Temps de reponse
+          </h3>
+          <BigStat
+            value={`${metrics.responseTime.medianHours}h`}
+            label="temps de reponse median"
+            color={appColor.primary}
+          />
+          <div className="mt-4 space-y-2">
+            {[
+              { label: "< 1h", count: metrics.responseTime.under1h, badge: "\u26A1" },
+              { label: "1-6h", count: metrics.responseTime.under6h, badge: undefined },
+              { label: "6-24h", count: metrics.responseTime.under24h, badge: undefined },
+              { label: "> 24h", count: metrics.responseTime.over24h, badge: "\u{1F422}" },
+            ].map((bucket) => {
+              const total = metrics.responseTime!.under1h + metrics.responseTime!.under6h + metrics.responseTime!.under24h + metrics.responseTime!.over24h;
+              const pct = total > 0 ? Math.round((bucket.count / total) * 100) : 0;
+              return (
+                <div key={bucket.label} className="flex items-center gap-3 text-xs">
+                  <span className="w-10 text-gray-400 text-right font-medium">{bucket.label}</span>
+                  <div className="flex-1 h-4 rounded-full bg-white/5 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.max(pct, 2)}%`,
+                        backgroundColor: appColor.primary,
+                        opacity: 0.6 + (pct / 100) * 0.4,
+                      }}
+                    />
+                  </div>
+                  <span className="w-16 text-gray-500 text-right">
+                    {bucket.count} ({pct}%) {bucket.badge ?? ""}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-xs text-gray-500 text-center">
+            {metrics.responseTime.medianHours < 6
+              ? "Tu es reactif ! Repondre vite augmente tes chances de 3x."
+              : "Les matchs qui repondent dans l'heure ont 3x plus de chances de mener a un date."}
+          </p>
+        </Card>
+      )}
+
+      {/* ─── 11. Survie des matchs (Hinge only) ─── */}
+      {metrics.unmatchData && metrics.unmatchData.totalUnmatched > 0 && (
+        <Card delay={0.29}>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Survie des matchs
+          </h3>
+          <BigStat
+            value={`${metrics.unmatchData.survivalRate}%`}
+            label="de matchs encore actifs"
+            color={appColor.primary}
+          />
+          <p className="mt-2 text-xs text-gray-500 text-center">
+            {metrics.unmatchData.totalUnmatched} unmatch{metrics.unmatchData.totalUnmatched > 1 ? "s" : ""}
+            {" "}(duree moy. {metrics.unmatchData.avgDurationDays}j)
+          </p>
+          <p className="mt-2 text-[11px] text-gray-600 text-center">
+            C'est normal — sur Hinge, la majorite des matchs finissent par etre supprimes.
+          </p>
+        </Card>
+      )}
+
+      {/* ─── 12. Evolution mensuelle ─── */}
       {monthlyData.length > 1 && (
         <Card delay={0.3}>
           {/* Header + stat pills */}

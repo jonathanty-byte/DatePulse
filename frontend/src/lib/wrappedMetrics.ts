@@ -1,4 +1,4 @@
-import type { ParsedData, RawSwipe, RawMatch } from "./wrappedParser";
+import type { ParsedData, RawSwipe, RawMatch, WrappedAppSource } from "./wrappedParser";
 import { computeScore } from "./scoring";
 import type { AppName } from "./data";
 
@@ -30,6 +30,52 @@ export interface Verdict {
   message: string;
   ctaLabel: string;
   ctaHref: string;
+}
+
+export interface FunnelData {
+  likes: number;
+  matches: number;
+  conversations: number;
+  dates: number;
+  likeToMatchPct: number;
+  matchToConvoPct: number;
+  convoToDatePct: number;
+}
+
+export interface CommentImpact {
+  commentedLikes: number;
+  commentedMatchRate: number;
+  plainMatchRate: number;
+  boostFactor: number;
+  commentRate: number;
+}
+
+export interface ResponseTimeData {
+  medianHours: number;
+  under1h: number;
+  under6h: number;
+  under24h: number;
+  over24h: number;
+  fastResponseRate: number;
+}
+
+export interface UnmatchData {
+  totalUnmatched: number;
+  unmatchRate: number;
+  avgDurationDays: number;
+  survivedMatches: number;
+  survivalRate: number;
+}
+
+export interface PremiumROI {
+  premiumMatchRate: number;
+  freeMatchRate: number;
+  boostFactor: number;
+  costPerPremiumMatch: number;
+  totalSpent: number;
+  premiumMonths: number;
+  freeMonths: number;
+  isWorthIt: boolean;
 }
 
 export interface WrappedMetrics {
@@ -106,6 +152,13 @@ export interface WrappedMetrics {
 
   // ADN Dating axes (0-100 each)
   adnDating: AdnAxis[];
+
+  // ── Deep Insights (Hinge-first, optional for Tinder) ──
+  funnel?: FunnelData;
+  commentImpact?: CommentImpact;
+  responseTime?: ResponseTimeData;
+  unmatchData?: UnmatchData;
+  premiumROI?: PremiumROI;
 }
 
 // ── Price estimates for purchase calculations ───────────────────
@@ -312,11 +365,126 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
     ));
   }
 
+  // ── Funnel ─────────────────────────────────────────────────
+  const dates = data.weMet?.filter(w => w.didMeet === "Yes").length ?? 0;
+  const funnel: FunnelData = {
+    likes: rightSwipes,
+    matches: totalMatches,
+    conversations: convos.length,
+    dates,
+    likeToMatchPct: swipeToMatchRate,
+    matchToConvoPct: matchToConvoRate,
+    convoToDatePct: convos.length > 0 ? Math.round((dates / convos.length) * 100) : 0,
+  };
+
+  // ── Comment Impact (Hinge only) ──────────────────────────
+  let commentImpact: CommentImpact | undefined;
+  if (data.commentStats && (data.commentStats.commented > 0 || data.commentStats.plain > 0)) {
+    const cs = data.commentStats;
+    const commentedRate = cs.commented > 0 ? (cs.commentedMatched / cs.commented) * 100 : 0;
+    const plainRate = cs.plain > 0 ? (cs.plainMatched / cs.plain) * 100 : 0;
+    const totalLikesWithData = cs.commented + cs.plain;
+    commentImpact = {
+      commentedLikes: cs.commented,
+      commentedMatchRate: Math.round(commentedRate * 10) / 10,
+      plainMatchRate: Math.round(plainRate * 10) / 10,
+      boostFactor: plainRate > 0 ? Math.round((commentedRate / plainRate) * 10) / 10 : 0,
+      commentRate: totalLikesWithData > 0 ? Math.round((cs.commented / totalLikesWithData) * 100) : 0,
+    };
+  }
+
+  // ── Response Time ─────────────────────────────────────────
+  let responseTime: ResponseTimeData | undefined;
+  const responseTimes = matches
+    .filter(m => m.firstMessageDate)
+    .map(m => (m.firstMessageDate!.getTime() - m.timestamp.getTime()) / (3600 * 1000))
+    .filter(h => h >= 0);
+  if (responseTimes.length > 0) {
+    responseTimes.sort((a, b) => a - b);
+    const median = responseTimes[Math.floor(responseTimes.length / 2)];
+    const u1h = responseTimes.filter(h => h < 1).length;
+    const u6h = responseTimes.filter(h => h >= 1 && h < 6).length;
+    const u24h = responseTimes.filter(h => h >= 6 && h < 24).length;
+    const o24h = responseTimes.filter(h => h >= 24).length;
+    responseTime = {
+      medianHours: Math.round(median * 10) / 10,
+      under1h: u1h,
+      under6h: u6h,
+      under24h: u24h,
+      over24h: o24h,
+      fastResponseRate: responseTimes.length > 0
+        ? Math.round(((u1h + u6h) / responseTimes.length) * 100)
+        : 0,
+    };
+  }
+
+  // ── Unmatch Data (Hinge only) ──────────────────────────────
+  let unmatchData: UnmatchData | undefined;
+  const unmatched = matches.filter(m => m.unmatchDate);
+  if (unmatched.length > 0) {
+    const survived = matches.filter(m => !m.unmatchDate);
+    const durations = unmatched.map(m =>
+      (m.unmatchDate!.getTime() - m.timestamp.getTime()) / (1000 * 60 * 60 * 24)
+    ).filter(d => d >= 0);
+    const avgDuration = durations.length > 0
+      ? Math.round(durations.reduce((s, d) => s + d, 0) / durations.length)
+      : 0;
+    unmatchData = {
+      totalUnmatched: unmatched.length,
+      unmatchRate: totalMatches > 0 ? Math.round((unmatched.length / totalMatches) * 100) : 0,
+      avgDurationDays: avgDuration,
+      survivedMatches: survived.length,
+      survivalRate: totalMatches > 0 ? Math.round((survived.length / totalMatches) * 100) : 0,
+    };
+  }
+
+  // ── Premium ROI (requires subscriptionPeriods) ─────────────
+  let premiumROI: PremiumROI | undefined;
+  if (data.subscriptionPeriods && data.subscriptionPeriods.length > 0) {
+    const periods = data.subscriptionPeriods;
+    const isPremium = (date: Date) =>
+      periods.some(p => date >= p.start && date <= p.end);
+
+    // Count likes and matches during premium vs free
+    let premiumLikes = 0, premiumMatches = 0, freeLikes = 0, freeMatches = 0;
+    for (const s of swipes) {
+      if (s.direction === "like" || s.direction === "superlike") {
+        if (isPremium(s.timestamp)) premiumLikes++;
+        else freeLikes++;
+      }
+    }
+    for (const m of matches) {
+      if (isPremium(m.timestamp)) premiumMatches++;
+      else freeMatches++;
+    }
+
+    const premiumRate = premiumLikes > 0 ? (premiumMatches / premiumLikes) * 100 : 0;
+    const freeRate = freeLikes > 0 ? (freeMatches / freeLikes) * 100 : 0;
+    const totalSp = periods.reduce((s, p) => s + p.price, 0);
+    const premMo = Math.max(1, Math.round(
+      periods.reduce((s, p) => s + (p.end.getTime() - p.start.getTime()), 0) / (1000 * 60 * 60 * 24 * 30)
+    ));
+    const freeMo = Math.max(0, Math.round(totalPeriodDays / 30) - premMo);
+
+    premiumROI = {
+      premiumMatchRate: Math.round(premiumRate * 10) / 10,
+      freeMatchRate: Math.round(freeRate * 10) / 10,
+      boostFactor: freeRate > 0 ? Math.round((premiumRate / freeRate) * 10) / 10 : 0,
+      costPerPremiumMatch: premiumMatches > 0 ? Math.round((totalSp / premiumMatches) * 100) / 100 : 0,
+      totalSpent: Math.round(totalSp * 100) / 100,
+      premiumMonths: premMo,
+      freeMonths: freeMo,
+      isWorthIt: freeRate > 0 ? (premiumRate / freeRate) > 1.5 : premiumRate > 0,
+    };
+  }
+
   // ── ADN Dating (5 axes, 0-100) ─────────────────────────────
   const adnDating = computeAdnDating({
+    source,
     rightSwipeRate,
     swipeToMatchRate,
     matchToConvoRate,
+    ghostRate,
     daysActive,
     totalDays: totalPeriodDays,
     peakSwipeHour,
@@ -365,12 +533,57 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
     createDate,
     tenureMonths,
     adnDating,
+    // Deep insights
+    funnel,
+    commentImpact,
+    responseTime,
+    unmatchData,
+    premiumROI,
   };
 }
 
 // ── Verdict logic (moved from WrappedReport.tsx) ─────────────────
 
 export function getVerdict(m: WrappedMetrics): Verdict {
+  // Premium not worth it
+  if (m.premiumROI && m.premiumROI.isWorthIt === false && m.premiumROI.totalSpent > 30) {
+    return {
+      icon: "\u{1F4B8}",
+      title: "Le premium ne vaut pas le coup pour toi",
+      message:
+        `x${m.premiumROI.boostFactor} boost seulement pour ${m.premiumROI.totalSpent}\u20AC depenses. ` +
+        "L'Audit DatePulse peut t'aider a optimiser sans payer plus.",
+      ctaLabel: "Auditer mon profil",
+      ctaHref: "/audit",
+    };
+  }
+
+  // Slow response time
+  if (m.responseTime && m.responseTime.medianHours > 24) {
+    return {
+      icon: "\u{23F3}",
+      title: "Tu reponds trop lentement",
+      message:
+        `Temps de reponse median : ${m.responseTime.medianHours}h. ` +
+        "Les matchs qui repondent dans l'heure ont 3x plus de chances de mener a un date.",
+      ctaLabel: "Ameliorer mes messages",
+      ctaHref: "/coach",
+    };
+  }
+
+  // Comment boost verdict
+  if (m.commentImpact && m.commentImpact.boostFactor > 1.3) {
+    return {
+      icon: "\u{1F4DD}",
+      title: "Tes commentaires boostent tes matchs !",
+      message:
+        `x${m.commentImpact.boostFactor} match rate quand tu commentes. ` +
+        "Le Coach DatePulse peut t'aider a ecrire le premier message parfait.",
+      ctaLabel: "Ameliorer mes messages",
+      ctaHref: "/coach",
+    };
+  }
+
   // Purchases: spending too much per match
   if (m.purchasesTotal && m.purchasesTotal > 100 && m.costPerMatch && m.costPerMatch > 10) {
     return {
@@ -573,17 +786,23 @@ function computeDayOfWeekData(
 // ── ADN Dating computation ──────────────────────────────────────
 
 function computeAdnDating(params: {
+  source: WrappedAppSource;
   rightSwipeRate: number;
   swipeToMatchRate: number;
   matchToConvoRate: number;
+  ghostRate: number;
   daysActive: number;
   totalDays: number;
   peakSwipeHour: number;
 }): AdnAxis[] {
-  const { rightSwipeRate, swipeToMatchRate, matchToConvoRate, daysActive, totalDays, peakSwipeHour } = params;
+  const { source, rightSwipeRate, swipeToMatchRate, matchToConvoRate, ghostRate, daysActive, totalDays, peakSwipeHour } = params;
 
-  // Selectivite: more selective = higher score (100 - rightSwipeRate)
-  const selectivite = Math.min(100, Math.max(0, 100 - rightSwipeRate));
+  // Axis 1: Hinge doesn't log passes → rightSwipeRate is meaningless (~100%)
+  // For Hinge, use "Perseverance" (inverse ghost rate) instead of "Selectivite"
+  const isHinge = source === "hinge";
+  const axis1 = isHinge
+    ? { axis: "Perseverance", value: Math.min(100, Math.max(0, 100 - ghostRate)), fullMark: 100 as const }
+    : { axis: "Selectivite", value: Math.min(100, Math.max(0, 100 - rightSwipeRate)), fullMark: 100 as const };
 
   // Conversion: swipeToMatchRate * 10 (since typical rate is <10%)
   const conversion = Math.min(100, Math.max(0, swipeToMatchRate * 10));
@@ -602,7 +821,7 @@ function computeAdnDating(params: {
   const timing = Math.min(100, Math.max(0, Math.round(100 - hourDiff * 15)));
 
   return [
-    { axis: "Selectivite", value: selectivite, fullMark: 100 },
+    axis1,
     { axis: "Conversion", value: conversion, fullMark: 100 },
     { axis: "Engagement", value: engagement, fullMark: 100 },
     { axis: "Regularite", value: regularite, fullMark: 100 },

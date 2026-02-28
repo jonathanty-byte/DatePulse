@@ -12,6 +12,9 @@ export interface RawMatch {
   messagesCount: number;
   userInitiated: boolean;
   lastMessageDate?: Date;
+  firstMessageDate?: Date;
+  hasComment?: boolean;
+  unmatchDate?: Date;
 }
 
 export interface ParsedData {
@@ -40,6 +43,12 @@ export interface ParsedData {
   createDate?: Date;
   /** Raw active_time from Tinder export (format varies) */
   activeTime?: number | string;
+  /** Hinge we_met feedback entries */
+  weMet?: { didMeet: string; wasMyType?: boolean; timestamp: Date }[];
+  /** Hinge subscription periods with price */
+  subscriptionPeriods?: { start: Date; end: Date; price: number; currency: string }[];
+  /** Comment stats for like→match conversion analysis (Hinge) */
+  commentStats?: { commented: number; commentedMatched: number; plain: number; plainMatched: number };
 }
 
 // ── Main entry ──────────────────────────────────────────────────
@@ -471,7 +480,12 @@ function parseHingeExport(
   const swipes: RawSwipe[] = [];
   const matches: RawMatch[] = [];
   const messageTimestamps: Date[] = [];
-  let weMet = 0;
+  const weMetData: ParsedData["weMet"] = [];
+  // Comment stats: track likes with/without comment and whether they matched
+  let commentedLikes = 0;
+  let commentedMatched = 0;
+  let plainLikes = 0;
+  let plainMatched = 0;
 
   try {
     for (const entry of matchesArray) {
@@ -480,12 +494,19 @@ function parseHingeExport(
 
       // ── Outgoing like = right swipe ──
       const likeArr = e["like"];
+      let hasComment = false;
       if (Array.isArray(likeArr) && likeArr.length > 0) {
         const likeObj = likeArr[0] as Record<string, unknown>;
         const ts = parseDate(likeObj["timestamp"]);
         if (ts) {
           swipes.push({ timestamp: ts, direction: "like" });
         }
+        // Detect comment on the like (Hinge nested structure: like[0].like[].comment)
+        const innerLikes = likeObj["like"] as Record<string, unknown>[] | undefined;
+        hasComment = Array.isArray(innerLikes) && innerLikes.some(l => l["comment"]);
+        // Track comment stats
+        if (hasComment) commentedLikes++;
+        else plainLikes++;
       }
 
       // ── Block without like/match ≈ pass (incomplete — Hinge only logs removes) ──
@@ -515,29 +536,62 @@ function parseHingeExport(
             if (msgTs) messageTimestamps.push(msgTs);
           }
 
-          // Find last message date
+          // Find first and last message dates
+          let firstMessageDate: Date | undefined;
           let lastMessageDate: Date | undefined;
           if (chats.length > 0) {
             const msgDates = chats
               .map((c) => parseDate(c["timestamp"]))
               .filter((d): d is Date => d !== null);
             if (msgDates.length > 0) {
-              msgDates.sort((a, b) => b.getTime() - a.getTime());
-              lastMessageDate = msgDates[0];
+              msgDates.sort((a, b) => a.getTime() - b.getTime());
+              firstMessageDate = msgDates[0];
+              lastMessageDate = msgDates[msgDates.length - 1];
             }
           }
+
+          // Detect unmatch: block + match in same entry → unmatch (not a pass)
+          let unmatchDate: Date | undefined;
+          if (e["block"]) {
+            const blockArr = e["block"] as unknown[];
+            if (Array.isArray(blockArr) && blockArr.length > 0) {
+              const blockObj = blockArr[0] as Record<string, unknown>;
+              unmatchDate = parseDate(blockObj["timestamp"]) ?? undefined;
+            }
+          }
+
+          // Track comment→match conversion
+          if (hasComment) commentedMatched++;
+          else if (likeArr) plainMatched++; // only count if this entry had a like
 
           matches.push({
             timestamp: ts,
             messagesCount: msgCount,
-            userInitiated: false, // Hinge export doesn't indicate sender per message
+            userInitiated: false,
+            firstMessageDate,
             lastMessageDate,
+            hasComment: likeArr ? hasComment : undefined,
+            unmatchDate,
           });
         }
       }
 
       // ── We met ──
-      if (e["we_met"]) weMet++;
+      if (e["we_met"]) {
+        const weMetArr = e["we_met"] as Record<string, unknown>[];
+        if (Array.isArray(weMetArr)) {
+          for (const w of weMetArr) {
+            const wTs = parseDate(w["timestamp"]);
+            if (wTs) {
+              weMetData.push({
+                didMeet: (w["did_meet_subject"] as string) ?? "Not yet",
+                wasMyType: typeof w["was_my_type"] === "boolean" ? w["was_my_type"] : undefined,
+                timestamp: wTs,
+              });
+            }
+          }
+        }
+      }
     }
   } catch {
     /* defensive */
@@ -555,15 +609,28 @@ function parseHingeExport(
 
   // ── Subscriptions (from subscriptions.json) ──
   let purchases: ParsedData["purchases"] | undefined;
+  let subscriptionPeriods: ParsedData["subscriptionPeriods"] | undefined;
   if (Array.isArray(subscriptionsArray) && subscriptionsArray.length > 0) {
     try {
       let totalSpent = 0;
       let firstSub: { productType: string; createDate: Date; expireDate?: Date } | undefined;
+      subscriptionPeriods = [];
 
       for (const sub of subscriptionsArray) {
         const s = sub as Record<string, unknown>;
         const price = Number(s["price"]);
         if (!isNaN(price)) totalSpent += price;
+
+        const startDate = parseDate(s["start_date"] ?? s["purchase_date"]);
+        const endDate = parseDate(s["end_date"]);
+        if (startDate && endDate && !isNaN(price)) {
+          subscriptionPeriods.push({
+            start: startDate,
+            end: endDate,
+            price,
+            currency: String(s["currency"] ?? "EUR"),
+          });
+        }
 
         if (!firstSub) {
           const cd = parseDate(s["purchase_date"] ?? s["start_date"]);
@@ -580,10 +647,9 @@ function parseHingeExport(
       if (totalSpent > 0 || firstSub) {
         purchases = {};
         if (firstSub) purchases.subscription = firstSub;
-        // Store total as consumables count hack (actual EUR stored in subscription)
-        // The metrics layer will use the real price from subscriptions
         purchases._hingeTotalEur = totalSpent;
       }
+      if (subscriptionPeriods.length === 0) subscriptionPeriods = undefined;
     } catch { /* defensive */ }
   }
 
@@ -608,6 +674,12 @@ function parseHingeExport(
     } catch { /* defensive */ }
   }
 
+  // Build comment stats if any likes were tracked
+  const hasCommentData = commentedLikes > 0 || plainLikes > 0;
+  const commentStats: ParsedData["commentStats"] = hasCommentData
+    ? { commented: commentedLikes, commentedMatched, plain: plainLikes, plainMatched }
+    : undefined;
+
   return {
     source: "hinge",
     period,
@@ -617,6 +689,9 @@ function parseHingeExport(
     profile: bio || photoCount ? { bio, photoCount } : undefined,
     purchases,
     createDate,
+    weMet: weMetData.length > 0 ? weMetData : undefined,
+    subscriptionPeriods,
+    commentStats,
   };
 }
 

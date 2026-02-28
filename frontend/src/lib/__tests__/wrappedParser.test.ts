@@ -245,3 +245,110 @@ describe("Hinge parser (parseUploadedFiles)", () => {
     expect(data.period.end.getMonth()).toBe(6); // July = 6
   });
 });
+
+// ── Hinge enriched parsing ─────────────────────────────────────
+
+describe("Hinge enriched parsing", () => {
+  it("extracts hasComment from like entries", async () => {
+    const entries = [
+      // Like WITH comment → match
+      {
+        like: [{ timestamp: "2025-06-20 10:00:00", like: [{ timestamp: "2025-06-20 10:00:00", comment: "Love your dog!" }] }],
+        match: [{ timestamp: "2025-06-20 12:00:00" }],
+        chats: [],
+      },
+      // Like WITHOUT comment → match
+      {
+        like: [{ timestamp: "2025-06-21 10:00:00", like: [{ timestamp: "2025-06-21 10:00:00" }] }],
+        match: [{ timestamp: "2025-06-21 12:00:00" }],
+        chats: [],
+      },
+    ];
+    const data = await parseUploadedFiles([makeFile("matches.json", entries)]);
+    expect(data.matches[0].hasComment).toBe(true);
+    expect(data.matches[1].hasComment).toBe(false);
+    // commentStats should also be populated
+    expect(data.commentStats).toBeDefined();
+    expect(data.commentStats!.commented).toBe(1);
+    expect(data.commentStats!.commentedMatched).toBe(1);
+    expect(data.commentStats!.plain).toBe(1);
+    expect(data.commentStats!.plainMatched).toBe(1);
+  });
+
+  it("extracts firstMessageDate from chats", async () => {
+    const entries = [
+      {
+        like: [{ timestamp: "2025-06-20 10:00:00", like: [{ timestamp: "2025-06-20 10:00:00" }] }],
+        match: [{ timestamp: "2025-06-20 12:00:00" }],
+        chats: [
+          { body: "Hey!", timestamp: "2025-06-20 18:00:00" },
+          { body: "Salut", timestamp: "2025-06-20 20:00:00" },
+          { body: "Ca va?", timestamp: "2025-06-21 10:00:00" },
+        ],
+      },
+    ];
+    const data = await parseUploadedFiles([makeFile("matches.json", entries)]);
+    expect(data.matches[0].firstMessageDate).toBeDefined();
+    expect(data.matches[0].firstMessageDate!.getHours()).toBe(18);
+    expect(data.matches[0].lastMessageDate).toBeDefined();
+    expect(data.matches[0].lastMessageDate!.getDate()).toBe(21);
+  });
+
+  it("extracts unmatchDate from block+match entries", async () => {
+    const entries = [
+      {
+        like: [{ timestamp: "2025-06-20 10:00:00", like: [{ timestamp: "2025-06-20 10:00:00" }] }],
+        match: [{ timestamp: "2025-06-20 12:00:00" }],
+        block: [{ block_type: "remove", timestamp: "2025-07-15 08:00:00" }],
+        chats: [],
+      },
+    ];
+    const data = await parseUploadedFiles([makeFile("matches.json", entries)]);
+    expect(data.matches[0].unmatchDate).toBeDefined();
+    expect(data.matches[0].unmatchDate!.getMonth()).toBe(6); // July
+    expect(data.matches[0].unmatchDate!.getDate()).toBe(15);
+  });
+
+  it("extracts we_met data with didMeet and wasMyType", async () => {
+    const entries = [
+      {
+        like: [{ timestamp: "2025-06-20 10:00:00", like: [{ timestamp: "2025-06-20 10:00:00" }] }],
+        match: [{ timestamp: "2025-06-20 12:00:00" }],
+        chats: [],
+        we_met: [{ did_meet_subject: "Yes", was_my_type: true, timestamp: "2025-07-01 10:00:00" }],
+      },
+      {
+        like: [{ timestamp: "2025-06-21 10:00:00", like: [{ timestamp: "2025-06-21 10:00:00" }] }],
+        match: [{ timestamp: "2025-06-21 12:00:00" }],
+        chats: [],
+        we_met: [{ did_meet_subject: "No", timestamp: "2025-07-05 10:00:00" }],
+      },
+    ];
+    const data = await parseUploadedFiles([makeFile("matches.json", entries)]);
+    expect(data.weMet).toBeDefined();
+    expect(data.weMet).toHaveLength(2);
+    expect(data.weMet![0].didMeet).toBe("Yes");
+    expect(data.weMet![0].wasMyType).toBe(true);
+    expect(data.weMet![1].didMeet).toBe("No");
+    expect(data.weMet![1].wasMyType).toBeUndefined();
+  });
+
+  it("extracts subscriptionPeriods from subscriptions.json", async () => {
+    const matches = [
+      { like: [{ timestamp: "2025-06-20 10:00:00", like: [{ timestamp: "2025-06-20 10:00:00" }] }] },
+    ];
+    const subscriptions = [
+      { price: 58.33, currency: "EUR", purchase_date: "2025-06-19", start_date: "2025-06-19", end_date: "2025-09-19", subscription_duration: "3 Month" },
+      { price: 14.57, currency: "EUR", purchase_date: "2025-11-20", start_date: "2025-11-20", end_date: "2025-12-20", subscription_duration: "1 Month" },
+    ];
+    const data = await parseUploadedFiles([
+      makeFile("matches.json", matches),
+      makeFile("subscriptions.json", subscriptions),
+    ]);
+    expect(data.subscriptionPeriods).toBeDefined();
+    expect(data.subscriptionPeriods).toHaveLength(2);
+    expect(data.subscriptionPeriods![0].price).toBe(58.33);
+    expect(data.subscriptionPeriods![0].currency).toBe("EUR");
+    expect(data.subscriptionPeriods![1].price).toBe(14.57);
+  });
+});
