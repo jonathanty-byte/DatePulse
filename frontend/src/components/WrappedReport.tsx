@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   ReferenceLine,
   Cell,
+  LabelList,
   XAxis,
   YAxis,
   Tooltip,
@@ -520,11 +521,19 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
                   strokeDasharray="5 4"
                   strokeWidth={1}
                 />
-                {/* Swipes bars */}
+                {/* Swipes bars with match count labels */}
                 <Bar yAxisId="swipes" dataKey="swipes" radius={[3, 3, 0, 0]} maxBarSize={32}>
                   {monthlyData.map((_, i) => (
                     <Cell key={i} fill="rgba(108,122,224,0.5)" />
                   ))}
+                  <LabelList
+                    dataKey="matches"
+                    position="top"
+                    fill="#F5A623"
+                    fontSize={10}
+                    fontWeight={600}
+                    offset={6}
+                  />
                 </Bar>
                 {/* Rate line with best/worst dots */}
                 <Line
