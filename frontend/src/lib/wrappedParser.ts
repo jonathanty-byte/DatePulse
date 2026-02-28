@@ -95,77 +95,138 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
   let photoCount: number | undefined;
 
   try {
-    // Tinder RGPD format: "Usage - Swipes likes" and "Usage - Swipes passes" are arrays of dates
-    // Format can vary: direct arrays or nested under "Usage" object
+    // Tinder RGPD format varies between exports:
+    // Format A (older): "Usage - Swipes likes" = array of date strings
+    // Format B (2024+): "Usage" = { "swipes_likes": {"2025-04-15": 201, ...}, ... }
+    //   where keys are dates and values are counts per day
     const usage = (json["Usage"] as Record<string, unknown>) ?? json;
 
-    // Parse likes
-    const likeDates = extractDateArray(
-      usage["Swipes likes"] ??
-        usage["Usage - Swipes likes"] ??
-        json["Usage - Swipes likes"]
-    );
-    for (const ts of likeDates) {
-      swipes.push({ timestamp: ts, direction: "like" });
-    }
+    // Detect format: if usage has snake_case keys with dict values, it's Format B
+    const isFormatB =
+      typeof usage === "object" &&
+      usage !== null &&
+      ("swipes_likes" in usage || "swipes_passes" in usage || "app_opens" in usage);
 
-    // Parse passes
-    const passDates = extractDateArray(
-      usage["Swipes passes"] ??
-        usage["Usage - Swipes passes"] ??
-        json["Usage - Swipes passes"]
-    );
-    for (const ts of passDates) {
-      swipes.push({ timestamp: ts, direction: "pass" });
-    }
+    if (isFormatB) {
+      // Format B: { "swipes_likes": {"2025-04-15": 201}, ... }
+      // Each key is a date, each value is a count — expand into individual swipes
+      expandDailyCountsToSwipes(
+        usage["swipes_likes"] as Record<string, number> | undefined,
+        "like",
+        swipes
+      );
+      expandDailyCountsToSwipes(
+        usage["swipes_passes"] as Record<string, number> | undefined,
+        "pass",
+        swipes
+      );
+      expandDailyCountsToSwipes(
+        usage["superlikes"] as Record<string, number> | undefined,
+        "superlike",
+        swipes
+      );
 
-    // Parse superlikes
-    const superlikeDates = extractDateArray(
-      usage["Superlikes"] ??
-        usage["Usage - Superlikes"] ??
-        json["Usage - Superlikes"]
-    );
-    for (const ts of superlikeDates) {
-      swipes.push({ timestamp: ts, direction: "superlike" });
-    }
-
-    // Parse matches
-    const matchData =
-      json["Usage - Matches"] ?? usage["Matches"] ?? json["Matches"];
-    if (Array.isArray(matchData)) {
-      for (const m of matchData) {
-        try {
-          const ts = parseDate(m);
-          if (ts)
+      // Matches: { "2025-04-15": 1, "2025-04-16": 0, ... }
+      const matchCounts = usage["matches"] as Record<string, number> | undefined;
+      if (matchCounts && typeof matchCounts === "object") {
+        for (const [dateStr, count] of Object.entries(matchCounts)) {
+          if (typeof count !== "number" || count <= 0) continue;
+          const d = new Date(dateStr);
+          if (isNaN(d.getTime())) continue;
+          for (let i = 0; i < count; i++) {
             matches.push({
-              timestamp: ts,
+              timestamp: d,
               messagesCount: 0,
               userInitiated: false,
             });
-        } catch {
-          /* skip invalid */
+          }
         }
       }
-    } else if (typeof matchData === "object" && matchData !== null) {
-      // Could be an object with match details
-      for (const [, value] of Object.entries(
-        matchData as Record<string, unknown>
-      )) {
-        try {
-          const ts = parseDate(value);
-          if (ts)
-            matches.push({
-              timestamp: ts,
-              messagesCount: 0,
-              userInitiated: false,
-            });
-        } catch {
-          /* skip */
+
+      // App opens: sum all daily counts
+      const openCounts = usage["app_opens"] as Record<string, number> | undefined;
+      if (openCounts && typeof openCounts === "object") {
+        appOpens = Object.values(openCounts).reduce(
+          (sum, v) => sum + (typeof v === "number" ? v : 0),
+          0
+        );
+      }
+    } else {
+      // Format A: "Usage - Swipes likes" = array of date strings
+      const likeDates = extractDateArray(
+        usage["Swipes likes"] ??
+          usage["Usage - Swipes likes"] ??
+          json["Usage - Swipes likes"]
+      );
+      for (const ts of likeDates) {
+        swipes.push({ timestamp: ts, direction: "like" });
+      }
+
+      const passDates = extractDateArray(
+        usage["Swipes passes"] ??
+          usage["Usage - Swipes passes"] ??
+          json["Usage - Swipes passes"]
+      );
+      for (const ts of passDates) {
+        swipes.push({ timestamp: ts, direction: "pass" });
+      }
+
+      const superlikeDates = extractDateArray(
+        usage["Superlikes"] ??
+          usage["Usage - Superlikes"] ??
+          json["Usage - Superlikes"]
+      );
+      for (const ts of superlikeDates) {
+        swipes.push({ timestamp: ts, direction: "superlike" });
+      }
+
+      // Matches from array or object
+      const matchData =
+        json["Usage - Matches"] ?? usage["Matches"] ?? json["Matches"];
+      if (Array.isArray(matchData)) {
+        for (const m of matchData) {
+          try {
+            const ts = parseDate(m);
+            if (ts)
+              matches.push({
+                timestamp: ts,
+                messagesCount: 0,
+                userInitiated: false,
+              });
+          } catch {
+            /* skip invalid */
+          }
         }
+      } else if (typeof matchData === "object" && matchData !== null) {
+        for (const [, value] of Object.entries(
+          matchData as Record<string, unknown>
+        )) {
+          try {
+            const ts = parseDate(value);
+            if (ts)
+              matches.push({
+                timestamp: ts,
+                messagesCount: 0,
+                userInitiated: false,
+              });
+          } catch {
+            /* skip */
+          }
+        }
+      }
+
+      // App opens (Format A)
+      const opens =
+        json["Usage - App Opens"] ?? usage["App Opens"] ?? json["App Opens"];
+      if (typeof opens === "number") {
+        appOpens = opens;
+      } else if (typeof opens === "object" && opens !== null) {
+        const count = (opens as Record<string, unknown>)["count"];
+        if (typeof count === "number") appOpens = count;
       }
     }
 
-    // Parse messages to enrich match data
+    // Parse messages to enrich match data (both formats)
     const messages =
       json["Messages"] ?? json["Usage - Messages"] ?? usage["Messages"];
     if (
@@ -175,23 +236,17 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
       enrichMatchesWithMessages(matches, messages as Record<string, unknown>);
     }
 
-    // App opens
-    const opens =
-      json["Usage - App Opens"] ?? usage["App Opens"] ?? json["App Opens"];
-    if (typeof opens === "number") {
-      appOpens = opens;
-    } else if (typeof opens === "object" && opens !== null) {
-      const count = (opens as Record<string, unknown>)["count"];
-      if (typeof count === "number") appOpens = count;
-    }
-
-    // Profile info
+    // Profile info (both formats)
     const profile = json["User"] ?? json["Profile"] ?? json["profile"];
     if (typeof profile === "object" && profile !== null) {
       const p = profile as Record<string, unknown>;
       bio = typeof p["bio"] === "string" ? p["bio"] : undefined;
-      const photos = p["photos"];
+      const photos = json["Photos"];
       if (Array.isArray(photos)) photoCount = photos.length;
+      else {
+        const pPhotos = p["photos"];
+        if (Array.isArray(pPhotos)) photoCount = pPhotos.length;
+      }
     }
   } catch {
     /* defensive: if anything fails, return what we have */
@@ -345,6 +400,26 @@ async function parseZipFile(file: File): Promise<ParsedData> {
   }
 }
 
+// ── Format B helper: expand daily counts to individual swipes ───
+
+function expandDailyCountsToSwipes(
+  dailyCounts: Record<string, number> | undefined,
+  direction: "like" | "pass" | "superlike",
+  out: RawSwipe[]
+): void {
+  if (!dailyCounts || typeof dailyCounts !== "object") return;
+  for (const [dateStr, count] of Object.entries(dailyCounts)) {
+    if (typeof count !== "number" || count <= 0) continue;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) continue;
+    // Create one swipe entry per count, spread across the day for better distribution
+    for (let i = 0; i < count; i++) {
+      const offset = Math.floor((24 * 60 * 60 * 1000 * i) / Math.max(count, 1));
+      out.push({ timestamp: new Date(d.getTime() + offset), direction });
+    }
+  }
+}
+
 // ── Utility functions ───────────────────────────────────────────
 
 function extractDateArray(data: unknown): Date[] {
@@ -408,15 +483,20 @@ function enrichMatchesWithMessages(
   // Tinder format varies, so this is best-effort
   try {
     if (Array.isArray(messages)) {
-      // Array of conversation objects
+      // Array of conversation objects: { match_id, messages: [{to, from, message, sent_date}] }
       for (const conv of messages) {
         if (typeof conv !== "object" || conv === null) continue;
         const c = conv as Record<string, unknown>;
         const msgs = Array.isArray(c["messages"]) ? c["messages"] : [];
         const count = msgs.length;
 
-        // Try to find the corresponding match by date proximity
-        const convDate = parseDate(c["match_date"] ?? c["created"]);
+        // Try to find conversation date: match_date, created, or first message sent_date
+        let convDate = parseDate(c["match_date"] ?? c["created"]);
+        if (!convDate && msgs.length > 0) {
+          const first = msgs[0] as Record<string, unknown>;
+          convDate = parseDate(first?.["sent_date"] ?? first?.["timestamp"]);
+        }
+
         if (convDate && matches.length > 0) {
           const closest = findClosestMatch(matches, convDate);
           if (closest) {
