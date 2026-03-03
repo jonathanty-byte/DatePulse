@@ -1,277 +1,150 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-DatePulse is a lightweight Single Page App that shows real-time dating app activity scores (0-100). Tagline: "Swipe when it matters." Scores are computed 100% client-side using feminine-calibrated lookup tables derived from official publications by Tinder, Bumble, Hinge, and third-party studies (Nielsen, Ogury, SwipeStats, Reincubate, BMC Psychology, Sumter, Hily).
+DatePulse is a lightweight SPA that shows real-time dating app activity scores (0-100). Tagline: "Swipe when it matters." Scores are computed 100% client-side using feminine-calibrated lookup tables derived from official publications by Tinder, Bumble, Hinge, and third-party studies (Nielsen, Ogury, SwipeStats, Reincubate, BMC Psychology, Sumter, Hily).
 
 **Key insight**: Activity patterns on dating apps are 99% predictable from 3 variables (hour, day of week, month) — confirmed by r=0.995 correlation with Google Trends FR data. The model targets female activity patterns (the global data is 76% male / 24% female — we isolate the female signal).
-
-## Architecture
-
-```
-Frontend (Vercel): Static lookup tables -> Client-side scoring -> React UI
-                   + Real-time weather from wttr.in (localStorage cache, 30min TTL)
-                   + Google Trends modifier from trends.json (localStorage cache, 2h TTL)
-                   + LLM features via Vercel Edge Function proxy -> OpenRouter (Profile Audit, Message Coach)
-                   + @vercel/analytics (page views + custom events)
-Automation (local): Python scoring engine -> Chrome + Auto Swiper via pyautogui
-                    Python trends_live.py -> Google Trends fetch -> trends.json (cron 2h)
-                    Python nudge_email.py -> Smart Nudge via Beehiiv (cron daily 20h45)
-Bridge: Frontend button -> POST localhost:5555/trigger -> Python server
-```
-
-**Frontend**: React 18 + TypeScript + Vite + Tailwind CSS + Framer Motion + Recharts + @vercel/analytics. LLM calls proxied through Vercel Edge Function (`frontend/api/llm.ts`) to hide API key. External data: wttr.in for weather (with static fallback), trends.json for Google Trends modifier.
-**Automation**: Python scripts running locally on Windows (Task Scheduler cron + HTTP server).
-
-## Project Structure
-
-```
-DatePulse/
-├── frontend/                          # SPA React (deployed on Vercel)
-│   ├── src/
-│   │   ├── App.tsx                    # SPA routing (/, /methodology, /audit, /coach, /wrapped, /tracker)
-│   │   ├── main.tsx                   # Entry point
-│   │   ├── lib/
-│   │   │   ├── data.ts               # Per-app lookup tables (feminine model) + events psy + WEATHER_MODIFIERS
-│   │   │   ├── scoring.ts            # computeScore(date, app, weather), heatmap, best times, countdown
-│   │   │   ├── matchTracker.ts       # Match logging (CRUD), stats, weekly aggregation (localStorage)
-│   │   │   ├── franceTime.ts         # Europe/Paris timezone helpers + getParisHour()
-│   │   │   ├── llmService.ts         # LLM wrapper — uses /api/llm proxy (prod) or VITE_OPENROUTER_KEY (dev)
-│   │   │   ├── profileAudit.ts       # Profile audit logic (analyzeProfile, resizeImage, rate limiting)
-│   │   │   ├── sessionTracker.ts     # Session timer (PulseSession type, localStorage migration from datedetox_*)
-│   │   │   ├── weeklyReport.ts       # Weekly report aggregation (sessions, matches, streaks)
-│   │   │   ├── boostOptimizer.ts     # Boost ROI optimizer (efficiency heatmap, recommendations)
-│   │   │   ├── messageCoach.ts       # Message Coach (analyzeConversation, LLM-powered suggestions)
-│   │   │   ├── wrappedParser.ts      # RGPD data parser (Tinder/Bumble/Hinge exports)
-│   │   │   ├── wrappedMetrics.ts     # Dating Wrapped metrics calculator
-│   │   │   └── shareImage.ts         # Canvas API image generator (story/square formats)
-│   │   ├── components/
-│   │   │   ├── ScoreGauge.tsx         # Animated circular gauge (Framer Motion)
-│   │   │   ├── ScoreLabel.tsx         # Contextual label + message + delta vs weekly average
-│   │   │   ├── HeatmapWeek.tsx        # 7-day x 24-hour color grid (highlights current time)
-│   │   │   ├── BestTimes.tsx          # Top 5 time slots
-│   │   │   ├── CountdownNext.tsx      # Countdown to next peak
-│   │   │   ├── AppSelector.tsx        # Tinder/Bumble/Hinge/Happn tabs
-│   │   │   ├── PoolFreshness.tsx      # Pool freshness indicator + download trends
-│   │   │   ├── MatchTrackerInline.tsx # Match Tracker (log, edit, delete, rate 1-10)
-│   │   │   ├── YearlyChart.tsx        # Yearly activity curves (recharts AreaChart, multi-app select)
-│   │   │   ├── NavBar.tsx             # Sticky nav with mobile hamburger + badge support
-│   │   │   ├── RedLightScreen.tsx     # "Hors pic" UI (score < 35) — wait for momentum
-│   │   │   ├── GreenLightScreen.tsx   # "Momentum" UI (score >= 35) + session launcher
-│   │   │   ├── SessionTimer.tsx       # Active session countdown + match counter
-│   │   │   ├── SessionSummary.tsx     # Post-session summary card
-│   │   │   ├── WeeklyReportCard.tsx   # Weekly report with streaks
-│   │   │   ├── EmailSignup.tsx        # Beehiiv email signup form
-│   │   │   ├── ProfileAudit.tsx       # AI profile audit UI (upload → analyze → results)
-│   │   │   ├── BoostOptimizer.tsx     # Boost ROI optimizer (recommendation + efficiency heatmap)
-│   │   │   ├── MessageCoach.tsx       # Message Coach UI (input → analyze → 3 suggestions)
-│   │   │   ├── WrappedUpload.tsx      # RGPD data upload (drop zone + instructions)
-│   │   │   ├── WrappedReport.tsx      # Dating Wrapped report (9 animated slides + charts)
-│   │   │   └── WrappedShare.tsx       # Share modal (canvas image + Web Share API)
-│   │   ├── pages/
-│   │   │   ├── Home.tsx               # Main page (score above fold + progressive disclosure)
-│   │   │   ├── Methodology.tsx        # Methodology page (sources, formula, events, weather)
-│   │   │   ├── Audit.tsx              # AI Profile Audit page
-│   │   │   ├── Coach.tsx              # Message Coach page
-│   │   │   ├── Wrapped.tsx            # Dating Wrapped page (upload → report → share)
-│   │   │   └── Tracker.tsx            # Match Tracker + Weekly Report page
-│   │   └── styles/
-│   │       └── globals.css            # Tailwind base styles
-│   ├── public/
-│   │   ├── weather.json               # Static weather fallback (used if wttr.in is down)
-│   │   └── trends.json                # Google Trends live modifier (updated by trends_live.py cron)
-│   ├── api/
-│   │   └── llm.ts                     # Vercel Edge Function — proxies LLM calls (hides OPENROUTER_KEY)
-│   ├── index.html                     # SEO meta tags + OG
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── tailwind.config.js
-│   └── vercel.json                    # Vercel deploy config (rewrites for SPA routes)
-│
-├── scripts/                           # Local automation (Windows PC)
-│   ├── scoring_engine.py              # Python port of data.ts + scoring.ts (feminine model + weather)
-│   ├── weather_proxy.py               # Optional: cron script to update weather.json from wttr.in
-│   ├── trends_live.py                 # Google Trends live modifier (cron 2h → trends.json)
-│   ├── nudge_email.py                 # Smart Nudge email (cron daily 20h45 → Beehiiv API)
-│   ├── auto_trigger.py                # Main script (cron + HTTP server + CLI)
-│   ├── auto_trigger_config.json       # User config (threshold, apps, chrome path)
-│   ├── sessions.jsonl                 # Auto Swiper session history
-│   ├── auto_trigger.log              # Execution logs
-│   └── trends_live.log               # Trends fetch logs
-```
 
 ## Commands
 
 ```bash
-# Frontend
+# Frontend development (all commands run from frontend/)
 cd frontend && npm install
-npm run dev      # Vite dev server (port 5173)
-npm run build    # Production build -> dist/
+npm run dev          # Vite dev server on port 5173
+npm run build        # tsc -b && vite build → dist/
+npm run preview      # Preview production build locally
 
-# Deploy (force to bypass Vercel build cache + PWA service worker cache)
+# Tests (Vitest + jsdom + Testing Library)
+npm test             # vitest run (single pass)
+npm run test:watch   # vitest (watch mode)
+# Test files live in frontend/src/lib/__tests__/
+# Run a single test file:
+npx vitest run src/lib/__tests__/wrappedParser.test.ts
+# Run tests matching a name pattern:
+npx vitest run -t "findClosestMatch"
+
+# Deploy (force bypasses Vercel build cache + PWA service worker cache)
 cd frontend && npx vercel --prod --yes --force
 
-# Auto Swiper automation
-python scripts/auto_trigger.py --server   # HTTP server on localhost:5555 (for frontend button)
-python scripts/auto_trigger.py            # Cron mode (score >= threshold -> launch)
-python scripts/auto_trigger.py --now      # Force-launch immediately
-python scripts/auto_trigger.py --history  # Show session history
-
-# Weather (optional — frontend fetches wttr.in directly)
-python scripts/weather_proxy.py           # Update frontend/public/weather.json from wttr.in
-
-# Google Trends live modifier (cron every 2h)
-python scripts/trends_live.py             # Fetch trends + write frontend/public/trends.json
-python scripts/trends_live.py --dry-run   # Print results without writing
-
-# Smart Nudge email (cron daily at 20h45)
-python scripts/nudge_email.py             # Send via Beehiiv API (requires BEEHIIV_API_KEY env)
-python scripts/nudge_email.py --dry-run   # Preview nudge content without sending
+# Python automation (local Windows only, not deployed)
+python scripts/auto_trigger.py --server   # HTTP server on localhost:5555
+python scripts/trends_live.py             # Google Trends → frontend/public/trends.json
+python scripts/trends_live.py --dry-run   # Preview without writing
+python scripts/nudge_email.py --dry-run   # Preview email without sending
 ```
+
+**No linting or formatting tools are configured.** TypeScript strict mode (`tsc -b`) is the main static check, run as part of `npm run build`. Note: `noUnusedLocals` and `noUnusedParameters` are both `false` — TS won't flag unused vars. Vitest config is in `frontend/vitest.config.ts` (separate from `vite.config.ts`), with `globals: true`.
+
+**CI** (.github/workflows/test.yml): Runs `npm ci && npm run build` on push/PR to master (Node.js 20). Note: CI only type-checks + builds — it does **not** run `npm test`. A daily rankings scraper also runs via GitHub Actions (.github/workflows/rankings.yml).
+
+## Architecture
+
+```
+Frontend (Vercel): Static lookup tables → Client-side scoring → React UI
+                   + wttr.in weather (localStorage 30min TTL, static fallback)
+                   + trends.json Google Trends modifier (localStorage 2h TTL)
+                   + Vercel Edge Function proxy → OpenRouter LLM (Profile Audit, Message Coach)
+                   + @vercel/analytics (page views + custom events)
+
+Automation (local): Python scripts on Windows (Task Scheduler cron + HTTP server)
+                    trends_live.py (cron 2h), nudge_email.py (cron daily 20h45)
+
+Bridge: Frontend button → POST localhost:5555/trigger → Python auto_trigger.py
+```
+
+**Stack**: React 18 + TypeScript + Vite + Tailwind CSS 3 + Framer Motion + Recharts + vite-plugin-pwa
+
+**Routes** (SPA, defined in `App.tsx`): `/`, `/methodology`, `/audit`, `/coach`, `/wrapped`, `/tracker`, `/insights`
+
+**Custom SPA router** — no React Router. Uses `window.history.pushState` + `popstate` event listener + click delegation in `App.tsx`. Home page is a static import; all other pages use `React.lazy()`.
+
+### Key directories
+
+- `frontend/src/lib/` — Core logic: scoring engine, data tables, match tracker, session tracker, LLM service, wrapped parser/metrics, share image generator
+- `frontend/src/components/` — React UI components (gauge, heatmap, charts, forms, modals)
+- `frontend/src/pages/` — Route-level page components
+- `frontend/api/llm.ts` — Vercel Edge Function (proxies LLM calls, hides `OPENROUTER_KEY`)
+- `scripts/` — Python automation (local only): auto swiper, trends fetcher, nudge emails
+
+### Data flow
+
+All scoring data lives in `lib/data.ts` as static lookup tables (per-app hourly, weekly, monthly indexes + events + weather modifiers). `lib/scoring.ts` combines them into scores. Everything is client-side — no backend database.
+
+**External data sources** (all with localStorage caches and static fallbacks):
+- **Weather**: `wttr.in/Paris?format=j1` → cached 30min → fallback `/weather.json`
+- **Trends**: `trends.json` written by Python cron → cached 2h → ships with neutral defaults
+- **Rankings**: `data/rankings-latest.json` + `data/rankings-history.json` written by GitHub Actions daily scraper (`scripts/scrape_rankings.py`) — Play Store FR data for all 4 apps. Fetched by `lib/rankings.ts`.
+
+**LLM path**: `lib/llmService.ts` calls `/api/llm` (Vercel Edge Function) in prod, or uses `VITE_OPENROUTER_KEY` env var in dev. Edge function reads `OPENROUTER_KEY` server-side.
+
+**Persistence**: All user data in localStorage — matches (`datepulse_matches`), sessions (`datepulse_sessions`, `datepulse_active_session`), audit (`datepulse_last_audit`), caches (`dp_weather`, `dp_trends`).
 
 ## Scoring Model
 
-Deterministic formula: `score(t) = hourly[h] * weekly[d] * monthly[m] / 10000 * event_multiplier * weather_modifier * trend_modifier`
+Deterministic formula: `score(t) = hourly[h] × weekly[d] × monthly[m] / 10000 × event_multiplier × weather_modifier × trend_modifier`
 
-Feminine-calibrated tables (isolating female activity from the 76% male global signal):
+- **Hourly**: Peak 20h (100), lunch boost 12-13h, trough 1-5h (3-4)
+- **Weekly**: Peak Saturday (100), Sunday 90, Friday 65. Bumble peaks Monday, Happn Thursday.
+- **Monthly**: Peak January (100), trough December (60). Valentine effect is ONLY in SPECIAL_EVENTS — monthly indexes must NOT inflate February.
+- **Events**: 10 boosters + 4 reducers (Nouvel An +35%, Noel -40%, etc.) — defined in `data.ts`
+- **Weather**: clear 0.95, clouds 1.00, rain 1.10, snow 1.27, thunderstorm 1.15
+- **Trends**: Google Trends modifier clamped [0.70, 1.40], defaults to 1.0 on failure
 
-- **Hourly index**: Peak at 20h (100), lunch boost 12-13h, trough 1-5h (3-4). Sources: SwipeStats gender split, Bumble PR, Reincubate F 25-34.
-- **Weekly index**: Peak Saturday (100), Sunday 90, Friday 65 (FOMO boost). Sources: Reincubate F 25-34, Hily survey.
-- **Monthly index**: Peak January (100) for all apps, trough December (60). Sources: Adjust Benchmarks 2023-2024, Sensor Tower FR. **Important**: Valentine effect is handled exclusively by SPECIAL_EVENTS — monthly indexes must NOT inflate February.
-- **Per-app variations**: Bumble peaks Monday (women-first), Happn peaks Thursday (urban commute, Ogury). Hinge has wider evening window 18-21h.
-- **Events (10 boosters + 4 reducers)**: Nouvel An +35% (1-5 Jan), Dating Sunday +25% (1st/2nd Sun Jan after 5th), Pre-Valentine +30%, Valentine Day +35%, Rentree +15%, Cuffing +6%, Sunday Blues +8%, Vendredi FOMO +12%, Dimanche Ennui +8%, Winter Darkness +5%, Post-Noel +15%, 8 Mars +8%, Noel -40%, Reveillon -50%, 15 Aout -30%, Pic Ete +8%.
-- **Weather modifier**: clear 0.95, clouds 1.00, rain 1.10, snow 1.27, thunderstorm 1.15. Sources: OKCupid, Hinge storm data.
+**Score labels** (in `scoring.ts`): 91-100 MOMENTUM OPTIMAL, 76-90 MOMENTUM+, 56-75 MOMENTUM, 36-55 TRANSITION, 0-35 HORS PIC
 
-Psychological variables operationalized in the model:
-- **ENNUI**: Lunch boost, Dimanche Ennui, weather rain/snow
-- **SOLITUDE**: Sunday Blues, Vendredi FOMO, Valentine, Nouvel An, Post-Noel
-- **VALIDATION**: Peak 19-20h post-work, Monday Bumble dominant
-- **STRESS/SAD**: Winter Darkness, Cuffing attenuated, Rentree
+### Critical: scoring consistency rules
 
-Output: 0-100 with contextual labels:
-- 91-100: MOMENTUM OPTIMAL
-- 76-90: MOMENTUM+
-- 56-75: MOMENTUM
-- 36-55: TRANSITION
-- 0-35: HORS PIC
+Three scoring paths must stay in sync:
 
-### Scoring consistency rules
+| Function | Dynamic modifiers | Used for |
+|----------|------------------|----------|
+| `computeScore()` | events + weather + trends | Live score display |
+| `computeWeekHeatmap()` | NONE (static only) | Heatmap, boost optimizer |
+| `getNextPeak()` | NONE (static only) | Countdown to next peak |
 
-Three scoring paths must stay consistent:
-- `computeScore()` — real-time score with events + weather + trend modifier (used for live display)
-- `computeWeekHeatmap()` — static weekly heatmap (hourly × weekly × monthly / 10000, NO events/weather/trends)
-- `getNextPeak()` — next peak countdown (uses same static formula as heatmap for consistency)
+**Rule**: Only `computeScore()` applies dynamic modifiers. All other scoring functions use `hourly × weekly × monthly / 10000` for UI consistency. This same rule applies to weather AND trends.
 
-**Rule**: Only `computeScore()` applies dynamic modifiers (events, weather, Google Trends). All other scoring functions use the static formula for UI consistency.
+## Timezone
 
-## Match Tracker
-
-Local match logging stored in `localStorage` (key: `datepulse_matches`).
-
-- **Add match**: app, date/time, optional note, optional compatibility rating (1-10)
-- **Edit match**: modify app, date/time, note, rating (score auto-recomputed on date change)
-- **Delete match**: remove from log
-- **Stats**: total, by app, avg score, best day/hour, high/low score distribution
-- **Weekly aggregation**: last 8 weeks of match data for trend analysis
-
-## Boost Optimizer
-
-`BoostOptimizer.tsx` shows the best time to use Tinder/Bumble Boosts for maximum ROI.
-
-- **Efficiency**: `slot.score / weeklyAverage` — how much more effective a Boost would be vs random timing
-- **Recommendation**: Best slot with improvement percentage vs current time
-- **ROI Heatmap**: Expandable 7×24 grid colored by efficiency (red < 0.5x → amber → green → bright green > 1.5x)
-- **Data source**: Uses `computeWeekHeatmap()` + `getMonthlyAverage()` from scoring.ts (static formula)
-
-## Message Coach
-
-`/coach` page — LLM-powered conversation assistant.
-
-- **Input**: Paste conversation text or upload screenshots + select context (stale/date_propose/relaunch)
-- **Output**: Diagnostic + 3 suggestions (Conservateur → Equilibre → Audacieux), each copiable
-- **LLM**: Uses `callLLM()` from llmService.ts via OpenRouter (DeepSeek model)
-- **Privacy**: Images resized client-side before sending to LLM
-
-## Dating Wrapped
-
-`/wrapped` page — Spotify Wrapped-style analysis of RGPD dating app data exports.
-
-- **Upload**: Drop zone for .json/.zip Tinder RGPD exports (Bumble/Hinge stubs ready)
-- **Parser** (`wrappedParser.ts`): Defensive parsing with auto-detection of app source. Supports Tinder Format A (pre-2024, arrays of date strings) and Format B (2024+, `Usage` with `{date: count}` dicts). `dailyOnly` flag when export has no per-swipe timestamps. Extracts message timestamps as hourly activity proxy.
-- **Metrics** (`wrappedMetrics.ts`): Volume, conversion, conversations, timing, DatePulse correlation (hidden when `dailyOnly`), time estimates (swipe-based: 2s/swipe + 30s/msg + 20s/app-open), monthly trends. `bestMonth`/`worstMonth` use match rate (matches/likes), not absolute count.
-- **Report** (`WrappedReport.tsx`): 9 animated sections with Recharts. Monthly chart uses ComposedChart: swipes as bars (left axis) + match rate as line with best/worst dots (right axis %) + match count labels (amber) above each bar. Hourly chart uses message timestamps as proxy when `dailyOnly` (indigo bars with disclaimer).
-- **Share** (`WrappedShare.tsx`): Canvas-generated images (1080×1920 story, 1080×1080 square) + Web Share API with download fallback
-- **Privacy**: All processing is 100% client-side. No data leaves the browser.
-
-## Smart Nudge Email
-
-`scripts/nudge_email.py` — Daily email notification at 20h45 via Beehiiv API.
-
-- **Content**: Tonight's score at 21h for all apps, best app recommendation, active event, next peak window
-- **Targeting**: Subject line and CTA adapt to score level (Momentum → session CTA, Hors pic → avoid CTA)
-- **HTML**: Styled email matching DatePulse dark theme with indigo gradients
-- **Config**: Requires `BEEHIIV_API_KEY` and `BEEHIIV_PUB_ID` env vars. Use `--dry-run` without them.
-
-## Yearly Activity Chart
-
-`YearlyChart.tsx` displays monthly activity indexes for all 4 apps using Recharts AreaChart.
-
-- **Multi-select**: clickable legend chips to toggle any combination of apps
-- **Visual**: selected apps shown with full stroke + gradient fill, unselected as ghost (10% opacity)
-- **Current month**: pulsing dot + dashed reference line
-- **Data source**: `APP_MONTHLY` from data.ts (static, no events/weather)
-
-## Weather Integration
-
-The frontend fetches real-time weather from `wttr.in/Paris?format=j1` (free, CORS OK, no API key).
-
-- **Cache**: localStorage with 30min TTL — badge appears instantly on repeat visits
-- **Fallback**: `/weather.json` static file if wttr.in is unreachable
-- **Display**: Weather badge on Home page shows condition + temperature + score impact (e.g., "Pluie +10% sur le score")
-- **Scoring**: Only affects `computeScore()` (real-time score). Heatmap, best times, and yearly chart remain static projections.
-
-## Google Trends Integration
-
-A weighted combination of 3 Google Trends FR proxy terms correlates at r=0.93 with Tinder's APP_MONTHLY curve. This powers a real-time trend modifier that adjusts the score based on actual search activity vs our static prediction.
-
-- **Script**: `scripts/trends_live.py` runs every 2h via Task Scheduler, fetches 90-day daily data from Google Trends (pytrends), computes modifier, writes `frontend/public/trends.json`
-- **Proxy terms**: `serie` (weight 0.50, r=0.71 solo), `site de rencontre` (0.30, r=0.59), `rencontre` (0.20, r=0.49). Fetched individually to avoid Google's volume normalization crushing low-volume terms.
-- **Algorithm**: Relative deviation comparison. Each term is self-normalized (peak=100), then weighted-combined. The modifier = `1 + (gt_deviation - model_deviation)` where deviation = how much the current month differs from its window average. This solves the variance compression problem (3-month window has narrower spread than 12-month model).
-- **Clamps**: Modifier clamped to [0.70, 1.40]. Input validation: trendModifier must be in [0.5, 2.0] or defaults to 1.0.
-- **Graceful degradation**: 3 terms OK → high confidence, 2 terms → medium, 1 term → low, 0 terms → neutral fallback (modifier=1.0). Existing trends.json is never overwritten on total failure.
-- **Cache**: localStorage with 2h TTL (key: `dp_trends`) — badge appears instantly on repeat visits
-- **Fallback**: `/trends.json` ships with neutral values (modifier=1.0). Script overwrites with live data on first successful run.
-- **Display**: Trends badge on Home page shows direction icon + percentage (e.g., "+4% ce mois"). Opacity varies by confidence level. Hidden if trend_pct=0 or confidence=none.
-- **Scoring**: Only affects `computeScore()` (real-time score). Heatmap, best times, countdown, and yearly chart remain static projections — same rule as weather.
+The app is France/Paris-centric. `lib/franceTime.ts` provides `getParisHour()` and Europe/Paris timezone helpers used throughout the scoring engine.
 
 ## Design System
 
-- **Theme**: Dark (bg-[#080b14]), glass morphism cards (`rounded-2xl border border-white/10 bg-white/[0.02]`)
-- **Brand palette**: Indigo (#6366f1 brand-500), defined in tailwind.config.js (brand-50 #eef2ff to brand-900 #312e81)
-- **App colors**: Tinder #ec4899 (pink), Bumble #f59e0b (amber), Hinge #8b5cf6 (violet), Happn #f97316 (orange)
-- **Scoring colors**: Green=good (unchanged), Red=bad (unchanged) — only brand palette changed
-- **Animations**: Framer Motion entrance (opacity 0→1, y 20→0, scale 0.98→1), staggered delays, hover scale
-- **Charts**: Recharts with dark-themed custom tooltips, SVG pulse animations
-- **Typography**: text-gray-100 primary, text-gray-400/500 secondary, gradient titles (from-brand-400 to-brand-600)
+- **Theme**: Dark (`bg-[#080b14]`), glass morphism cards (`rounded-2xl border border-white/10 bg-white/[0.02]`)
+- **Brand**: Indigo (#6366f1), full palette in `tailwind.config.js` (brand-50 to brand-900)
+- **App colors**: Tinder `#ec4899`, Bumble `#f59e0b`, Hinge `#8b5cf6`, Happn `#f97316`
+- **Typography**: text-gray-100 primary, text-gray-400/500 secondary, gradient titles (brand-400 → brand-600)
+- **Animations**: Framer Motion entrance (opacity 0→1, y 20→0), staggered delays, hover scale
 
 ## Deployment
 
-- **Frontend**: Vercel (vercel.json configured) — https://frontend-sigma-gules-59.vercel.app
-- **Edge Function**: `frontend/api/llm.ts` — auto-detected by Vercel, requires `OPENROUTER_KEY` env var (no VITE_ prefix)
-- **Analytics**: @vercel/analytics — activate in Vercel dashboard (Settings → Analytics)
-- **Automation**: Local only (Windows PC, not deployed)
+- **Frontend**: Vercel — `https://frontend-sigma-gules-59.vercel.app`
+- **Edge Function**: `frontend/api/llm.ts` — requires `OPENROUTER_KEY` env var in Vercel (no `VITE_` prefix)
 - **CI**: GitHub Actions build check on push (.github/workflows/test.yml)
-- **Cache busting**: Use `npx vercel --prod --yes --force` to bypass build cache. PWA service worker may also cache old bundles — clear via browser DevTools if needed.
+- **PWA**: Service worker via vite-plugin-pwa (Workbox), `registerType: "autoUpdate"`. CacheFirst for Google Fonts (365d TTL). May cache old bundles — use `--force` on deploy or clear via DevTools.
+- **Rankings scraper**: GitHub Actions daily at 06:00 UTC. Scrapes Google Play FR (Tinder, Bumble, Hinge, Happn), writes to `frontend/public/data/`, auto-commits with `[skip ci]`. Can be triggered manually via `workflow_dispatch`.
 
-### Vercel Environment Variables
-| Variable | Scope | Description |
-|----------|-------|-------------|
-| `OPENROUTER_KEY` | Production, Preview | OpenRouter API key (read by Edge Function, NOT exposed to client) |
+**Warning**: `README.md` at root is obsolete (describes a former FastAPI/SQLite architecture). CLAUDE.md is the authoritative project doc.
+
+## Google Trends Integration
+
+`scripts/trends_live.py` runs every 2h, fetches 3 proxy terms from Google Trends FR, computes a modifier, writes `frontend/public/trends.json`.
+
+- **Proxy terms**: `serie` (0.50), `site de rencontre` (0.30), `rencontre` (0.20) — fetched individually to avoid Google's normalization
+- **Algorithm**: Relative deviation comparison. `modifier = 1 + (gt_deviation - model_deviation)`, clamped [0.70, 1.40]
+- **Graceful degradation**: 3 terms → high confidence, 2 → medium, 1 → low, 0 → neutral (1.0). Never overwrites existing file on total failure.
+
+## Dating Wrapped
+
+`/wrapped` — Spotify Wrapped-style analysis of RGPD dating app data exports. 100% client-side processing.
+
+- **Parser** (`wrappedParser.ts`): Auto-detects app source. Supports Tinder Format A (pre-2024, arrays) and Format B (2024+, `Usage` dicts). Hinge multi-file support (matches.json, subscriptions.json, user.json). `dailyOnly` flag when no per-swipe timestamps — uses message timestamps as hourly proxy.
+- **Metrics** (`wrappedMetrics.ts`): `bestMonth`/`worstMonth` use match rate (matches/likes), not absolute count. Hinge-specific: funnel stats, comment analysis, response time, premium ROI, unmatch survival.
+- **Report** (`WrappedReport.tsx`): Monthly ComposedChart: swipes as bars + match rate line + match count labels. Hourly chart uses messages as proxy when `dailyOnly`. App-source theming (colors adapt per dating app).
 
 ## Auto Swiper Integration
 
-The frontend button "Lancer Auto Swiper" (visible only for Tinder/Bumble) sends a POST to `localhost:5555/trigger` with `{app: "tinder"|"bumble"}`. The local Python server opens Chrome (user's regular profile, already logged in) and activates the Auto Swiper extension via keyboard simulation (Alt+Shift+S → Tab x14 → Enter).
-
-Constraint: Auto Swiper only supports one app at a time.
+Frontend "Lancer Auto Swiper" button (Tinder/Bumble only) → POST `localhost:5555/trigger` → Python server opens Chrome profile → keyboard simulation activates extension (Alt+Shift+S → Tab ×14 → Enter). One app at a time only.

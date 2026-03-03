@@ -7,6 +7,7 @@ const NAV_LINKS: { href: string; label: string; badge?: string }[] = [
   { href: "/coach", label: "Coach", badge: "NEW" },
   { href: "/wrapped", label: "Wrapped", badge: "NEW" },
   { href: "/tracker", label: "Tracker" },
+  { href: "/insights", label: "Insights", badge: "NEW" },
   { href: "/methodology", label: "Methodologie" },
 ];
 

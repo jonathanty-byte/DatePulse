@@ -24,3 +24,6 @@ Thumbs.db
 
 # Playwright
 .playwright-mcp/
+
+# Research datasets (not used by the app)
+data/

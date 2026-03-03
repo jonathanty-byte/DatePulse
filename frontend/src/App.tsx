@@ -5,6 +5,7 @@ const Audit = lazy(() => import("./pages/Audit"));
 const Coach = lazy(() => import("./pages/Coach"));
 const Wrapped = lazy(() => import("./pages/Wrapped"));
 const Tracker = lazy(() => import("./pages/Tracker"));
+const Insights = lazy(() => import("./pages/Insights"));
 
 /**
  * Minimal SPA routing.
@@ -46,7 +47,7 @@ export default function App() {
         </div>
       }
     >
-      {page === "methodology" ? <Methodology /> : page === "coach" ? <Coach /> : page === "wrapped" ? <Wrapped /> : page === "tracker" ? <Tracker /> : <Audit />}
+      {page === "methodology" ? <Methodology /> : page === "coach" ? <Coach /> : page === "wrapped" ? <Wrapped /> : page === "tracker" ? <Tracker /> : page === "insights" ? <Insights /> : <Audit />}
     </Suspense>
   );
 }
@@ -58,5 +59,6 @@ function getPage(path?: string): string {
   if (p.startsWith("/coach")) return "coach";
   if (p.startsWith("/wrapped")) return "wrapped";
   if (p.startsWith("/tracker")) return "tracker";
+  if (p.startsWith("/insights")) return "insights";
   return "home";
 }
