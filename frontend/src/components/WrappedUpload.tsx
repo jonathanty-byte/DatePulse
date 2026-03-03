@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { track } from "@vercel/analytics";
 import { parseUploadedFiles } from "../lib/wrappedParser";
+import type { ConversationRecord } from "../lib/wrappedParser";
 import { computeWrappedMetrics } from "../lib/wrappedMetrics";
 import type { WrappedMetrics } from "../lib/wrappedMetrics";
 
@@ -10,7 +11,7 @@ import type { WrappedMetrics } from "../lib/wrappedMetrics";
 type UploadState = "idle" | "loading" | "error";
 
 interface WrappedUploadProps {
-  onDataParsed: (metrics: WrappedMetrics) => void;
+  onDataParsed: (metrics: WrappedMetrics, conversations?: ConversationRecord[]) => void;
 }
 
 const MAX_SIZE_MB = 50;
@@ -72,7 +73,7 @@ export default function WrappedUpload({ onDataParsed }: WrappedUploadProps) {
         const parsed = await parseUploadedFiles(files);
         const metrics = computeWrappedMetrics(parsed);
         track("wrapped_uploaded", { source: parsed.source, swipes: metrics.totalSwipes });
-        onDataParsed(metrics);
+        onDataParsed(metrics, parsed.conversations);
       } catch (err) {
         setErrorMsg(
           err instanceof Error

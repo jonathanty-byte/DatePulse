@@ -1,3 +1,4 @@
+import React from "react";
 import { motion } from "framer-motion";
 import {
   BarChart,
@@ -20,11 +21,21 @@ import {
 } from "recharts";
 import type { WrappedMetrics, FunnelData } from "../lib/wrappedMetrics";
 import { getVerdict } from "../lib/wrappedMetrics";
+import { getBenchmark, BENCHMARK_DISCLAIMER } from "../lib/benchmarks";
+import type { Gender } from "../lib/benchmarks";
+import type { ConversationInsights } from "../lib/conversationIntelligence";
+import { getConversationScoreLabel } from "../lib/conversationIntelligence";
+import { trackCPEngagement } from "../lib/featureFlags";
+import {
+  AreaChart,
+  Area,
+} from "recharts";
 
 // ── Types ───────────────────────────────────────────────────────
 
 interface WrappedReportProps {
   metrics: WrappedMetrics;
+  conversationInsights?: ConversationInsights;
   onShareClick?: () => void;
 }
 
@@ -254,7 +265,517 @@ function MonthlyTooltip({
 
 // ── Main component ──────────────────────────────────────────────
 
-export default function WrappedReport({ metrics, onShareClick }: WrappedReportProps) {
+// Quintile → color mapping for benchmark badges
+const QUINTILE_COLORS: Record<string, string> = {
+  top: "#34d399",       // emerald-400
+  above_avg: "#6ee7b7", // emerald-300
+  average: "#9ca3af",   // gray-400
+  below_avg: "#fbbf24",  // amber-400
+  bottom: "#ef4444",    // red-500
+};
+
+// ── Confidence Badge ─────────────────────────────────────────────
+
+function ConfidenceBadge({ level }: { level: "population" | "hypothesis" }) {
+  const [showDetail, setShowDetail] = React.useState(false);
+  return (
+    <span className="relative inline-block">
+      <button
+        onClick={() => setShowDetail(!showDetail)}
+        className="text-[10px] text-gray-600 hover:text-gray-400 transition cursor-help"
+        title={level === "population" ? "Basé sur des données populationnelles (n=1209)" : "Basé sur des hypothèses validées (n=1)"}
+      >
+        {level === "population" ? "📊" : "🔬"}
+      </button>
+      {showDetail && (
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-48 rounded-lg bg-gray-900 border border-white/10 px-3 py-2 text-[10px] text-gray-400 shadow-xl z-10">
+          {level === "population"
+            ? "Benchmark base sur 1 209 profils internationaux (SwipeStats)"
+            : "Insights bases sur des patterns conversationnels valides"}
+        </span>
+      )}
+    </span>
+  );
+}
+
+// ── CP Section Observer hook ────────────────────────────────────
+
+function useCPTracking(sectionName: string) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const tracked = React.useRef(false);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || tracked.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !tracked.current) {
+          tracked.current = true;
+          trackCPEngagement(sectionName);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [sectionName]);
+  return ref;
+}
+
+// ── Conversation Pulse Screens ──────────────────────────────────
+
+type CPScreenProps = {
+  insights: ConversationInsights;
+  appColor: { primary: string; gradient: string; bg: string };
+  onShareClick?: () => void;
+};
+
+/** CP1 — Le Chiffre qui Gifle: ghost rate full screen */
+function CPScreen1({ insights }: CPScreenProps) {
+  const ref = useCPTracking("cp1_ghost_rate");
+  const ghostPct = insights.ghostBreakdown.total > 0
+    ? Math.round(((insights.ghostBreakdown.neverReplied + insights.ghostBreakdown.diedAtMsg2) / insights.ghostBreakdown.total) * 100)
+    : 0;
+  return (
+    <div ref={ref}>
+      <Card delay={0.26}>
+        <div className="text-center py-6">
+          <motion.p
+            className="text-7xl sm:text-8xl font-black text-white tracking-tight"
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            {ghostPct}%
+          </motion.p>
+          <motion.p
+            className="mt-4 text-sm text-gray-400 max-w-xs mx-auto"
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 1.5, duration: 0.5 }}
+          >
+            de tes conversations meurent avant le 2eme message.
+            <br />
+            <span className="text-gray-500">Sur {insights.ghostBreakdown.total} matchs analyses.</span>
+          </motion.p>
+          <motion.div
+            className="mt-6 flex justify-center"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 1.5, duration: 0.5 }}
+          >
+            <span className="text-xs text-gray-600 animate-bounce">↓ Scroll</span>
+          </motion.div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/** CP2 — Le Mur du Message #2: survival curve */
+function CPScreen2({ insights, appColor }: CPScreenProps) {
+  const ref = useCPTracking("cp2_survival");
+  const curveData = insights.survivalCurve;
+  const diedAtMsg2 = insights.ghostBreakdown.diedAtMsg2;
+  const total = insights.conversationsAnalyzed;
+
+  return (
+    <div ref={ref}>
+      <Card delay={0.28}>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+          Conversation Pulse <ConfidenceBadge level={insights.confidenceLevel} />
+        </h3>
+        <p className="text-sm font-medium text-white mb-4">
+          Sur {total} conversations, <span className="text-red-400">{diedAtMsg2}</span> meurent avant le 2eme message
+        </p>
+        {curveData.length > 0 && (
+          <div className="h-40 sm:h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={curveData}>
+                <XAxis
+                  dataKey="messageNumber"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#6b7280", fontSize: 10 }}
+                  label={{ value: "Messages", position: "insideBottom", fill: "#6b7280", fontSize: 10, offset: -5 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#6b7280", fontSize: 10 }}
+                  tickFormatter={(v: number) => `${v}%`}
+                  domain={[0, 100]}
+                />
+                <Tooltip content={<DarkTooltip />} />
+                {/* Red zone at message 2 */}
+                <Area
+                  type="monotone"
+                  dataKey="survivingPct"
+                  name="Survie"
+                  stroke={appColor.primary}
+                  fill={appColor.primary}
+                  fillOpacity={0.15}
+                  strokeWidth={2.5}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+        <p className="mt-2 text-[11px] text-gray-600 text-center">
+          Le "mur du message #2" est le point ou la majorite des conversations s'arretent
+        </p>
+      </Card>
+    </div>
+  );
+}
+
+/** CP3 — Ton Diagnostic Personnel: 3 vertical gauges */
+function CPScreen3({ insights, appColor }: CPScreenProps) {
+  const ref = useCPTracking("cp3_diagnostic");
+
+  const gauges = [
+    {
+      label: "Densite de questions",
+      value: Math.round(insights.questionDensity * 100),
+      target: 25, // 25% = healthy
+      unit: "%",
+      desc: insights.questionDensity >= 0.2
+        ? "Tu poses assez de questions — tes convos ont du carburant"
+        : "Pose plus de questions pour maintenir l'interet",
+    },
+    {
+      label: "Temps de reponse",
+      value: insights.responseTimeMedian,
+      target: 60, // 60min = threshold
+      unit: "min",
+      desc: insights.responseTimeMedian <= 60
+        ? "Reactif ! Les reponses rapides multiplient les chances"
+        : "Reponds plus vite pour garder le momentum",
+      inverted: true, // lower is better
+    },
+    {
+      label: "Escalation timing",
+      value: insights.escalationStats.inOptimalRange,
+      target: 50,
+      unit: "%",
+      desc: insights.escalationStats.inOptimalRange >= 50
+        ? "Tu proposes des rendez-vous au bon moment"
+        : "Ose proposer un rendez-vous plus tot (ou plus tard)",
+    },
+  ];
+
+  return (
+    <div ref={ref}>
+      <Card delay={0.30}>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+          Ton diagnostic personnel
+        </h3>
+        <div className="space-y-5">
+          {gauges.map((g) => {
+            const pct = g.inverted
+              ? Math.max(0, Math.min(100, Math.round((1 - Math.min(g.value, g.target * 3) / (g.target * 3)) * 100)))
+              : Math.min(100, Math.round((g.value / (g.target * 2)) * 100));
+            const color = pct >= 60 ? "#34d399" : pct >= 35 ? "#fbbf24" : "#ef4444";
+            return (
+              <div key={g.label}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-medium text-gray-300">{g.label}</span>
+                  <span className="text-xs font-bold" style={{ color }}>
+                    {g.value}{g.unit}
+                  </span>
+                </div>
+                <div className="h-2.5 rounded-full bg-white/5 overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: color }}
+                    initial={{ width: 0 }}
+                    whileInView={{ width: `${Math.max(pct, 3)}%` }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                  />
+                </div>
+                <p className="mt-1 text-[11px] text-gray-500">{g.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/** CP4 — Les Patterns: what works vs what kills */
+function CPScreen4({ insights, appColor }: CPScreenProps) {
+  const ref = useCPTracking("cp4_patterns");
+
+  const works: string[] = [];
+  const kills: string[] = [];
+
+  // Opener quality
+  if (insights.openerStats.containsQuestion >= 40) works.push("Tes openers contiennent des questions");
+  else kills.push("Peu de questions dans tes premiers messages");
+
+  if (insights.openerStats.avgLength >= 30) works.push(`Openers longs (${insights.openerStats.avgLength} car.)`);
+  else if (insights.openerStats.avgLength < 15) kills.push(`Openers trop courts (${insights.openerStats.avgLength} car.)`);
+
+  if (insights.openerStats.helloCount > 0) kills.push(`"Salut/Hey" generique (${insights.openerStats.helloCount}x)`);
+
+  if (insights.openerStats.frQuestionPersoRate >= 30) works.push("FR + Question + Personnalise");
+
+  // Response time
+  if (insights.responseTimeMedian <= 60) works.push(`Reponse rapide (${insights.responseTimeMedian}min)`);
+  else if (insights.responseTimeMedian > 360) kills.push(`Reponse lente (${insights.responseTimeMedian}min)`);
+
+  // Balance
+  if (insights.balanceByConvo.overInvesting > insights.balanceByConvo.balanced)
+    kills.push("Tu investis plus que tu ne recois");
+  else if (insights.balanceByConvo.balanced > 0)
+    works.push("Equilibre envoye/recu sain");
+
+  // Double text
+  if (insights.doubleTextRate > 30) kills.push(`Double-text frequent (${insights.doubleTextRate}%)`);
+
+  return (
+    <div ref={ref}>
+      <Card delay={0.32}>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+          Les patterns
+        </h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-[11px] font-semibold text-emerald-400 uppercase mb-2">Ce qui marche</p>
+            <div className="space-y-2">
+              {works.length === 0 && <p className="text-[11px] text-gray-600">Pas encore assez de donnees</p>}
+              {works.map((w, i) => (
+                <div key={i} className="flex items-start gap-1.5 text-[11px] text-gray-300">
+                  <span className="text-emerald-400 shrink-0 mt-0.5">+</span>
+                  <span>{w}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold text-red-400 uppercase mb-2">Ce qui tue</p>
+            <div className="space-y-2">
+              {kills.length === 0 && <p className="text-[11px] text-gray-600">Rien de critique detecte</p>}
+              {kills.map((k, i) => (
+                <div key={i} className="flex items-start gap-1.5 text-[11px] text-gray-300">
+                  <span className="text-red-400 shrink-0 mt-0.5">-</span>
+                  <span>{k}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {/* Hinge/Tinder inversion note */}
+        {insights.source === "hinge" && (
+          <p className="mt-3 text-[10px] text-gray-600 text-center">
+            Sur Hinge, proposer un date tot (msg #3-5) fonctionne mieux que sur Tinder (msg #8-20)
+          </p>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+/** CP5 — Ton ADN Conversationnel: archetype name + description */
+function CPScreen5({ insights, appColor }: CPScreenProps) {
+  const ref = useCPTracking("cp5_archetype");
+
+  return (
+    <div ref={ref}>
+      <Card delay={0.34}>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+          Ton ADN Conversationnel
+        </h3>
+        <div className="text-center">
+          <motion.p
+            className="text-2xl sm:text-3xl font-extrabold"
+            style={{ color: appColor.primary }}
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            {insights.archetype}
+          </motion.p>
+          <p className="mt-3 text-sm text-gray-400 max-w-sm mx-auto">
+            {insights.archetypeDescription}
+          </p>
+        </div>
+        {/* Mini CDS radar preview (5 bars) */}
+        <div className="mt-5 space-y-2">
+          {[
+            { label: "Questions", value: insights.scoreBreakdown.questionDensity, max: 20 },
+            { label: "Reactivite", value: insights.scoreBreakdown.responseSpeed, max: 20 },
+            { label: "Openers", value: insights.scoreBreakdown.openerQuality, max: 20 },
+            { label: "Escalation", value: insights.scoreBreakdown.escalationTiming, max: 20 },
+            { label: "Equilibre", value: insights.scoreBreakdown.conversationBalance, max: 20 },
+          ].map((axis) => (
+            <div key={axis.label} className="flex items-center gap-3 text-xs">
+              <span className="w-16 text-gray-400 text-right font-medium">{axis.label}</span>
+              <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: appColor.primary }}
+                  initial={{ width: 0 }}
+                  whileInView={{ width: `${(axis.value / axis.max) * 100}%` }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6 }}
+                />
+              </div>
+              <span className="w-8 text-gray-500 text-right">{axis.value}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/** CP6 — La Formule Magique: FR + QUESTION + PERSO */
+function CPScreen6({ insights }: CPScreenProps) {
+  const ref = useCPTracking("cp6_formula");
+  if (insights.openerStats.avgLength === 0) return null; // No opener data
+
+  return (
+    <div ref={ref}>
+      <Card delay={0.36}>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+          La formule magique
+        </h3>
+        <div className="flex items-center justify-center gap-3 py-4">
+          {[
+            { icon: "🇫🇷", label: "Francais" },
+            { icon: "❓", label: "Question" },
+            { icon: "🎯", label: "Personnalise" },
+          ].map((ingredient, i) => (
+            <React.Fragment key={ingredient.label}>
+              <motion.div
+                className="flex flex-col items-center gap-1"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.2, duration: 0.4 }}
+              >
+                <span className="text-3xl">{ingredient.icon}</span>
+                <span className="text-[10px] text-gray-500">{ingredient.label}</span>
+              </motion.div>
+              {i < 2 && <span className="text-gray-600 text-lg mt-[-8px]">+</span>}
+            </React.Fragment>
+          ))}
+          <span className="text-gray-600 text-lg mt-[-8px]">=</span>
+          <motion.div
+            className="flex flex-col items-center gap-1"
+            initial={{ opacity: 0, scale: 0.5 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.8, duration: 0.4 }}
+          >
+            <span className="text-2xl font-black text-amber-400">
+              {insights.openerStats.frQuestionPersoRate}%
+            </span>
+            <span className="text-[10px] text-gray-500">de tes openers</span>
+          </motion.div>
+        </div>
+        <p className="text-xs text-gray-500 text-center">
+          Les openers qui combinent les 3 ingredients ont le meilleur taux de reponse
+        </p>
+      </Card>
+    </div>
+  );
+}
+
+/** CP7 — Le Verdict: Conversation Pulse Score */
+function CPScreen7({ insights, appColor, onShareClick }: CPScreenProps) {
+  const ref = useCPTracking("cp7_verdict");
+  const label = getConversationScoreLabel(insights.score);
+  const scoreColor = insights.score >= 80 ? "#34d399" : insights.score >= 60 ? "#818cf8" : insights.score >= 40 ? "#fbbf24" : "#ef4444";
+
+  return (
+    <div ref={ref}>
+      <Card delay={0.38} className="border-brand-500/20 bg-brand-950/10">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+          Conversation Pulse Score <ConfidenceBadge level={insights.confidenceLevel} />
+        </h3>
+        <div className="text-center py-4">
+          <motion.p
+            className="text-6xl sm:text-7xl font-black"
+            style={{ color: scoreColor }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, type: "spring" }}
+          >
+            {insights.score}
+          </motion.p>
+          <p className="mt-1 text-xs text-gray-400">/100</p>
+          <p className="mt-2 text-sm font-semibold" style={{ color: scoreColor }}>{label}</p>
+        </div>
+
+        {/* 5 KPI mini-bars */}
+        <div className="space-y-2 mt-4">
+          {[
+            { label: "Questions", value: insights.scoreBreakdown.questionDensity },
+            { label: "Reactivite", value: insights.scoreBreakdown.responseSpeed },
+            { label: "Openers", value: insights.scoreBreakdown.openerQuality },
+            { label: "Escalation", value: insights.scoreBreakdown.escalationTiming },
+            { label: "Equilibre", value: insights.scoreBreakdown.conversationBalance },
+          ].map((kpi) => (
+            <div key={kpi.label} className="flex items-center gap-2 text-[11px]">
+              <span className="w-16 text-gray-500 text-right">{kpi.label}</span>
+              <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${(kpi.value / 20) * 100}%`,
+                    backgroundColor: scoreColor,
+                  }}
+                />
+              </div>
+              <span className="w-6 text-gray-600 text-right">{kpi.value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Fatigue detection */}
+        {insights.fatigueDetected && (
+          <motion.div
+            className="mt-4 rounded-xl bg-violet-950/30 border border-violet-500/20 px-4 py-3"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <p className="text-xs text-violet-300">
+              Signe de fatigue detecte — tes openers raccourcissent ces derniers mois.
+              Prends une pause et reviens plus fort.
+            </p>
+          </motion.div>
+        )}
+
+        {/* Share button */}
+        {onShareClick && (
+          <motion.button
+            onClick={onShareClick}
+            className={`mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r ${appColor.gradient} px-4 py-2.5 text-xs font-semibold text-white transition hover:brightness-110`}
+            whileTap={{ scale: 0.98 }}
+          >
+            Partager mon Conversation Pulse
+          </motion.button>
+        )}
+
+        <p className="mt-3 text-[10px] text-gray-600 text-center">
+          Base sur {insights.conversationsAnalyzed} conversations analysees · 100% client-side
+        </p>
+      </Card>
+    </div>
+  );
+}
+
+export default function WrappedReport({ metrics, conversationInsights, onShareClick }: WrappedReportProps) {
+  const [benchmarkGender, setBenchmarkGender] = React.useState<Gender>("men");
   const appColor = APP_COLORS[metrics.source] ?? APP_COLORS.tinder;
 
   // Prepare hour chart data
@@ -674,6 +1195,87 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         )}
       </Card>
 
+      {/* ═══ CONVERSATION PULSE — 7 emotional screens ═══ */}
+      {conversationInsights && conversationInsights.conversationsAnalyzed >= 5 && (
+        <>
+          {/* ─── CP1. Le Chiffre qui Gifle ─── */}
+          <CPScreen1 insights={conversationInsights} appColor={appColor} />
+
+          {/* ─── CP2. Le Mur du Message #2 ─── */}
+          <CPScreen2 insights={conversationInsights} appColor={appColor} />
+
+          {/* ─── CP3. Ton Diagnostic Personnel ─── */}
+          <CPScreen3 insights={conversationInsights} appColor={appColor} />
+
+          {/* ─── CP4. Les Patterns ─── */}
+          <CPScreen4 insights={conversationInsights} appColor={appColor} />
+
+          {/* ─── CP5. Ton ADN Conversationnel ─── */}
+          <CPScreen5 insights={conversationInsights} appColor={appColor} />
+
+          {/* ─── CP6. La Formule Magique ─── */}
+          <CPScreen6 insights={conversationInsights} appColor={appColor} />
+
+          {/* ─── CP7. Le Verdict Conversation Pulse ─── */}
+          <CPScreen7 insights={conversationInsights} appColor={appColor} onShareClick={onShareClick} />
+        </>
+      )}
+
+      {/* ─── 9b. Boost Intelligence (Tinder only) ─── */}
+      {metrics.boostDates && metrics.boostDates.length > 0 && (
+        <Card delay={0.26}>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Boost Intelligence
+          </h3>
+          <div className="flex items-center justify-around">
+            <BigStat
+              value={metrics.boostDates.length}
+              label="boosts utilises"
+              color={appColor.primary}
+            />
+            <div className="h-12 w-px bg-white/10" />
+            <BigStat
+              value={`${metrics.boostMatchRate ?? 0}%`}
+              label="match rate boost"
+              size="sm"
+            />
+          </div>
+          {metrics.boostMatchRate != null && metrics.swipeToMatchRate > 0 && (
+            <p className="mt-3 text-xs text-gray-500 text-center">
+              {metrics.boostMatchRate > metrics.swipeToMatchRate
+                ? `Tes boosts performent ${Math.round(metrics.boostMatchRate / metrics.swipeToMatchRate)}x mieux que ton taux normal`
+                : "Tes boosts n'ameliorent pas significativement ton taux de match"}
+            </p>
+          )}
+        </Card>
+      )}
+
+      {/* ─── 9c. Super Likes ─── */}
+      {metrics.superLikesSent != null && metrics.superLikesSent > 0 && (
+        <Card delay={0.26}>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Super Likes
+          </h3>
+          <div className="flex items-center justify-around">
+            <BigStat
+              value={metrics.superLikesSent}
+              label="super likes envoyes"
+              color={appColor.primary}
+            />
+            {metrics.superLikeMatchRate != null && (
+              <>
+                <div className="h-12 w-px bg-white/10" />
+                <BigStat
+                  value={`${metrics.superLikeMatchRate}%`}
+                  label="taux de conversion"
+                  size="sm"
+                />
+              </>
+            )}
+          </div>
+        </Card>
+      )}
+
       {/* ─── 10. Temps de reponse ─── */}
       {metrics.responseTime && (
         <Card delay={0.27}>
@@ -892,6 +1494,78 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
         </Card>
       )}
 
+      {/* ─── Benchmarks: Ou tu te situes ─── */}
+      {metrics.source === "tinder" && (
+        <Card delay={0.32}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Ou tu te situes
+            </h3>
+            <div className="flex items-center gap-1 text-[11px]">
+              <span className="text-gray-600">Je suis</span>
+              <button
+                onClick={() => setBenchmarkGender("men")}
+                className={`px-2 py-0.5 rounded-md transition ${
+                  benchmarkGender === "men"
+                    ? "bg-white/10 text-white font-medium"
+                    : "text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                Homme
+              </button>
+              <button
+                onClick={() => setBenchmarkGender("women")}
+                className={`px-2 py-0.5 rounded-md transition ${
+                  benchmarkGender === "women"
+                    ? "bg-white/10 text-white font-medium"
+                    : "text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                Femme
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              { key: "match_rate", label: "Taux de match", value: metrics.swipeToMatchRate, unit: "%" },
+              { key: "like_rate", label: "Taux de like", value: metrics.rightSwipeRate, unit: "%" },
+              { key: "ghosting_rate", label: "Taux de ghosting", value: metrics.ghostRate, unit: "%" },
+              { key: "avg_convo_length", label: "Longueur moy. convo", value: metrics.avgConvoLength, unit: " msgs" },
+              { key: "sent_received_ratio", label: "Ratio msg envoi/recu", value: metrics.sentReceivedRatio, unit: "x" },
+            ].map((item) => {
+              const bench = getBenchmark(item.key, item.value, benchmarkGender);
+              return (
+                <div key={item.key} className="flex items-center justify-between rounded-xl bg-white/[0.02] border border-white/5 px-4 py-3">
+                  <div>
+                    <p className="text-sm text-gray-300 font-medium">{item.label}</p>
+                    <p className="text-lg font-bold text-white">
+                      {item.value}{item.unit}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border"
+                      style={{
+                        color: QUINTILE_COLORS[bench.quintile],
+                        borderColor: `${QUINTILE_COLORS[bench.quintile]}30`,
+                        backgroundColor: `${QUINTILE_COLORS[bench.quintile]}10`,
+                      }}
+                    >
+                      {bench.emoji} {bench.label}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="mt-3 text-[10px] text-gray-600 text-center">
+            {BENCHMARK_DISCLAIMER}
+          </p>
+        </Card>
+      )}
+
       {/* ─── 8. Ton ADN Dating (RadarChart) ─── */}
       <Card delay={0.35}>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
@@ -1014,6 +1688,14 @@ export default function WrappedReport({ metrics, onShareClick }: WrappedReportPr
           )}
         </Card>
       )}
+
+      {/* ─── Opt-in dormant checkbox ─── */}
+      <div className="text-center py-2">
+        <label className="inline-flex items-center gap-2 text-xs text-gray-500 cursor-not-allowed">
+          <input type="checkbox" disabled className="opacity-50 rounded" />
+          Contribuer au benchmark FR (bientot disponible)
+        </label>
+      </div>
 
       {/* Share button */}
       {onShareClick && (

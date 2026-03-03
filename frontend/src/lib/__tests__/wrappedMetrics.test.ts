@@ -116,10 +116,10 @@ describe("computeWrappedMetrics", () => {
   it("computes ADN dating axes", () => {
     const data = makeMinimalData();
     const m = computeWrappedMetrics(data);
-    expect(m.adnDating).toHaveLength(5);
+    expect(m.adnDating).toHaveLength(6);
     expect(m.adnDating.every((a) => a.value >= 0 && a.value <= 100)).toBe(true);
     expect(m.adnDating.map((a) => a.axis)).toEqual([
-      "Selectivite", "Conversion", "Engagement", "Regularite", "Timing",
+      "Selectivite", "Conversion", "Engagement", "Echanges", "Regularite", "Timing",
     ]);
   });
 
@@ -197,6 +197,101 @@ describe("getVerdict", () => {
     const v = getVerdict(m);
     expect(v.ctaHref).toBeDefined();
     expect(v.title.length).toBeGreaterThan(0);
+  });
+});
+
+// ── ADN Dating: 6 axes ──────────────────────────────────────────
+
+describe("ADN Dating 6 axes (with Echanges)", () => {
+  it("returns 6 axes including Qualite", () => {
+    const data = makeMinimalData();
+    const m = computeWrappedMetrics(data);
+    expect(m.adnDating).toHaveLength(6);
+    expect(m.adnDating.map((a) => a.axis)).toEqual([
+      "Selectivite", "Conversion", "Engagement", "Echanges", "Regularite", "Timing",
+    ]);
+  });
+
+  it("Echanges axis score is coherent", () => {
+    const data = makeMinimalData();
+    const m = computeWrappedMetrics(data);
+    const qualiteAxis = m.adnDating.find((a) => a.axis === "Echanges");
+    expect(qualiteAxis).toBeDefined();
+    expect(qualiteAxis!.value).toBeGreaterThanOrEqual(0);
+    expect(qualiteAxis!.value).toBeLessThanOrEqual(100);
+  });
+
+  it("Echanges axis is high with good convo metrics", () => {
+    // High avgConvoLength, balanced ratio, low ghostRate
+    const data = makeMinimalData({
+      matches: [
+        makeMatch("2025-01-15T21:00:00", 20, true),
+        makeMatch("2025-02-10T21:00:00", 15, true),
+        makeMatch("2025-04-01T21:00:00", 18, true),
+      ],
+      messagesReceived: { "2025-01-15": 25, "2025-02-10": 20, "2025-04-01": 22 },
+    });
+    const m = computeWrappedMetrics(data);
+    const qualiteAxis = m.adnDating.find((a) => a.axis === "Echanges");
+    expect(qualiteAxis!.value).toBeGreaterThan(50);
+  });
+});
+
+// ── SwipeStats Intelligence metrics ──────────────────────────────
+
+describe("SwipeStats Intelligence metrics", () => {
+  it("computes activeTimeFormatted from numeric activeTime", () => {
+    const data = makeMinimalData({ activeTime: 7200 }); // 7200 seconds = 2 hours
+    const m = computeWrappedMetrics(data);
+    expect(m.activeTimeFormatted).toBeDefined();
+    expect(m.activeTimeFormatted).toBe("2 heures");
+  });
+
+  it("passes through string activeTime", () => {
+    const data = makeMinimalData({ activeTime: "42 hours" });
+    const m = computeWrappedMetrics(data);
+    expect(m.activeTimeFormatted).toBe("42 hours");
+  });
+
+  it("computes boostMatchRate from boostTracking", () => {
+    const data = makeMinimalData({
+      boostTracking: [
+        { date: new Date("2025-01-15T20:30:00") }, // match within 1h (21:00)
+        { date: new Date("2025-03-05T10:00:00") }, // no match nearby
+      ],
+    });
+    const m = computeWrappedMetrics(data);
+    expect(m.boostDates).toHaveLength(2);
+    expect(m.boostMatchRate).toBe(50); // 1 out of 2 boosts
+  });
+
+  it("counts superLikesSent from swipes fallback", () => {
+    const data = makeMinimalData({
+      swipes: [
+        makeSwipe("2025-01-15T20:00:00", "like"),
+        { timestamp: new Date("2025-01-16T20:00:00"), direction: "superlike" as const },
+        { timestamp: new Date("2025-01-17T20:00:00"), direction: "superlike" as const },
+      ],
+    });
+    const m = computeWrappedMetrics(data);
+    expect(m.superLikesSent).toBe(2);
+  });
+
+  it("computes gifRate from messageTypes", () => {
+    const data = makeMinimalData({
+      messageTypes: { message: 90, gif: 10 },
+    });
+    const m = computeWrappedMetrics(data);
+    expect(m.messageTypeBreakdown).toBeDefined();
+    expect(m.gifRate).toBe(10); // 10/100 = 10%
+  });
+
+  it("exposes platform from clientInfo", () => {
+    const data = makeMinimalData({
+      clientInfo: { platform: "android", appVersion: "14.0.0" },
+    });
+    const m = computeWrappedMetrics(data);
+    expect(m.platform).toBe("android");
   });
 });
 

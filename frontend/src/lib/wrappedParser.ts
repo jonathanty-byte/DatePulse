@@ -7,6 +7,21 @@ export interface RawSwipe {
   direction: "like" | "pass" | "superlike";
 }
 
+export interface RawMessage {
+  timestamp: Date;
+  direction: "sent" | "received";
+  body: string;
+  type?: string; // "message" | "gif" | "gesture" | "contact_card" | "swipe_note"
+}
+
+export interface ConversationRecord {
+  matchTimestamp: Date;
+  matchId?: string;           // Tinder match_id when available
+  messages: RawMessage[];
+  firstMessageDate?: Date;
+  lastMessageDate?: Date;
+}
+
 export interface RawMatch {
   timestamp: Date;
   messagesCount: number;
@@ -15,6 +30,7 @@ export interface RawMatch {
   firstMessageDate?: Date;
   hasComment?: boolean;
   unmatchDate?: Date;
+  matchId?: string;           // Tinder match_id for conversation linking
 }
 
 export interface ParsedData {
@@ -49,6 +65,22 @@ export interface ParsedData {
   subscriptionPeriods?: { start: Date; end: Date; price: number; currency: string }[];
   /** Comment stats for like→match conversion analysis (Hinge) */
   commentStats?: { commented: number; commentedMatched: number; plain: number; plainMatched: number };
+
+  // SwipeStats Intelligence — new fields
+  /** Boost usage tracking (Tinder) */
+  boostTracking?: { date: Date; matchesDuringBoost?: number }[];
+  /** Super Like tracking (Tinder) */
+  superLikeTracking?: { date: Date; matched?: boolean }[];
+  /** Message type breakdown: { "gif": 5, "gesture": 2, ... } */
+  messageTypes?: Record<string, number>;
+  /** Notes sent with super likes */
+  swipeNotes?: string[];
+  /** Client registration info */
+  clientInfo?: { platform?: string; appVersion?: string };
+
+  // Conversation Pulse — full message content for conversational analysis
+  /** Full conversation records with message bodies, timestamps, and direction */
+  conversations?: ConversationRecord[];
 }
 
 // ── Main entry ──────────────────────────────────────────────────
@@ -168,6 +200,12 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
   let messagesReceived: Record<string, number> | undefined;
   let createDate: Date | undefined;
   let activeTime: number | string | undefined;
+  let boostTracking: ParsedData["boostTracking"] | undefined;
+  let superLikeTracking: ParsedData["superLikeTracking"] | undefined;
+  const messageTypes: Record<string, number> = {};
+  const swipeNotes: string[] = [];
+  let clientInfo: ParsedData["clientInfo"] | undefined;
+  const conversations: ConversationRecord[] = [];
 
   try {
     // Tinder RGPD format varies between exports:
@@ -308,18 +346,33 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
       Array.isArray(messages) ||
       (typeof messages === "object" && messages !== null)
     ) {
-      enrichMatchesWithMessages(matches, messages as Record<string, unknown>);
+      enrichMatchesWithMessages(matches, messages as Record<string, unknown>, conversations);
     }
 
     // Extract message timestamps for hourly activity proxy (Format B)
-    if (formatB && Array.isArray(messages)) {
+    // Also extract message types and swipe notes (both formats)
+    if (Array.isArray(messages)) {
       for (const conv of messages) {
         if (typeof conv !== "object" || conv === null) continue;
         const msgs = (conv as Record<string, unknown>)["messages"];
         if (!Array.isArray(msgs)) continue;
         for (const m of msgs) {
-          const ts = parseDate((m as Record<string, unknown>)["sent_date"]);
-          if (ts) messageTimestamps.push(ts);
+          const mObj = m as Record<string, unknown>;
+          if (formatB) {
+            const ts = parseDate(mObj["sent_date"]);
+            if (ts) messageTimestamps.push(ts);
+          }
+          // Track message types (gif, gesture, contact_card, swipe_note, etc.)
+          try {
+            const mType = mObj["type"] as string | undefined;
+            if (mType && typeof mType === "string") {
+              messageTypes[mType] = (messageTypes[mType] || 0) + 1;
+              // Extract swipe note text
+              if (mType === "swipe_note" && typeof mObj["message"] === "string") {
+                swipeNotes.push(mObj["message"] as string);
+              }
+            }
+          } catch { /* defensive */ }
         }
       }
     }
@@ -363,6 +416,56 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
             }
             purchases.consumables = { count: consRaw.length, types: [...types] };
           }
+        }
+      }
+    } catch { /* defensive */ }
+
+    // Boost tracking from Purchases
+    try {
+      const purchasesRaw2 = json["Purchases"] as Record<string, unknown> | undefined;
+      if (purchasesRaw2) {
+        // Boosts: look in consumable array for boost entries
+        const consRaw2 = purchasesRaw2["consumable"] as Record<string, unknown>[] | undefined;
+        if (Array.isArray(consRaw2)) {
+          const boosts: { date: Date; matchesDuringBoost?: number }[] = [];
+          const superLikes: { date: Date; matched?: boolean }[] = [];
+          for (const c of consRaw2) {
+            const productType = String(c["product_type"] ?? "").toLowerCase();
+            const cd = parseDate(c["create_date"]);
+            if (!cd) continue;
+            if (productType.includes("boost")) {
+              boosts.push({ date: cd });
+            } else if (productType.includes("super") || productType.includes("superlike")) {
+              superLikes.push({ date: cd });
+            }
+          }
+          if (boosts.length > 0) boostTracking = boosts;
+          if (superLikes.length > 0) superLikeTracking = superLikes;
+        }
+        // Also check for super_likes as a separate key
+        const superLikesRaw = purchasesRaw2["super_likes"] as Record<string, unknown>[] | undefined;
+        if (Array.isArray(superLikesRaw) && superLikesRaw.length > 0 && !superLikeTracking) {
+          superLikeTracking = superLikesRaw
+            .map(s => {
+              const d = parseDate(s["create_date"]);
+              return d ? { date: d } : null;
+            })
+            .filter((s): s is { date: Date } => s !== null);
+          if (superLikeTracking.length === 0) superLikeTracking = undefined;
+        }
+      }
+    } catch { /* defensive */ }
+
+    // Client registration info
+    try {
+      const clientReg = json["client_registration_info"] as Record<string, unknown> | undefined;
+      const userObj2 = json["User"] as Record<string, unknown> | undefined;
+      const regSource = clientReg ?? userObj2;
+      if (regSource) {
+        const platform = regSource["platform"] as string | undefined;
+        const appVersion = regSource["app_version"] as string | undefined;
+        if (platform || appVersion) {
+          clientInfo = { platform, appVersion };
         }
       }
     } catch { /* defensive */ }
@@ -412,6 +515,12 @@ function parseTinderJson(json: Record<string, unknown>): ParsedData {
     messagesReceived,
     createDate,
     activeTime,
+    boostTracking,
+    superLikeTracking,
+    messageTypes: Object.keys(messageTypes).length > 0 ? messageTypes : undefined,
+    swipeNotes: swipeNotes.length > 0 ? swipeNotes : undefined,
+    clientInfo,
+    conversations: conversations.length > 0 ? conversations : undefined,
   };
 }
 
@@ -481,6 +590,7 @@ function parseHingeExport(
   const matches: RawMatch[] = [];
   const messageTimestamps: Date[] = [];
   const weMetData: ParsedData["weMet"] = [];
+  const conversations: ConversationRecord[] = [];
   // Comment stats: track likes with/without comment and whether they matched
   let commentedLikes = 0;
   let commentedMatched = 0;
@@ -547,6 +657,46 @@ function parseHingeExport(
               msgDates.sort((a, b) => a.getTime() - b.getTime());
               firstMessageDate = msgDates[0];
               lastMessageDate = msgDates[msgDates.length - 1];
+            }
+          }
+
+          // Build ConversationRecord from Hinge chats (with body)
+          if (chats.length > 0) {
+            const rawMessages: RawMessage[] = [];
+            // Hinge direction inference: if hasComment, first message is "sent" (user's comment).
+            // Then alternate heuristically — or mark unknown direction.
+            // More reliable: if entry has a "like" from user → user initiated conversation.
+            const userLiked = !!likeArr;
+            for (let ci = 0; ci < chats.length; ci++) {
+              const chatMsg = chats[ci];
+              const chatTs = parseDate(chatMsg["timestamp"]);
+              const chatBody = typeof chatMsg["body"] === "string" ? chatMsg["body"] as string : "";
+              if (chatTs) {
+                // Direction inference for Hinge:
+                // If user liked (sent the like), first message is likely "sent"
+                // Alternate after that as heuristic
+                let direction: "sent" | "received";
+                if (ci === 0 && hasComment) {
+                  direction = "sent"; // The opener comment was from user
+                } else if (ci === 0 && userLiked) {
+                  direction = "sent"; // User initiated, first msg likely theirs
+                } else if (ci === 0) {
+                  direction = "received"; // Match initiated
+                } else {
+                  // Alternate based on parity — imperfect but best heuristic without explicit sender
+                  const prevDirection = rawMessages.length > 0 ? rawMessages[rawMessages.length - 1].direction : "sent";
+                  direction = prevDirection === "sent" ? "received" : "sent";
+                }
+                rawMessages.push({ timestamp: chatTs, direction, body: chatBody, type: "message" });
+              }
+            }
+            if (rawMessages.length > 0) {
+              conversations.push({
+                matchTimestamp: ts,
+                messages: rawMessages,
+                firstMessageDate: rawMessages[0].timestamp,
+                lastMessageDate: rawMessages[rawMessages.length - 1].timestamp,
+              });
             }
           }
 
@@ -692,6 +842,7 @@ function parseHingeExport(
     weMet: weMetData.length > 0 ? weMetData : undefined,
     subscriptionPeriods,
     commentStats,
+    conversations: conversations.length > 0 ? conversations : undefined,
   };
 }
 
@@ -811,18 +962,23 @@ function parseDate(value: unknown): Date | null {
 
 export function enrichMatchesWithMessages(
   matches: RawMatch[],
-  messages: Record<string, unknown>
+  messages: Record<string, unknown>,
+  conversationsOut?: ConversationRecord[]
 ): void {
   // Try to associate message counts with matches
   // Tinder format varies, so this is best-effort
   try {
     if (Array.isArray(messages)) {
-      // Array of conversation objects: { match_id, messages: [{to, from, message, sent_date}] }
+      // Build a map of match_id → RawMatch for direct linking (Tinder)
+      const matchByMatchId = new Map<string, RawMatch>();
+
+      // Array of conversation objects: { match_id, messages: [{to, from, message, sent_date, type}] }
       for (const conv of messages) {
         if (typeof conv !== "object" || conv === null) continue;
         const c = conv as Record<string, unknown>;
         const msgs = Array.isArray(c["messages"]) ? c["messages"] : [];
         const count = msgs.length;
+        const convMatchId = typeof c["match_id"] === "string" ? c["match_id"] as string : undefined;
 
         // Try to find conversation date: match_date, created, or first message sent_date
         let convDate = parseDate(c["match_date"] ?? c["created"]);
@@ -831,24 +987,69 @@ export function enrichMatchesWithMessages(
           convDate = parseDate(first?.["sent_date"] ?? first?.["timestamp"]);
         }
 
-        if (convDate && matches.length > 0) {
-          const closest = findClosestMatch(matches, convDate);
-          if (closest) {
-            closest.messagesCount = count;
-            // Check if user sent first message
-            if (msgs.length > 0) {
-              const first = msgs[0] as Record<string, unknown>;
-              closest.userInitiated =
-                first?.["from"] === "You" ||
-                first?.["sender_id"] === "self";
+        // Find the matching RawMatch: prefer match_id, fallback to fuzzy date
+        let matched: RawMatch | null = null;
+        if (convMatchId) {
+          // Try direct match_id linking first
+          // On first pass, tag matches with match_id from conversations
+          matched = matchByMatchId.get(convMatchId) ?? null;
+          if (!matched && convDate && matches.length > 0) {
+            const closest = findClosestMatch(matches, convDate);
+            if (closest) {
+              matched = closest;
+              matched.matchId = convMatchId;
+              matchByMatchId.set(convMatchId, matched);
             }
-            if (msgs.length > 0) {
-              const last = msgs[msgs.length - 1] as Record<string, unknown>;
-              const lastDate = parseDate(
-                last?.["sent_date"] ?? last?.["timestamp"]
-              );
-              if (lastDate) closest.lastMessageDate = lastDate;
+          }
+        } else if (convDate && matches.length > 0) {
+          // Fallback: fuzzy date matching (±24h)
+          matched = findClosestMatch(matches, convDate);
+        }
+
+        if (matched) {
+          matched.messagesCount = count;
+          if (convMatchId) matched.matchId = convMatchId;
+          // Check if user sent first message
+          if (msgs.length > 0) {
+            const first = msgs[0] as Record<string, unknown>;
+            matched.userInitiated =
+              first?.["from"] === "You" ||
+              first?.["sender_id"] === "self";
+          }
+          if (msgs.length > 0) {
+            const firstMsg = msgs[0] as Record<string, unknown>;
+            const firstDate = parseDate(firstMsg?.["sent_date"] ?? firstMsg?.["timestamp"]);
+            if (firstDate) matched.firstMessageDate = firstDate;
+            const last = msgs[msgs.length - 1] as Record<string, unknown>;
+            const lastDate = parseDate(last?.["sent_date"] ?? last?.["timestamp"]);
+            if (lastDate) matched.lastMessageDate = lastDate;
+          }
+        }
+
+        // Build ConversationRecord with full message bodies
+        if (conversationsOut && convDate && msgs.length > 0) {
+          const rawMessages: RawMessage[] = [];
+          for (const m of msgs) {
+            const mObj = m as Record<string, unknown>;
+            const ts = parseDate(mObj["sent_date"] ?? mObj["timestamp"]);
+            const body = typeof mObj["message"] === "string" ? mObj["message"] as string : "";
+            const from = mObj["from"] as string | undefined;
+            const direction: "sent" | "received" =
+              from === "You" || mObj["sender_id"] === "self" ? "sent" : "received";
+            const type = typeof mObj["type"] === "string" ? mObj["type"] as string : "message";
+            if (ts) {
+              rawMessages.push({ timestamp: ts, direction, body, type });
             }
+          }
+          if (rawMessages.length > 0) {
+            const sortedMsgs = rawMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+            conversationsOut.push({
+              matchTimestamp: convDate,
+              matchId: convMatchId,
+              messages: sortedMsgs,
+              firstMessageDate: sortedMsgs[0].timestamp,
+              lastMessageDate: sortedMsgs[sortedMsgs.length - 1].timestamp,
+            });
           }
         }
       }

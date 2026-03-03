@@ -5,10 +5,33 @@ import WrappedUpload from "../components/WrappedUpload";
 import WrappedReport from "../components/WrappedReport";
 import WrappedShare from "../components/WrappedShare";
 import type { WrappedMetrics } from "../lib/wrappedMetrics";
+import type { ConversationInsights } from "../lib/conversationIntelligence";
 
 export default function Wrapped() {
   const [metrics, setMetrics] = useState<WrappedMetrics | null>(null);
+  const [conversationInsights, setConversationInsights] = useState<ConversationInsights | undefined>(undefined);
   const [showShare, setShowShare] = useState(false);
+
+  const handleDataParsed = async (m: WrappedMetrics, parsedConversations?: import("../lib/wrappedParser").ConversationRecord[]) => {
+    setMetrics(m);
+    // Compute conversation insights if message content is available
+    if (parsedConversations && parsedConversations.length > 0) {
+      const { computeConversationInsights } = await import("../lib/conversationIntelligence");
+      const { isConversationPulseEnabled, trackConversationUpload } = await import("../lib/featureFlags");
+      if (isConversationPulseEnabled()) {
+        const totalMatches = m.totalSwipes > 0
+          ? Math.round((m.swipeToMatchRate / 100) * m.rightSwipes)
+          : 0;
+        const insights = computeConversationInsights(
+          parsedConversations,
+          m.source as import("../lib/wrappedParser").WrappedAppSource,
+          totalMatches
+        );
+        setConversationInsights(insights);
+        trackConversationUpload(m.source, parsedConversations.length);
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#080b14] text-gray-100">
@@ -31,9 +54,13 @@ export default function Wrapped() {
           </motion.div>
 
           {metrics ? (
-            <WrappedReport metrics={metrics} onShareClick={() => setShowShare(true)} />
+            <WrappedReport
+              metrics={metrics}
+              conversationInsights={conversationInsights}
+              onShareClick={() => setShowShare(true)}
+            />
           ) : (
-            <WrappedUpload onDataParsed={setMetrics} />
+            <WrappedUpload onDataParsed={handleDataParsed} />
           )}
         </div>
       </section>

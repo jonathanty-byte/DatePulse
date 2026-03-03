@@ -1,6 +1,7 @@
 import type { WrappedMetrics } from "./wrappedMetrics";
+import type { ConversationInsights } from "./conversationIntelligence";
 
-export type ShareTemplate = "story" | "square";
+export type ShareTemplate = "story" | "square" | "conversation";
 
 // App-source tinting colors (darker shades for gradient midpoint)
 const APP_TINT: Record<string, string> = {
@@ -12,8 +13,14 @@ const APP_TINT: Record<string, string> = {
 /** Generate a shareable image from wrapped metrics. */
 export async function generateShareImage(
   metrics: WrappedMetrics,
-  template: ShareTemplate = "story"
+  template: ShareTemplate = "story",
+  conversationInsights?: ConversationInsights
 ): Promise<Blob> {
+  // Conversation Pulse template
+  if (template === "conversation" && conversationInsights) {
+    return generateConversationShareImage(conversationInsights, metrics.source);
+  }
+
   const width = 1080;
   const height = template === "story" ? 1920 : 1080;
 
@@ -71,9 +78,9 @@ export async function generateShareImage(
 
   // Stats section — reduced gap, added 6th stat (hoursPerMatch)
   const statsStartY = template === "story" ? 400 : 260;
-  const statGap = template === "story" ? 150 : 120;
+  const statGap = template === "story" ? 130 : 120;
 
-  const stats = [
+  const stats: { value: string; label: string }[] = [
     { value: `${metrics.totalSwipes}`, label: "Swipes" },
     { value: `${metrics.rightSwipeRate}%`, label: "Taux de like" },
     { value: `${metrics.swipeToMatchRate}%`, label: "Conversion" },
@@ -83,7 +90,18 @@ export async function generateShareImage(
       value: `${metrics.matchesInGreenLightPct}%`,
       label: "Matches en momentum",
     },
+    { value: `${metrics.ghostRate}%`, label: "Taux de ghosting" },
+    { value: metrics.bestDay || "—", label: "Meilleur jour" },
   ];
+  // Conditional stats 9-10: tenureMonths or avgConvoLength fallback, then sentReceivedRatio
+  if (metrics.tenureMonths) {
+    stats.push({ value: `${metrics.tenureMonths}`, label: "Mois sur l'app" });
+  } else {
+    stats.push({ value: `${metrics.avgConvoLength}`, label: "Messages / convo" });
+  }
+  if (metrics.sentReceivedRatio > 0) {
+    stats.push({ value: `${metrics.sentReceivedRatio}x`, label: "Ratio msg envoi/recu" });
+  }
 
   // Show first 4 stats for square, all 6 for story
   const displayStats = template === "square" ? stats.slice(0, 4) : stats;
@@ -93,7 +111,7 @@ export async function generateShareImage(
 
     // Stat value
     ctx.font =
-      "bold 80px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+      "bold 72px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
     const statGrad = ctx.createLinearGradient(
       width * 0.3,
       y - 30,
@@ -131,6 +149,132 @@ export async function generateShareImage(
     "400 24px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   ctx.fillStyle = "#4b5563"; // gray-600
   ctx.fillText("Swipe when it matters.", width / 2, brandingY + 40);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Impossible de generer l'image."));
+      },
+      "image/png",
+      1
+    );
+  });
+}
+
+/** Generate Conversation Pulse share image (1080x1080 square). */
+async function generateConversationShareImage(
+  insights: ConversationInsights,
+  source: string
+): Promise<Blob> {
+  const width = 1080;
+  const height = 1080;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d")!;
+
+  // Background: dark with radial indigo
+  ctx.fillStyle = "#080b14";
+  ctx.fillRect(0, 0, width, height);
+  const radial = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, 400);
+  radial.addColorStop(0, "rgba(99, 102, 241, 0.12)");
+  radial.addColorStop(1, "rgba(99, 102, 241, 0)");
+  ctx.fillStyle = radial;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.textAlign = "center";
+
+  // Title
+  ctx.font = "bold 52px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  const titleGrad = ctx.createLinearGradient(width * 0.3, 70, width * 0.7, 130);
+  titleGrad.addColorStop(0, "#818cf8");
+  titleGrad.addColorStop(1, "#4f46e5");
+  ctx.fillStyle = titleGrad;
+  ctx.fillText("CONVERSATION PULSE", width / 2, 110);
+
+  // Source badge
+  ctx.font = "400 24px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  ctx.fillStyle = "#6b7280";
+  ctx.fillText(source.charAt(0).toUpperCase() + source.slice(1), width / 2, 150);
+
+  // Score (big center)
+  const scoreColor = insights.score >= 80 ? "#34d399" : insights.score >= 60 ? "#818cf8" : insights.score >= 40 ? "#fbbf24" : "#ef4444";
+  ctx.font = "900 180px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  ctx.fillStyle = scoreColor;
+  ctx.fillText(`${insights.score}`, width / 2, 380);
+  ctx.font = "400 32px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  ctx.fillStyle = "#9ca3af";
+  ctx.fillText("/100", width / 2, 420);
+
+  // Archetype
+  ctx.font = "bold 40px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  ctx.fillStyle = "#e5e7eb";
+  ctx.fillText(insights.archetype, width / 2, 500);
+
+  // 5 mini bars (CDS breakdown)
+  const barY = 560;
+  const barLabels = ["Questions", "Reactivite", "Openers", "Escalation", "Equilibre"];
+  const barValues = [
+    insights.scoreBreakdown.questionDensity,
+    insights.scoreBreakdown.responseSpeed,
+    insights.scoreBreakdown.openerQuality,
+    insights.scoreBreakdown.escalationTiming,
+    insights.scoreBreakdown.conversationBalance,
+  ];
+  const barWidth = 600;
+  const barHeight = 12;
+  const barGap = 45;
+  const barStartX = (width - barWidth) / 2;
+
+  barLabels.forEach((label, i) => {
+    const y = barY + i * barGap;
+    // Label
+    ctx.font = "400 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    ctx.fillStyle = "#9ca3af";
+    ctx.textAlign = "right";
+    ctx.fillText(label, barStartX - 15, y + barHeight / 2 + 6);
+    // Background
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.beginPath();
+    ctx.roundRect(barStartX, y, barWidth, barHeight, 6);
+    ctx.fill();
+    // Fill
+    const fillWidth = (barValues[i] / 20) * barWidth;
+    ctx.fillStyle = scoreColor;
+    ctx.beginPath();
+    ctx.roundRect(barStartX, y, fillWidth, barHeight, 6);
+    ctx.fill();
+    // Value
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#6b7280";
+    ctx.font = "600 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    ctx.fillText(`${barValues[i]}`, barStartX + barWidth + 10, y + barHeight / 2 + 6);
+  });
+
+  // Stats line
+  ctx.textAlign = "center";
+  const statsY = 830;
+  ctx.font = "400 22px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  ctx.fillStyle = "#6b7280";
+  ctx.fillText(
+    `${insights.conversationsAnalyzed} conversations analysees · Ghost rate ${Math.round(((insights.ghostBreakdown.neverReplied + insights.ghostBreakdown.diedAtMsg2) / Math.max(1, insights.ghostBreakdown.total)) * 100)}%`,
+    width / 2,
+    statsY
+  );
+
+  // Branding footer
+  ctx.font = "bold 36px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  const brandGrad = ctx.createLinearGradient(width * 0.3, height - 120, width * 0.7, height - 80);
+  brandGrad.addColorStop(0, "#818cf8");
+  brandGrad.addColorStop(1, "#4f46e5");
+  ctx.fillStyle = brandGrad;
+  ctx.fillText("DatePulse — Conversation Pulse", width / 2, height - 80);
+
+  ctx.font = "400 22px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  ctx.fillStyle = "#4b5563";
+  ctx.fillText("Swipe when it matters.", width / 2, height - 45);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(

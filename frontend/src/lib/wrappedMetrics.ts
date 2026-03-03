@@ -159,6 +159,16 @@ export interface WrappedMetrics {
   responseTime?: ResponseTimeData;
   unmatchData?: UnmatchData;
   premiumROI?: PremiumROI;
+
+  // ── SwipeStats Intelligence (Phase 2b) ──
+  boostDates?: Date[];
+  boostMatchRate?: number;
+  superLikesSent?: number;
+  superLikeMatchRate?: number;
+  messageTypeBreakdown?: Record<string, number>;
+  gifRate?: number;
+  platform?: string;
+  activeTimeFormatted?: string;
 }
 
 // ── Price estimates for purchase calculations ───────────────────
@@ -478,7 +488,61 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
     };
   }
 
-  // ── ADN Dating (5 axes, 0-100) ─────────────────────────────
+  // ── SwipeStats Intelligence metrics ──────────────────────────────
+  let boostDates: Date[] | undefined;
+  let boostMatchRate: number | undefined;
+  if (data.boostTracking && data.boostTracking.length > 0) {
+    boostDates = data.boostTracking.map(b => b.date);
+    // Calculate boost match rate: matches within 1h of a boost
+    const boostMatches = matches.filter(m =>
+      data.boostTracking!.some(b =>
+        Math.abs(m.timestamp.getTime() - b.date.getTime()) < 3600 * 1000
+      )
+    ).length;
+    boostMatchRate = data.boostTracking.length > 0
+      ? Math.round((boostMatches / data.boostTracking.length) * 100)
+      : undefined;
+  }
+
+  let superLikesSent: number | undefined;
+  let superLikeMatchRate: number | undefined;
+  if (data.superLikeTracking && data.superLikeTracking.length > 0) {
+    superLikesSent = data.superLikeTracking.length;
+    const superLikeMatches = data.superLikeTracking.filter(s => s.matched).length;
+    superLikeMatchRate = Math.round((superLikeMatches / superLikesSent) * 100);
+  } else {
+    // Fallback: count super likes from swipes
+    const superLikesFromSwipes = swipes.filter(s => s.direction === "superlike").length;
+    if (superLikesFromSwipes > 0) {
+      superLikesSent = superLikesFromSwipes;
+    }
+  }
+
+  const messageTypeBreakdown = data.messageTypes;
+  let gifRate: number | undefined;
+  if (messageTypeBreakdown) {
+    const totalTypedMsgs = Object.values(messageTypeBreakdown).reduce((s, v) => s + v, 0);
+    const gifCount = messageTypeBreakdown["gif"] ?? 0;
+    if (totalTypedMsgs > 0) gifRate = Math.round((gifCount / totalTypedMsgs) * 100);
+  }
+
+  const platform = data.clientInfo?.platform;
+
+  // Format active time (already parsed, never exposed before)
+  let activeTimeFormatted: string | undefined;
+  if (data.activeTime !== undefined) {
+    if (typeof data.activeTime === "number") {
+      // Assume minutes or seconds — Tinder active_time varies
+      const hours = data.activeTime > 3600
+        ? Math.round(data.activeTime / 3600) // seconds → hours
+        : Math.round(data.activeTime / 60);  // minutes → hours
+      activeTimeFormatted = `${hours} heures`;
+    } else if (typeof data.activeTime === "string") {
+      activeTimeFormatted = data.activeTime;
+    }
+  }
+
+  // ── ADN Dating (6 axes, 0-100) ─────────────────────────────
   const adnDating = computeAdnDating({
     source,
     rightSwipeRate,
@@ -488,6 +552,8 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
     daysActive,
     totalDays: totalPeriodDays,
     peakSwipeHour,
+    avgConvoLength,
+    sentReceivedRatio,
   });
 
   return {
@@ -539,6 +605,15 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
     responseTime,
     unmatchData,
     premiumROI,
+    // SwipeStats Intelligence
+    boostDates,
+    boostMatchRate,
+    superLikesSent,
+    superLikeMatchRate,
+    messageTypeBreakdown,
+    gifRate,
+    platform,
+    activeTimeFormatted,
   };
 }
 
@@ -794,8 +869,10 @@ function computeAdnDating(params: {
   daysActive: number;
   totalDays: number;
   peakSwipeHour: number;
+  avgConvoLength: number;
+  sentReceivedRatio: number;
 }): AdnAxis[] {
-  const { source, rightSwipeRate, swipeToMatchRate, matchToConvoRate, ghostRate, daysActive, totalDays, peakSwipeHour } = params;
+  const { source, rightSwipeRate, swipeToMatchRate, matchToConvoRate, ghostRate, daysActive, totalDays, peakSwipeHour, avgConvoLength, sentReceivedRatio } = params;
 
   // Axis 1: Hinge doesn't log passes → rightSwipeRate is meaningless (~100%)
   // For Hinge, use "Perseverance" (inverse ghost rate) instead of "Selectivite"
@@ -804,11 +881,18 @@ function computeAdnDating(params: {
     ? { axis: "Perseverance", value: Math.min(100, Math.max(0, 100 - ghostRate)), fullMark: 100 as const }
     : { axis: "Selectivite", value: Math.min(100, Math.max(0, 100 - rightSwipeRate)), fullMark: 100 as const };
 
-  // Conversion: swipeToMatchRate * 10 (since typical rate is <10%)
-  const conversion = Math.min(100, Math.max(0, swipeToMatchRate * 10));
+  // Conversion: sqrt scale so it works for both low (men ~2-5%) and high (women ~30-50%) rates
+  // sqrt(1)=1→15, sqrt(4)=2→30, sqrt(10)=3.2→47, sqrt(25)=5→75, sqrt(50)=7→100
+  const conversion = Math.min(100, Math.max(0, Math.round(Math.sqrt(swipeToMatchRate) * 15)));
 
   // Engagement: matchToConvoRate (already 0-100)
   const engagement = Math.min(100, Math.max(0, matchToConvoRate));
+
+  // Echanges: conversation quality heuristic — convo depth, ratio balance, anti-ghost
+  const convoScore = Math.min(100, Math.max(0, avgConvoLength * 5)); // 20 msgs = 100
+  const ratioScore = Math.min(100, Math.max(0, 100 - Math.abs(sentReceivedRatio - 1.0) * 100)); // 1.0 = perfect
+  const antiGhostScore = Math.min(100, Math.max(0, 100 - ghostRate));
+  const echanges = Math.round(convoScore * 0.4 + ratioScore * 0.3 + antiGhostScore * 0.3);
 
   // Regularite: daysActive / totalDays * 100
   const regularite = totalDays > 0
@@ -824,6 +908,7 @@ function computeAdnDating(params: {
     axis1,
     { axis: "Conversion", value: conversion, fullMark: 100 },
     { axis: "Engagement", value: engagement, fullMark: 100 },
+    { axis: "Echanges", value: echanges, fullMark: 100 },
     { axis: "Regularite", value: regularite, fullMark: 100 },
     { axis: "Timing", value: timing, fullMark: 100 },
   ];

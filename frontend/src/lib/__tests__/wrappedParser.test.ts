@@ -5,7 +5,7 @@ import {
   expandDailyCountsToSwipes,
   parseUploadedFiles,
 } from "../wrappedParser";
-import type { RawMatch, RawSwipe } from "../wrappedParser";
+import type { RawMatch, RawSwipe, ConversationRecord } from "../wrappedParser";
 
 // ── findClosestMatch ────────────────────────────────────────────
 
@@ -246,6 +246,93 @@ describe("Hinge parser (parseUploadedFiles)", () => {
   });
 });
 
+// ── Tinder parser: new SwipeStats fields ─────────────────────────
+
+describe("Tinder parser: new fields", () => {
+  it("extracts boostTracking from Purchases.consumable", async () => {
+    const tinderData = {
+      "Usage - Swipes likes": ["2025-04-15T20:00:00"],
+      "Usage - Matches": ["2025-04-15T21:00:00"],
+      Purchases: {
+        consumable: [
+          { product_type: "boost", create_date: "2025-04-10T20:00:00" },
+          { product_type: "boost", create_date: "2025-04-12T20:00:00" },
+          { product_type: "super_like_pack", create_date: "2025-04-11T20:00:00" },
+        ],
+      },
+    };
+    const data = await parseUploadedFiles([makeFile("data.json", tinderData)]);
+    expect(data.boostTracking).toBeDefined();
+    expect(data.boostTracking).toHaveLength(2);
+    expect(data.superLikeTracking).toBeDefined();
+    expect(data.superLikeTracking).toHaveLength(1);
+  });
+
+  it("extracts messageTypes from Messages", async () => {
+    const tinderData = {
+      "Usage - Swipes likes": ["2025-04-15T20:00:00"],
+      "Usage - Matches": ["2025-04-15T21:00:00"],
+      Messages: [
+        {
+          messages: [
+            { from: "You", sent_date: "2025-04-15T20:00:00", message: "Hey", type: "message" },
+            { from: "You", sent_date: "2025-04-15T20:01:00", message: "", type: "gif" },
+            { from: "You", sent_date: "2025-04-15T20:02:00", message: "wave", type: "gesture" },
+          ],
+        },
+      ],
+    };
+    const data = await parseUploadedFiles([makeFile("data.json", tinderData)]);
+    expect(data.messageTypes).toBeDefined();
+    expect(data.messageTypes!["gif"]).toBe(1);
+    expect(data.messageTypes!["gesture"]).toBe(1);
+    expect(data.messageTypes!["message"]).toBe(1);
+  });
+
+  it("extracts clientInfo from User", async () => {
+    const tinderData = {
+      "Usage - Swipes likes": ["2025-04-15T20:00:00"],
+      User: { platform: "ios", app_version: "15.2.1", create_date: "2024-01-01" },
+    };
+    const data = await parseUploadedFiles([makeFile("data.json", tinderData)]);
+    expect(data.clientInfo).toBeDefined();
+    expect(data.clientInfo!.platform).toBe("ios");
+    expect(data.clientInfo!.appVersion).toBe("15.2.1");
+  });
+
+  it("parses normally when new fields are absent", async () => {
+    const tinderData = {
+      "Usage - Swipes likes": ["2025-04-15T20:00:00"],
+      "Usage - Swipes passes": ["2025-04-15T20:01:00"],
+      "Usage - Matches": ["2025-04-15T21:00:00"],
+    };
+    const data = await parseUploadedFiles([makeFile("data.json", tinderData)]);
+    expect(data.source).toBe("tinder");
+    expect(data.swipes).toHaveLength(2);
+    expect(data.boostTracking).toBeUndefined();
+    expect(data.superLikeTracking).toBeUndefined();
+    expect(data.messageTypes).toBeUndefined();
+    expect(data.clientInfo).toBeUndefined();
+  });
+
+  it("extracts swipeNotes from Messages", async () => {
+    const tinderData = {
+      "Usage - Swipes likes": ["2025-04-15T20:00:00"],
+      Messages: [
+        {
+          messages: [
+            { from: "You", sent_date: "2025-04-15T20:00:00", message: "I loved your bio!", type: "swipe_note" },
+          ],
+        },
+      ],
+    };
+    const data = await parseUploadedFiles([makeFile("data.json", tinderData)]);
+    expect(data.swipeNotes).toBeDefined();
+    expect(data.swipeNotes).toHaveLength(1);
+    expect(data.swipeNotes![0]).toBe("I loved your bio!");
+  });
+});
+
 // ── Hinge enriched parsing ─────────────────────────────────────
 
 describe("Hinge enriched parsing", () => {
@@ -350,5 +437,175 @@ describe("Hinge enriched parsing", () => {
     expect(data.subscriptionPeriods![0].price).toBe(58.33);
     expect(data.subscriptionPeriods![0].currency).toBe("EUR");
     expect(data.subscriptionPeriods![1].price).toBe(14.57);
+  });
+});
+
+// ── Conversation Pulse: message content extraction ──────────────
+
+describe("Tinder conversations extraction", () => {
+  it("extracts conversations with match_id and message body (Format A)", async () => {
+    const tinderData = {
+      "Usage - Swipes likes": ["2025-04-15T20:00:00"],
+      "Usage - Matches": ["2025-04-15T21:00:00"],
+      Messages: [
+        {
+          match_id: "abc123",
+          match_date: "2025-04-15T21:00:00",
+          messages: [
+            { from: "You", sent_date: "2025-04-15T22:00:00", message: "Salut ! Tu aimes les chiens ?", type: "message" },
+            { from: "Other", sent_date: "2025-04-15T22:30:00", message: "Oui j'adore !", type: "message" },
+            { from: "You", sent_date: "2025-04-15T23:00:00", message: "On se prend un cafe ?", type: "message" },
+          ],
+        },
+      ],
+    };
+    const data = await parseUploadedFiles([makeFile("data.json", tinderData)]);
+    expect(data.conversations).toBeDefined();
+    expect(data.conversations).toHaveLength(1);
+    expect(data.conversations![0].matchId).toBe("abc123");
+    expect(data.conversations![0].messages).toHaveLength(3);
+    expect(data.conversations![0].messages[0].body).toBe("Salut ! Tu aimes les chiens ?");
+    expect(data.conversations![0].messages[0].direction).toBe("sent");
+    expect(data.conversations![0].messages[1].direction).toBe("received");
+  });
+
+  it("stores matchId on RawMatch when match_id is available", async () => {
+    const tinderData = {
+      "Usage - Swipes likes": ["2025-04-15T20:00:00"],
+      "Usage - Matches": ["2025-04-15T21:00:00"],
+      Messages: [
+        {
+          match_id: "xyz789",
+          match_date: "2025-04-15T21:00:00",
+          messages: [
+            { from: "You", sent_date: "2025-04-15T22:00:00", message: "Hey" },
+          ],
+        },
+      ],
+    };
+    const data = await parseUploadedFiles([makeFile("data.json", tinderData)]);
+    expect(data.matches[0].matchId).toBe("xyz789");
+  });
+
+  it("falls back to fuzzy match when match_id is absent", async () => {
+    const tinderData = {
+      "Usage - Swipes likes": ["2025-04-15T20:00:00"],
+      "Usage - Matches": ["2025-04-15T21:00:00"],
+      Messages: [
+        {
+          // No match_id field
+          match_date: "2025-04-15T21:30:00",
+          messages: [
+            { from: "You", sent_date: "2025-04-15T22:00:00", message: "Bonjour!" },
+          ],
+        },
+      ],
+    };
+    const data = await parseUploadedFiles([makeFile("data.json", tinderData)]);
+    expect(data.matches[0].messagesCount).toBe(1);
+    expect(data.conversations).toBeDefined();
+    expect(data.conversations![0].messages[0].body).toBe("Bonjour!");
+  });
+
+  it("correctly attributes 2 matches on same day with different match_ids", async () => {
+    const tinderData = {
+      "Usage - Swipes likes": ["2025-04-15T10:00:00", "2025-04-15T14:00:00"],
+      "Usage - Matches": ["2025-04-15T11:00:00", "2025-04-15T15:00:00"],
+      Messages: [
+        {
+          match_id: "match_a",
+          match_date: "2025-04-15T11:00:00",
+          messages: [
+            { from: "You", sent_date: "2025-04-15T12:00:00", message: "Hey A" },
+          ],
+        },
+        {
+          match_id: "match_b",
+          match_date: "2025-04-15T15:00:00",
+          messages: [
+            { from: "Other", sent_date: "2025-04-15T16:00:00", message: "Hi B" },
+            { from: "You", sent_date: "2025-04-15T17:00:00", message: "Hello B" },
+          ],
+        },
+      ],
+    };
+    const data = await parseUploadedFiles([makeFile("data.json", tinderData)]);
+    expect(data.conversations).toHaveLength(2);
+    expect(data.conversations![0].matchId).toBe("match_a");
+    expect(data.conversations![0].messages).toHaveLength(1);
+    expect(data.conversations![1].matchId).toBe("match_b");
+    expect(data.conversations![1].messages).toHaveLength(2);
+  });
+
+  it("preserves messagesCount after refactor", async () => {
+    const tinderData = {
+      "Usage - Swipes likes": ["2025-04-15T20:00:00"],
+      "Usage - Matches": ["2025-04-15T21:00:00"],
+      Messages: [
+        {
+          match_id: "m1",
+          match_date: "2025-04-15T21:00:00",
+          messages: [
+            { from: "You", sent_date: "2025-04-15T22:00:00", message: "A" },
+            { from: "Other", sent_date: "2025-04-15T22:30:00", message: "B" },
+            { from: "You", sent_date: "2025-04-15T23:00:00", message: "C" },
+          ],
+        },
+      ],
+    };
+    const data = await parseUploadedFiles([makeFile("data.json", tinderData)]);
+    // messagesCount should still be populated correctly
+    expect(data.matches[0].messagesCount).toBe(3);
+  });
+});
+
+describe("Hinge conversations extraction", () => {
+  it("extracts conversation bodies from chats", async () => {
+    const hingeData = [
+      {
+        like: [{ timestamp: "2025-06-20 10:00:00", like: [{ timestamp: "2025-06-20 10:00:00", comment: "J'adore ton profil!" }] }],
+        match: [{ timestamp: "2025-06-20 12:00:00" }],
+        chats: [
+          { body: "J'adore ton profil!", timestamp: "2025-06-20 12:05:00" },
+          { body: "Merci ! Tu fais quoi ?", timestamp: "2025-06-20 12:30:00" },
+          { body: "Je suis dev", timestamp: "2025-06-20 13:00:00" },
+        ],
+      },
+    ];
+    const data = await parseUploadedFiles([makeFile("matches.json", hingeData)]);
+    expect(data.conversations).toBeDefined();
+    expect(data.conversations).toHaveLength(1);
+    expect(data.conversations![0].messages).toHaveLength(3);
+    expect(data.conversations![0].messages[0].body).toBe("J'adore ton profil!");
+    expect(data.conversations![0].messages[0].direction).toBe("sent"); // hasComment → sent
+    expect(data.conversations![0].messages[1].direction).toBe("received"); // alternating
+  });
+
+  it("returns no conversations for ghosted match (0 chats)", async () => {
+    const hingeData = [
+      {
+        match: [{ timestamp: "2025-06-25 05:00:00" }],
+        chats: [],
+      },
+    ];
+    const data = await parseUploadedFiles([makeFile("matches.json", hingeData)]);
+    expect(data.conversations).toBeUndefined();
+  });
+
+  it("infers direction correctly when match was not user-initiated", async () => {
+    const hingeData = [
+      {
+        // No like from user — match was initiated by the other person
+        match: [{ timestamp: "2025-06-20 12:00:00" }],
+        chats: [
+          { body: "Hey cute!", timestamp: "2025-06-20 12:05:00" },
+          { body: "Thanks!", timestamp: "2025-06-20 12:30:00" },
+        ],
+      },
+    ];
+    const data = await parseUploadedFiles([makeFile("matches.json", hingeData)]);
+    expect(data.conversations).toBeDefined();
+    expect(data.conversations![0].messages[0].direction).toBe("received"); // no like = match initiated
+    expect(data.conversations![0].messages[1].direction).toBe("sent"); // alternating
   });
 });
