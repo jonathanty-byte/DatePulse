@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart,
   Bar,
@@ -7,6 +7,7 @@ import {
   Line,
   CartesianGrid,
   ReferenceLine,
+  ReferenceArea,
   Cell,
   LabelList,
   XAxis,
@@ -18,18 +19,16 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
+  AreaChart,
+  Area,
 } from "recharts";
 import type { WrappedMetrics, FunnelData } from "../lib/wrappedMetrics";
 import { getVerdict } from "../lib/wrappedMetrics";
 import { getBenchmark, BENCHMARK_DISCLAIMER } from "../lib/benchmarks";
-import type { Gender } from "../lib/benchmarks";
+import type { Gender, BenchmarkResult } from "../lib/benchmarks";
 import type { ConversationInsights } from "../lib/conversationIntelligence";
 import { getConversationScoreLabel } from "../lib/conversationIntelligence";
 import { trackCPEngagement } from "../lib/featureFlags";
-import {
-  AreaChart,
-  Area,
-} from "recharts";
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -322,77 +321,276 @@ function useCPTracking(sectionName: string) {
   return ref;
 }
 
+// ── CP Premium Components (Insights patterns) ───────────────────
+
+const cpFadeIn = (delay: number = 0) => ({
+  initial: { opacity: 0, y: 20 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-50px" },
+  transition: { delay, duration: 0.5 },
+});
+
+function CPAnimatedCounter({ target, duration = 1400, prefix = "", suffix = "", className = "" }: {
+  target: number; duration?: number; prefix?: string; suffix?: string; className?: string;
+}) {
+  const [count, setCount] = React.useState(0);
+  const ref = React.useRef<HTMLSpanElement>(null);
+  const [started, setStarted] = React.useState(false);
+  React.useEffect(() => {
+    if (!ref.current) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStarted(true); }, { threshold: 0.3 });
+    obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+  React.useEffect(() => {
+    if (!started) return;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setCount(Math.round(eased * target));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [started, target, duration]);
+  return <span ref={ref} className={className}>{prefix}{count.toLocaleString("fr-FR")}{suffix}</span>;
+}
+
+function CPSpotlightCard({ value, label, sublabel, color, icon }: {
+  value: React.ReactNode; label: string; sublabel?: string; color: string; icon?: string;
+}) {
+  return (
+    <motion.div
+      className="relative overflow-hidden rounded-2xl border border-white/10 p-6 sm:p-8 text-center"
+      style={{ background: `linear-gradient(135deg, ${color}10 0%, transparent 60%)`, borderColor: `${color}30` }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5 }}
+    >
+      {icon && <span className="absolute top-3 right-4 text-4xl opacity-[0.07]">{icon}</span>}
+      <div className="text-4xl sm:text-5xl font-extrabold tracking-tight" style={{ color }}>{value}</div>
+      <div className="mt-2 text-sm font-medium text-gray-300">{label}</div>
+      {sublabel && <div className="mt-1 text-xs text-gray-500">{sublabel}</div>}
+    </motion.div>
+  );
+}
+
+function CPNarrativeIntro({ text, delay = 0 }: { text: string; delay?: number }) {
+  return (
+    <motion.p
+      className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-3xl"
+      initial={{ opacity: 0, y: 10 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay, duration: 0.4 }}
+    >
+      {text}
+    </motion.p>
+  );
+}
+
+function CPMiniBar({ bars, maxOverride }: { bars: { label: string; value: number; color?: string }[]; maxOverride?: number }) {
+  const mx = maxOverride ?? Math.max(...bars.map((b) => b.value), 1);
+  return (
+    <div className="space-y-1.5">
+      {bars.map((b) => (
+        <div key={b.label} className="flex items-center gap-2">
+          <span className="w-28 shrink-0 text-[11px] text-gray-400 truncate">{b.label}</span>
+          <div className="relative h-4 flex-1 overflow-hidden rounded-full bg-white/[0.04]">
+            <motion.div
+              className="absolute inset-y-0 left-0 rounded-full"
+              style={{ backgroundColor: b.color || "#6366f1" }}
+              initial={{ width: 0 }}
+              whileInView={{ width: `${(b.value / mx) * 100}%` }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            />
+          </div>
+          <span className="w-10 text-right text-[11px] font-medium text-gray-300">{b.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CPExpandToggle({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div>
+      <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-2 text-xs text-gray-400 hover:text-gray-300 transition">
+        <span className={`transition-transform ${open ? "rotate-90" : ""}`}>▸</span>{title}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="pt-3">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function CPSectionTitle({ emoji, title, subtitle, delay = 0 }: { emoji: string; title: string; subtitle?: string; delay?: number }) {
+  return (
+    <motion.div {...cpFadeIn(delay)} className="space-y-1">
+      <h2 className="flex items-center gap-3 text-2xl font-extrabold sm:text-3xl">
+        <span className="text-3xl">{emoji}</span>
+        <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">{title}</span>
+      </h2>
+      {subtitle && <p className="text-xs text-gray-500 pl-12">{subtitle}</p>}
+    </motion.div>
+  );
+}
+
+function CPProgressRing({ value, max = 20, size = 60, label, color = "#6366f1" }: {
+  value: number; max?: number; size?: number; label: string; color?: string;
+}) {
+  const strokeW = 4;
+  const r = (size - strokeW) / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = Math.min(value / max, 1);
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg viewBox={`0 0 ${size} ${size}`} className="-rotate-90 w-full h-full">
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={strokeW} className="text-white/[0.06]" />
+          <motion.circle
+            cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={strokeW}
+            strokeLinecap="round" strokeDasharray={circ}
+            initial={{ strokeDashoffset: circ }}
+            whileInView={{ strokeDashoffset: circ * (1 - pct) }}
+            viewport={{ once: true }}
+            transition={{ duration: 1, ease: "easeOut" }}
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-base font-bold" style={{ color }}>
+          {value}
+        </span>
+      </div>
+      <span className="text-[10px] text-gray-500 text-center leading-tight max-w-[80px]">{label}</span>
+    </div>
+  );
+}
+
+function CPBenchmarkBadge({ benchmark }: { benchmark: BenchmarkResult }) {
+  const color = QUINTILE_COLORS[benchmark.quintile] || "#9ca3af";
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium border"
+      style={{ color, borderColor: `${color}30`, backgroundColor: `${color}10` }}
+    >
+      {benchmark.emoji} {benchmark.label}
+    </span>
+  );
+}
+
+const CP_NAV_ITEMS = [
+  { id: "cp-hero", emoji: "\uD83D\uDCAC", label: "Vue" },
+  { id: "cp-ghost", emoji: "\uD83D\uDC7B", label: "Ghosting" },
+  { id: "cp-questions", emoji: "\u2753", label: "Questions" },
+  { id: "cp-tempo", emoji: "\u23F1\uFE0F", label: "Tempo" },
+  { id: "cp-openers", emoji: "\u2709\uFE0F", label: "Openers" },
+  { id: "cp-escalation", emoji: "\uD83D\uDCC5", label: "Escalade" },
+  { id: "cp-double-text", emoji: "\uD83D\uDCF1", label: "Relance" },
+  { id: "cp-balance", emoji: "\u2696\uFE0F", label: "Equilibre" },
+  { id: "cp-fatigue", emoji: "\uD83D\uDD0B", label: "Fatigue" },
+  { id: "cp-verdict", emoji: "\uD83C\uDFC6", label: "Verdict" },
+];
+
+function CPSectionNav() {
+  return (
+    <div className="sticky top-[52px] z-40 -mx-4 bg-[#080b14]/90 backdrop-blur-md border-b border-white/5 px-4 py-2">
+      <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+        {CP_NAV_ITEMS.map((n) => (
+          <a
+            key={n.id}
+            href={`#${n.id}`}
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-gray-400 transition hover:bg-white/[0.06] hover:text-gray-200"
+          >
+            <span>{n.emoji}</span>
+            <span className="hidden sm:inline">{n.label}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Conversation Pulse Screens ──────────────────────────────────
 
 type CPScreenProps = {
   insights: ConversationInsights;
   appColor: { primary: string; gradient: string; bg: string };
+  benchmarkGender: Gender;
   onShareClick?: () => void;
 };
 
-/** CP1 — Le Chiffre qui Gifle: ghost rate full screen */
-function CPScreen1({ insights }: CPScreenProps) {
-  const ref = useCPTracking("cp1_ghost_rate");
+/** CP Section 0 — Hero: 3 SpotlightCards overview */
+function CPSectionHero({ insights, appColor }: CPScreenProps) {
+  const ref = useCPTracking("cp0_hero");
   const ghostPct = insights.ghostBreakdown.total > 0
     ? Math.round(((insights.ghostBreakdown.neverReplied + insights.ghostBreakdown.diedAtMsg2) / insights.ghostBreakdown.total) * 100)
     : 0;
+  const scoreColor = insights.score >= 80 ? "#34d399" : insights.score >= 60 ? "#818cf8" : insights.score >= 40 ? "#fbbf24" : "#ef4444";
+
   return (
-    <div ref={ref}>
-      <Card delay={0.26}>
-        <div className="text-center py-6">
-          <motion.p
-            className="text-7xl sm:text-8xl font-black text-white tracking-tight"
-            initial={{ opacity: 0, scale: 0.8 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-          >
-            {ghostPct}%
-          </motion.p>
-          <motion.p
-            className="mt-4 text-sm text-gray-400 max-w-xs mx-auto"
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 1.5, duration: 0.5 }}
-          >
-            de tes conversations meurent avant le 2eme message.
-            <br />
-            <span className="text-gray-500">Sur {insights.ghostBreakdown.total} matchs analyses.</span>
-          </motion.p>
-          <motion.div
-            className="mt-6 flex justify-center"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 1.5, duration: 0.5 }}
-          >
-            <span className="text-xs text-gray-600 animate-bounce">↓ Scroll</span>
-          </motion.div>
-        </div>
-      </Card>
-    </div>
+    <section id="cp-hero" className="scroll-mt-28 space-y-6" ref={ref}>
+      <CPSectionTitle emoji="\uD83D\uDCAC" title="Conversation Pulse" />
+      <CPNarrativeIntro text={`Analyse de ${insights.conversationsAnalyzed} conversations sur ${insights.ghostBreakdown.total} matchs. Voici ce que tes messages revelent.`} />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <CPSpotlightCard
+          value={<CPAnimatedCounter target={ghostPct} suffix="%" className="text-4xl sm:text-5xl font-extrabold" />}
+          label="Ghost rate"
+          sublabel="meurent avant le 2eme message"
+          color="#ef4444"
+          icon="\uD83D\uDC7B"
+        />
+        <CPSpotlightCard
+          value={<CPAnimatedCounter target={insights.score} suffix="/100" className="text-4xl sm:text-5xl font-extrabold" />}
+          label="Score CDS"
+          sublabel={getConversationScoreLabel(insights.score)}
+          color={scoreColor}
+          icon="\uD83C\uDFAF"
+        />
+        <CPSpotlightCard
+          value={insights.archetype}
+          label="Ton archetype"
+          color={appColor.primary}
+          icon="\uD83E\uDDEC"
+        />
+      </div>
+    </section>
   );
 }
 
-/** CP2 — Le Mur du Message #2: survival curve */
-function CPScreen2({ insights, appColor }: CPScreenProps) {
-  const ref = useCPTracking("cp2_survival");
+/** CP Section 1 — Le Mur: ghost breakdown + survival curve */
+function CPSectionGhost({ insights, appColor }: CPScreenProps) {
+  const ref = useCPTracking("cp1_ghost");
+  const gb = insights.ghostBreakdown;
   const curveData = insights.survivalCurve;
-  const diedAtMsg2 = insights.ghostBreakdown.diedAtMsg2;
-  const total = insights.conversationsAnalyzed;
+
+  const ghostBars = [
+    { label: "Jamais repondu", value: gb.neverReplied, color: "#ef4444" },
+    { label: "Mort au msg #2", value: gb.diedAtMsg2, color: "#f97316" },
+    { label: "Mort 3-10 msgs", value: gb.diedEarly, color: "#fbbf24" },
+    { label: "10+ messages", value: gb.sustained, color: "#34d399" },
+  ];
 
   return (
-    <div ref={ref}>
-      <Card delay={0.28}>
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-          Conversation Pulse <ConfidenceBadge level={insights.confidenceLevel} />
-        </h3>
-        <p className="text-sm font-medium text-white mb-4">
-          Sur {total} conversations, <span className="text-red-400">{diedAtMsg2}</span> meurent avant le 2eme message
-        </p>
-        {curveData.length > 0 && (
-          <div className="h-40 sm:h-48 w-full">
+    <section id="cp-ghost" className="scroll-mt-28 space-y-5" ref={ref}>
+      <CPSectionTitle emoji="\uD83D\uDC7B" title="Le Mur" subtitle="Ou meurent tes conversations — et pourquoi" />
+      <CPNarrativeIntro text={`Sur ${gb.total} matchs, voici comment se repartissent tes conversations.`} />
+
+      <Card>
+        <CPMiniBar bars={ghostBars} />
+      </Card>
+
+      {curveData.length > 0 && (
+        <Card>
+          <p className="text-xs font-medium text-gray-300 mb-3">Courbe de survie</p>
+          <div className="h-44 sm:h-52 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={curveData}>
                 <XAxis
@@ -410,7 +608,8 @@ function CPScreen2({ insights, appColor }: CPScreenProps) {
                   domain={[0, 100]}
                 />
                 <Tooltip content={<DarkTooltip />} />
-                {/* Red zone at message 2 */}
+                <ReferenceArea x1={1} x2={3} fill="#ef4444" fillOpacity={0.08} />
+                <ReferenceLine y={50} stroke="#6b7280" strokeDasharray="5 4" strokeWidth={1} label={{ value: "50%", fill: "#6b7280", fontSize: 10 }} />
                 <Area
                   type="monotone"
                   dataKey="survivingPct"
@@ -419,179 +618,451 @@ function CPScreen2({ insights, appColor }: CPScreenProps) {
                   fill={appColor.primary}
                   fillOpacity={0.15}
                   strokeWidth={2.5}
+                  dot={(props: { cx: number; cy: number; payload: { survivingPct: number; messageNumber: number }; index: number }) => {
+                    const { cx, cy, payload, index } = props;
+                    const prevPct = index > 0 ? curveData[index - 1]?.survivingPct ?? 100 : 100;
+                    const drop = prevPct - payload.survivingPct;
+                    const c = drop > 20 ? "#ef4444" : "#34d399";
+                    return <circle key={payload.messageNumber} cx={cx} cy={cy} r={3} fill={c} />;
+                  }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        )}
-        <p className="mt-2 text-[11px] text-gray-600 text-center">
-          Le "mur du message #2" est le point ou la majorite des conversations s'arretent
-        </p>
-      </Card>
-    </div>
+          <p className="mt-2 text-[11px] text-gray-600 text-center">
+            Zone rouge = les 3 premiers messages, ou la majorite des conversations meurent
+          </p>
+        </Card>
+      )}
+
+      <CPExpandToggle title="Detail du ghosting">
+        <div className="rounded-lg border border-white/5 overflow-hidden">
+          <table className="w-full text-xs">
+            <thead><tr className="border-b border-white/10 bg-white/[0.03]">
+              <th className="px-3 py-2 text-left text-gray-400">Categorie</th>
+              <th className="px-3 py-2 text-right text-gray-400">Nombre</th>
+              <th className="px-3 py-2 text-right text-gray-400">%</th>
+            </tr></thead>
+            <tbody>
+              {ghostBars.map((b) => (
+                <tr key={b.label} className="border-b border-white/5 last:border-0">
+                  <td className="px-3 py-1.5 text-gray-300">{b.label}</td>
+                  <td className="px-3 py-1.5 text-right text-gray-300">{b.value}</td>
+                  <td className="px-3 py-1.5 text-right" style={{ color: b.color }}>
+                    {gb.total > 0 ? Math.round((b.value / gb.total) * 100) : 0}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CPExpandToggle>
+    </section>
   );
 }
 
-/** CP3 — Ton Diagnostic Personnel: 3 vertical gauges */
-function CPScreen3({ insights, appColor }: CPScreenProps) {
-  const ref = useCPTracking("cp3_diagnostic");
+/** CP Section 2 — Tes Questions */
+function CPSectionQuestions({ insights, benchmarkGender }: CPScreenProps) {
+  const ref = useCPTracking("cp2_questions");
+  const qDensityPct = Math.round(insights.questionDensity * 100);
+  const bench = getBenchmark("question_density", insights.questionDensity, benchmarkGender);
 
-  const gauges = [
-    {
-      label: "Densite de questions",
-      value: Math.round(insights.questionDensity * 100),
-      target: 25, // 25% = healthy
-      unit: "%",
-      desc: insights.questionDensity >= 0.2
-        ? "Tu poses assez de questions — tes convos ont du carburant"
-        : "Pose plus de questions pour maintenir l'interet",
-    },
-    {
-      label: "Temps de reponse",
-      value: insights.responseTimeMedian,
-      target: 60, // 60min = threshold
-      unit: "min",
-      desc: insights.responseTimeMedian <= 60
-        ? "Reactif ! Les reponses rapides multiplient les chances"
-        : "Reponds plus vite pour garder le momentum",
-      inverted: true, // lower is better
-    },
-    {
-      label: "Escalation timing",
-      value: insights.escalationStats.inOptimalRange,
-      target: 50,
-      unit: "%",
-      desc: insights.escalationStats.inOptimalRange >= 50
-        ? "Tu proposes des rendez-vous au bon moment"
-        : "Ose proposer un rendez-vous plus tot (ou plus tard)",
-    },
+  // Build question distribution buckets from questionsByConvo
+  const buckets = [
+    { label: "0 questions", value: 0, color: "#ef4444" },
+    { label: "1-2 questions", value: 0, color: "#fbbf24" },
+    { label: "3-5 questions", value: 0, color: "#818cf8" },
+    { label: "6+ questions", value: 0, color: "#34d399" },
+  ];
+  for (const q of insights.questionsByConvo) {
+    if (q === 0) buckets[0].value++;
+    else if (q <= 2) buckets[1].value++;
+    else if (q <= 5) buckets[2].value++;
+    else buckets[3].value++;
+  }
+
+  return (
+    <section id="cp-questions" className="scroll-mt-28 space-y-5" ref={ref}>
+      <CPSectionTitle emoji="\u2753" title="Tes Questions" subtitle="La densite de questions predit la survie d'une conversation (H27)" />
+      <CPNarrativeIntro text={`Quand tu poses 0 questions, ${insights.zeroQuestionGhostRate}% de tes convos meurent.`} />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <CPSpotlightCard
+          value={<>{insights.zeroQuestionGhostRate}%</>}
+          label="Ghost rate sans question"
+          sublabel="0 question = conversation morte"
+          color="#ef4444"
+          icon="\uD83D\uDC7B"
+        />
+        <Card className="flex flex-col items-center justify-center gap-3 py-4">
+          <CPProgressRing value={qDensityPct} max={50} size={70} label="Densite de questions" color={qDensityPct >= 20 ? "#34d399" : "#fbbf24"} />
+          <CPBenchmarkBadge benchmark={bench} />
+        </Card>
+      </div>
+
+      <Card>
+        <p className="text-xs font-medium text-gray-300 mb-3">Distribution des questions par conversation</p>
+        <CPMiniBar bars={buckets} />
+      </Card>
+    </section>
+  );
+}
+
+/** CP Section 3 — Ton Tempo: response time analysis */
+function CPSectionTempo({ insights, benchmarkGender }: CPScreenProps) {
+  const ref = useCPTracking("cp3_tempo");
+  const median = insights.responseTimeMedian;
+  const buckets = insights.responseTimeBuckets;
+  const totalBuckets = buckets.under1h + buckets.under6h + buckets.under24h + buckets.over24h;
+  const bench = getBenchmark("response_time_minutes", median, benchmarkGender);
+
+  const tempoColor = median <= 60 ? "#34d399" : median <= 360 ? "#fbbf24" : "#ef4444";
+
+  // Format median nicely
+  const medianLabel = median < 60 ? `${median}min` : median < 1440 ? `${Math.round(median / 60)}h` : `${Math.round(median / 1440)}j`;
+
+  const tempoBars = [
+    { label: "< 1 heure", value: buckets.under1h, color: "#34d399" },
+    { label: "1-6 heures", value: buckets.under6h, color: "#818cf8" },
+    { label: "6-24 heures", value: buckets.under24h, color: "#fbbf24" },
+    { label: "> 24 heures", value: buckets.over24h, color: "#ef4444" },
   ];
 
   return (
-    <div ref={ref}>
-      <Card delay={0.30}>
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Ton diagnostic personnel
-        </h3>
-        <div className="space-y-5">
-          {gauges.map((g) => {
-            const pct = g.inverted
-              ? Math.max(0, Math.min(100, Math.round((1 - Math.min(g.value, g.target * 3) / (g.target * 3)) * 100)))
-              : Math.min(100, Math.round((g.value / (g.target * 2)) * 100));
-            const color = pct >= 60 ? "#34d399" : pct >= 35 ? "#fbbf24" : "#ef4444";
-            return (
-              <div key={g.label}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-medium text-gray-300">{g.label}</span>
-                  <span className="text-xs font-bold" style={{ color }}>
-                    {g.value}{g.unit}
-                  </span>
-                </div>
-                <div className="h-2.5 rounded-full bg-white/5 overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{ backgroundColor: color }}
-                    initial={{ width: 0 }}
-                    whileInView={{ width: `${Math.max(pct, 3)}%` }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                  />
-                </div>
-                <p className="mt-1 text-[11px] text-gray-500">{g.desc}</p>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
-    </div>
+    <section id="cp-tempo" className="scroll-mt-28 space-y-5" ref={ref}>
+      <CPSectionTitle emoji="\u23F1\uFE0F" title="Ton Tempo" subtitle="La vitesse de reponse multiplie tes chances (H34)" />
+      <CPNarrativeIntro text={`Ton temps de reponse median est de ${medianLabel}. ${median <= 60 ? "Tu es reactif — c'est un atout majeur." : "Les reponses rapides multiplient tes chances par 3."}`} />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <CPSpotlightCard
+          value={medianLabel}
+          label="Temps de reponse median"
+          color={tempoColor}
+          icon="\u26A1"
+        />
+        <Card className="flex flex-col items-center justify-center gap-3 py-4">
+          <CPBenchmarkBadge benchmark={bench} />
+          <p className="text-[11px] text-gray-500 text-center">
+            {totalBuckets > 0 ? `${Math.round((buckets.under1h / totalBuckets) * 100)}% de tes reponses en moins d'1h` : "Pas assez de donnees"}
+          </p>
+        </Card>
+      </div>
+
+      {totalBuckets > 0 && (
+        <Card>
+          <p className="text-xs font-medium text-gray-300 mb-3">Repartition des temps de reponse</p>
+          <CPMiniBar bars={tempoBars} />
+        </Card>
+      )}
+    </section>
   );
 }
 
-/** CP4 — Les Patterns: what works vs what kills */
-function CPScreen4({ insights, appColor }: CPScreenProps) {
-  const ref = useCPTracking("cp4_patterns");
+/** CP Section 4 — Tes Openers */
+function CPSectionOpeners({ insights, appColor, benchmarkGender }: CPScreenProps) {
+  const ref = useCPTracking("cp4_openers");
+  if (insights.openerStats.avgLength === 0) return null;
 
-  const works: string[] = [];
-  const kills: string[] = [];
-
-  // Opener quality
-  if (insights.openerStats.containsQuestion >= 40) works.push("Tes openers contiennent des questions");
-  else kills.push("Peu de questions dans tes premiers messages");
-
-  if (insights.openerStats.avgLength >= 30) works.push(`Openers longs (${insights.openerStats.avgLength} car.)`);
-  else if (insights.openerStats.avgLength < 15) kills.push(`Openers trop courts (${insights.openerStats.avgLength} car.)`);
-
-  if (insights.openerStats.helloCount > 0) kills.push(`"Salut/Hey" generique (${insights.openerStats.helloCount}x)`);
-
-  if (insights.openerStats.frQuestionPersoRate >= 30) works.push("FR + Question + Personnalise");
-
-  // Response time
-  if (insights.responseTimeMedian <= 60) works.push(`Reponse rapide (${insights.responseTimeMedian}min)`);
-  else if (insights.responseTimeMedian > 360) kills.push(`Reponse lente (${insights.responseTimeMedian}min)`);
-
-  // Balance
-  if (insights.balanceByConvo.overInvesting > insights.balanceByConvo.balanced)
-    kills.push("Tu investis plus que tu ne recois");
-  else if (insights.balanceByConvo.balanced > 0)
-    works.push("Equilibre envoye/recu sain");
-
-  // Double text
-  if (insights.doubleTextRate > 30) kills.push(`Double-text frequent (${insights.doubleTextRate}%)`);
+  const bench = getBenchmark("opener_length", insights.openerStats.avgLength, benchmarkGender);
 
   return (
-    <div ref={ref}>
-      <Card delay={0.32}>
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Les patterns
-        </h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-[11px] font-semibold text-emerald-400 uppercase mb-2">Ce qui marche</p>
-            <div className="space-y-2">
-              {works.length === 0 && <p className="text-[11px] text-gray-600">Pas encore assez de donnees</p>}
-              {works.map((w, i) => (
-                <div key={i} className="flex items-start gap-1.5 text-[11px] text-gray-300">
-                  <span className="text-emerald-400 shrink-0 mt-0.5">+</span>
-                  <span>{w}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold text-red-400 uppercase mb-2">Ce qui tue</p>
-            <div className="space-y-2">
-              {kills.length === 0 && <p className="text-[11px] text-gray-600">Rien de critique detecte</p>}
-              {kills.map((k, i) => (
-                <div key={i} className="flex items-start gap-1.5 text-[11px] text-gray-300">
-                  <span className="text-red-400 shrink-0 mt-0.5">-</span>
-                  <span>{k}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        {/* Hinge/Tinder inversion note */}
-        {insights.source === "hinge" && (
-          <p className="mt-3 text-[10px] text-gray-600 text-center">
-            Sur Hinge, proposer un date tot (msg #3-5) fonctionne mieux que sur Tinder (msg #8-20)
+    <section id="cp-openers" className="scroll-mt-28 space-y-5" ref={ref}>
+      <CPSectionTitle emoji="\u2709\uFE0F" title="Tes Openers" subtitle="Le premier message decide de tout (H43, H50)" />
+      <CPNarrativeIntro text="La qualite de ton premier message determine si la conversation vivra ou mourra." />
+
+      {/* 3 mini-stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="text-center py-3">
+          <p className="text-2xl font-bold" style={{ color: appColor.primary }}>{insights.openerStats.avgLength}</p>
+          <p className="text-[10px] text-gray-400 mt-1">car. en moyenne</p>
+          <div className="mt-2"><CPBenchmarkBadge benchmark={bench} /></div>
+        </Card>
+        <Card className="text-center py-3">
+          <p className="text-2xl font-bold" style={{ color: insights.openerStats.containsQuestion >= 40 ? "#34d399" : "#fbbf24" }}>
+            {insights.openerStats.containsQuestion}%
           </p>
+          <p className="text-[10px] text-gray-400 mt-1">avec question</p>
+        </Card>
+        <Card className="text-center py-3">
+          <p className="text-2xl font-bold" style={{ color: insights.openerStats.helloCount > 0 ? "#ef4444" : "#34d399" }}>
+            {insights.openerStats.helloCount}
+          </p>
+          <p className="text-[10px] text-gray-400 mt-1">"salut/hey"</p>
+          {insights.openerStats.helloCount > 0 && (
+            <p className="text-[9px] text-red-400 mt-0.5">generiques detectes</p>
+          )}
+        </Card>
+      </div>
+
+      {/* La Formule FR+?+Perso */}
+      <CPSpotlightCard
+        value={<>{insights.openerStats.frQuestionPersoRate}%</>}
+        label="Francais + Question + Personnalise"
+        sublabel="La formule gagnante pour tes openers"
+        color="#f59e0b"
+        icon="\uD83C\uDFAF"
+      />
+
+      <CPExpandToggle title="Impact des openers generiques (H50)">
+        <p className="text-xs text-gray-500 leading-relaxed">
+          Les openers generiques ("Salut", "Hey", "Coucou") ont un taux de reponse 3 a 5x inferieur
+          aux messages personnalises. Un opener ideal combine : langue naturelle (francais),
+          une question ouverte, et un element specifique au profil de la personne.
+        </p>
+      </CPExpandToggle>
+    </section>
+  );
+}
+
+/** CP Section 5 — L'Escalade: escalation timing */
+function CPSectionEscalation({ insights, appColor }: CPScreenProps) {
+  const ref = useCPTracking("cp5_escalation");
+  const es = insights.escalationStats;
+  if (es.convosWithEscalation === 0) return null;
+
+  const inRange = es.avgMessageNumber >= es.optimalRange.min && es.avgMessageNumber <= es.optimalRange.max;
+  const escColor = inRange ? "#34d399" : "#fbbf24";
+
+  // Build the visual range bar
+  const rangeMax = Math.max(es.optimalRange.max + 10, es.avgMessageNumber + 5);
+  const optStartPct = (es.optimalRange.min / rangeMax) * 100;
+  const optWidthPct = ((es.optimalRange.max - es.optimalRange.min) / rangeMax) * 100;
+  const userPct = (es.avgMessageNumber / rangeMax) * 100;
+
+  return (
+    <section id="cp-escalation" className="scroll-mt-28 space-y-5" ref={ref}>
+      <CPSectionTitle emoji="\uD83D\uDCC5" title="L'Escalade" subtitle="Quand proposer un rendez-vous — le timing change tout (H29)" />
+      <CPNarrativeIntro text={`Tu proposes un rendez-vous en moyenne au message #${es.avgMessageNumber}. ${inRange ? "C'est dans la fenetre optimale !" : "C'est en dehors de la fenetre optimale."}`} />
+
+      <CPSpotlightCard
+        value={<>Message #{es.avgMessageNumber}</>}
+        label="Premiere escalation en moyenne"
+        sublabel={`${es.inOptimalRange}% dans la fenetre optimale`}
+        color={escColor}
+        icon="\uD83D\uDCC5"
+      />
+
+      {/* Visual range bar */}
+      <Card>
+        <p className="text-xs font-medium text-gray-300 mb-3">Fenetre optimale d'escalation</p>
+        <div className="relative h-8 rounded-full bg-white/5 overflow-hidden">
+          {/* Optimal zone (green) */}
+          <div
+            className="absolute inset-y-0 rounded-full bg-emerald-500/20 border border-emerald-500/30"
+            style={{ left: `${optStartPct}%`, width: `${optWidthPct}%` }}
+          />
+          {/* User marker */}
+          <motion.div
+            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2"
+            style={{ backgroundColor: escColor, borderColor: "#fff", left: `${userPct}%`, marginLeft: -6 }}
+            initial={{ scale: 0 }}
+            whileInView={{ scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3, type: "spring" }}
+          />
+        </div>
+        <div className="flex justify-between text-[10px] text-gray-500 mt-1 px-1">
+          <span>Msg #1</span>
+          <span className="text-emerald-400">#{es.optimalRange.min}-{es.optimalRange.max} optimal</span>
+          <span>#{rangeMax}</span>
+        </div>
+        {insights.source === "hinge" ? (
+          <p className="mt-2 text-[10px] text-gray-600 text-center">Hinge : escalation tot (msg #3-8) fonctionne mieux</p>
+        ) : (
+          <p className="mt-2 text-[10px] text-gray-600 text-center">Tinder/Bumble : escalation msg #8-20 recommandee</p>
         )}
       </Card>
-    </div>
+    </section>
   );
 }
 
-/** CP5 — Ton ADN Conversationnel: archetype name + description */
-function CPScreen5({ insights, appColor }: CPScreenProps) {
-  const ref = useCPTracking("cp5_archetype");
+/** CP Section 6 — Le Double-Text */
+function CPSectionDoubleText({ insights }: CPScreenProps) {
+  const ref = useCPTracking("cp6_double_text");
 
   return (
-    <div ref={ref}>
-      <Card delay={0.34}>
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Ton ADN Conversationnel
-        </h3>
-        <div className="text-center">
+    <section id="cp-double-text" className="scroll-mt-28 space-y-5" ref={ref}>
+      <CPSectionTitle emoji="\uD83D\uDCF1" title="Le Double-Text" subtitle="Relancer apres un silence — ca marche ? (H20)" />
+      <CPNarrativeIntro text="Le double-text, c'est quand tu envoies un 2eme message sans avoir recu de reponse. Parfois ca relance, parfois ca tue." />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <CPSpotlightCard
+          value={<>{insights.doubleTextRate}%</>}
+          label="de tes convos ont un double-text"
+          color="#818cf8"
+          icon="\uD83D\uDCF1"
+        />
+        <CPSpotlightCard
+          value={<>{insights.doubleTextSurvival}%</>}
+          label="survivent apres la relance"
+          color={insights.doubleTextSurvival >= 40 ? "#34d399" : "#ef4444"}
+          icon={insights.doubleTextSurvival >= 40 ? "\u2705" : "\u274C"}
+        />
+      </div>
+
+      <Card>
+        <p className="text-xs text-center" style={{ color: insights.doubleTextSurvival >= 40 ? "#34d399" : "#ef4444" }}>
+          {insights.doubleTextSurvival >= 40
+            ? "Le double-text t'aide — tes relances ont un bon taux de survie."
+            : "Peu efficace dans ton cas — tes relances ne sauvent pas les conversations."}
+        </p>
+      </Card>
+    </section>
+  );
+}
+
+/** CP Section 7 — L'Equilibre */
+function CPSectionBalance({ insights }: CPScreenProps) {
+  const ref = useCPTracking("cp7_balance");
+  const b = insights.balanceByConvo;
+  const total = b.balanced + b.overInvesting + b.underInvesting;
+  if (total === 0) return null;
+
+  const balanceBars = [
+    { label: "Equilibre", value: b.balanced, color: "#34d399" },
+    { label: "Sur-investissement", value: b.overInvesting, color: "#ef4444" },
+    { label: "Sous-investissement", value: b.underInvesting, color: "#fbbf24" },
+  ];
+
+  return (
+    <section id="cp-balance" className="scroll-mt-28 space-y-5" ref={ref}>
+      <CPSectionTitle emoji="\u2696\uFE0F" title="L'Equilibre" subtitle="L'investissement asymetrique tue les conversations" />
+      <CPNarrativeIntro text={`Sur ${total} conversations avec echanges, voici la repartition de ton investissement.`} />
+
+      <Card>
+        <CPMiniBar bars={balanceBars} />
+        <div className="mt-3 flex flex-wrap gap-2 justify-center">
+          {balanceBars.map((bar) => (
+            <span key={bar.label} className="text-[10px] text-gray-500">
+              {bar.label}: <span className="font-medium" style={{ color: bar.color }}>{total > 0 ? Math.round((bar.value / total) * 100) : 0}%</span>
+            </span>
+          ))}
+        </div>
+      </Card>
+
+      {b.overInvesting > b.balanced && (
+        <Card className="border-red-500/20">
+          <p className="text-xs text-red-400 text-center">
+            Tu investis plus que tu ne recois dans la majorite de tes conversations.
+            Laisse de la place — l'equilibre attire plus que l'insistance.
+          </p>
+        </Card>
+      )}
+    </section>
+  );
+}
+
+/** CP Section 8 — La Fatigue */
+function CPSectionFatigue({ insights, appColor }: CPScreenProps) {
+  const ref = useCPTracking("cp8_fatigue");
+  const trend = insights.fatigueTrend;
+  const hasTrend = trend && trend.monthlyOpenerLength.length >= 3;
+
+  return (
+    <section id="cp-fatigue" className="scroll-mt-28 space-y-5" ref={ref}>
+      <CPSectionTitle emoji="\uD83D\uDD0B" title="La Fatigue" subtitle="Quand l'energie baisse, les conversations s'en ressentent (H31)" />
+      <CPNarrativeIntro text="L'effort que tu mets dans tes premiers messages evolue-t-il avec le temps ?" />
+
+      {hasTrend ? (
+        <>
+          <Card>
+            <p className="text-xs font-medium text-gray-300 mb-3">Longueur moyenne des openers par mois</p>
+            <div className="h-44 sm:h-52 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trend.monthlyOpenerLength}>
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "#6b7280", fontSize: 10 }} tickFormatter={(v: string) => { const [, m] = v.split("-"); const months = ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Aout", "Sep", "Oct", "Nov", "Dec"]; return months[Number(m) - 1] || v; }} />
+                  <YAxis tickLine={false} axisLine={false} tick={{ fill: "#6b7280", fontSize: 10 }} />
+                  <Tooltip content={<DarkTooltip />} />
+                  <ReferenceLine y={trend.monthlyOpenerLength.reduce((s, d) => s + d.avgLength, 0) / trend.monthlyOpenerLength.length} stroke="#6b7280" strokeDasharray="5 4" strokeWidth={1} />
+                  <Area type="monotone" dataKey="avgLength" name="Longueur" stroke={appColor.primary} fill={appColor.primary} fillOpacity={0.15} strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          <Card>
+            <p className="text-xs font-medium text-gray-300 mb-3">Taux de ghosting par mois</p>
+            <div className="h-44 sm:h-52 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trend.monthlyGhostRate}>
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "#6b7280", fontSize: 10 }} tickFormatter={(v: string) => { const [, m] = v.split("-"); const months = ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Aout", "Sep", "Oct", "Nov", "Dec"]; return months[Number(m) - 1] || v; }} />
+                  <YAxis tickLine={false} axisLine={false} tick={{ fill: "#6b7280", fontSize: 10 }} tickFormatter={(v: number) => `${v}%`} />
+                  <Tooltip content={<DarkTooltip />} />
+                  <Area type="monotone" dataKey="rate" name="Ghost rate" stroke="#ef4444" fill="#ef4444" fillOpacity={0.15} strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </>
+      ) : (
+        <Card>
+          <p className="text-xs text-gray-500 text-center py-4">
+            Pas assez de donnees pour detecter une tendance (minimum 3 mois requis).
+          </p>
+        </Card>
+      )}
+
+      {insights.fatigueDetected && (
+        <motion.div
+          className="rounded-xl bg-violet-950/30 border border-violet-500/20 px-4 py-3"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+        >
+          <p className="text-xs text-violet-300">
+            Signe de fatigue detecte — tes openers raccourcissent ces derniers mois.
+            C'est normal apres plusieurs mois d'utilisation. Prends une pause et reviens plus fort.
+          </p>
+        </motion.div>
+      )}
+    </section>
+  );
+}
+
+/** CP Section 9 — Le Verdict: final score + breakdown */
+function CPSectionVerdict({ insights, appColor, onShareClick }: CPScreenProps) {
+  const ref = useCPTracking("cp9_verdict");
+  const label = getConversationScoreLabel(insights.score);
+  const scoreColor = insights.score >= 80 ? "#34d399" : insights.score >= 60 ? "#818cf8" : insights.score >= 40 ? "#fbbf24" : "#ef4444";
+
+  // Determine next archetype progression
+  const totalScore = insights.score;
+  const nextThreshold = totalScore >= 80 ? null : totalScore >= 60 ? 80 : totalScore >= 40 ? 60 : 40;
+  const nextLabel = nextThreshold === 80 ? "Conversationnel Elite" : nextThreshold === 60 ? "Solide" : nextThreshold === 40 ? "En Developpement" : null;
+  const pointsToNext = nextThreshold ? nextThreshold - totalScore : 0;
+
+  const ringColor = (val: number) => val >= 15 ? "#34d399" : val >= 10 ? "#818cf8" : val >= 5 ? "#fbbf24" : "#ef4444";
+
+  return (
+    <section id="cp-verdict" className="scroll-mt-28 space-y-5" ref={ref}>
+      <CPSectionTitle emoji="\uD83C\uDFC6" title="Le Verdict" subtitle="Ton score conversationnel global, base sur 5 dimensions" />
+      <CPNarrativeIntro text={`${insights.conversationsAnalyzed} conversations analysees, 5 axes evalues. Voici ton bilan.`} />
+
+      <Card className="border-brand-500/20 bg-brand-950/10">
+        {/* Score geant */}
+        <div className="text-center py-6">
+          <div style={{ color: scoreColor }}>
+            <CPAnimatedCounter
+              target={insights.score}
+              suffix="/100"
+              className="text-6xl sm:text-7xl font-black"
+              duration={1800}
+            />
+          </div>
+          <p className="mt-2 text-sm font-semibold" style={{ color: scoreColor }}>{label}</p>
+        </div>
+
+        {/* 5 ProgressRings */}
+        <div className="flex flex-wrap justify-center gap-4 sm:gap-6 mt-2">
+          <CPProgressRing value={insights.scoreBreakdown.questionDensity} label="Questions" color={ringColor(insights.scoreBreakdown.questionDensity)} />
+          <CPProgressRing value={insights.scoreBreakdown.responseSpeed} label="Reactivite" color={ringColor(insights.scoreBreakdown.responseSpeed)} />
+          <CPProgressRing value={insights.scoreBreakdown.openerQuality} label="Openers" color={ringColor(insights.scoreBreakdown.openerQuality)} />
+          <CPProgressRing value={insights.scoreBreakdown.escalationTiming} label="Escalation" color={ringColor(insights.scoreBreakdown.escalationTiming)} />
+          <CPProgressRing value={insights.scoreBreakdown.conversationBalance} label="Equilibre" color={ringColor(insights.scoreBreakdown.conversationBalance)} />
+        </div>
+
+        {/* Archetype */}
+        <div className="mt-6 text-center">
           <motion.p
             className="text-2xl sm:text-3xl font-extrabold"
             style={{ color: appColor.primary }}
@@ -601,176 +1072,44 @@ function CPScreen5({ insights, appColor }: CPScreenProps) {
           >
             {insights.archetype}
           </motion.p>
-          <p className="mt-3 text-sm text-gray-400 max-w-sm mx-auto">
+          <p className="mt-2 text-sm text-gray-400 max-w-sm mx-auto">
             {insights.archetypeDescription}
           </p>
-        </div>
-        {/* Mini CDS radar preview (5 bars) */}
-        <div className="mt-5 space-y-2">
-          {[
-            { label: "Questions", value: insights.scoreBreakdown.questionDensity, max: 20 },
-            { label: "Reactivite", value: insights.scoreBreakdown.responseSpeed, max: 20 },
-            { label: "Openers", value: insights.scoreBreakdown.openerQuality, max: 20 },
-            { label: "Escalation", value: insights.scoreBreakdown.escalationTiming, max: 20 },
-            { label: "Equilibre", value: insights.scoreBreakdown.conversationBalance, max: 20 },
-          ].map((axis) => (
-            <div key={axis.label} className="flex items-center gap-3 text-xs">
-              <span className="w-16 text-gray-400 text-right font-medium">{axis.label}</span>
-              <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
-                <motion.div
-                  className="h-full rounded-full"
-                  style={{ backgroundColor: appColor.primary }}
-                  initial={{ width: 0 }}
-                  whileInView={{ width: `${(axis.value / axis.max) * 100}%` }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6 }}
-                />
-              </div>
-              <span className="w-8 text-gray-500 text-right">{axis.value}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-/** CP6 — La Formule Magique: FR + QUESTION + PERSO */
-function CPScreen6({ insights }: CPScreenProps) {
-  const ref = useCPTracking("cp6_formula");
-  if (insights.openerStats.avgLength === 0) return null; // No opener data
-
-  return (
-    <div ref={ref}>
-      <Card delay={0.36}>
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          La formule magique
-        </h3>
-        <div className="flex items-center justify-center gap-3 py-4">
-          {[
-            { icon: "🇫🇷", label: "Francais" },
-            { icon: "❓", label: "Question" },
-            { icon: "🎯", label: "Personnalise" },
-          ].map((ingredient, i) => (
-            <React.Fragment key={ingredient.label}>
-              <motion.div
-                className="flex flex-col items-center gap-1"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.2, duration: 0.4 }}
-              >
-                <span className="text-3xl">{ingredient.icon}</span>
-                <span className="text-[10px] text-gray-500">{ingredient.label}</span>
-              </motion.div>
-              {i < 2 && <span className="text-gray-600 text-lg mt-[-8px]">+</span>}
-            </React.Fragment>
-          ))}
-          <span className="text-gray-600 text-lg mt-[-8px]">=</span>
-          <motion.div
-            className="flex flex-col items-center gap-1"
-            initial={{ opacity: 0, scale: 0.5 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.8, duration: 0.4 }}
-          >
-            <span className="text-2xl font-black text-amber-400">
-              {insights.openerStats.frQuestionPersoRate}%
-            </span>
-            <span className="text-[10px] text-gray-500">de tes openers</span>
-          </motion.div>
-        </div>
-        <p className="text-xs text-gray-500 text-center">
-          Les openers qui combinent les 3 ingredients ont le meilleur taux de reponse
-        </p>
-      </Card>
-    </div>
-  );
-}
-
-/** CP7 — Le Verdict: Conversation Pulse Score */
-function CPScreen7({ insights, appColor, onShareClick }: CPScreenProps) {
-  const ref = useCPTracking("cp7_verdict");
-  const label = getConversationScoreLabel(insights.score);
-  const scoreColor = insights.score >= 80 ? "#34d399" : insights.score >= 60 ? "#818cf8" : insights.score >= 40 ? "#fbbf24" : "#ef4444";
-
-  return (
-    <div ref={ref}>
-      <Card delay={0.38} className="border-brand-500/20 bg-brand-950/10">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Conversation Pulse Score <ConfidenceBadge level={insights.confidenceLevel} />
-        </h3>
-        <div className="text-center py-4">
-          <motion.p
-            className="text-6xl sm:text-7xl font-black"
-            style={{ color: scoreColor }}
-            initial={{ opacity: 0, scale: 0.5 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, type: "spring" }}
-          >
-            {insights.score}
-          </motion.p>
-          <p className="mt-1 text-xs text-gray-400">/100</p>
-          <p className="mt-2 text-sm font-semibold" style={{ color: scoreColor }}>{label}</p>
-        </div>
-
-        {/* 5 KPI mini-bars */}
-        <div className="space-y-2 mt-4">
-          {[
-            { label: "Questions", value: insights.scoreBreakdown.questionDensity },
-            { label: "Reactivite", value: insights.scoreBreakdown.responseSpeed },
-            { label: "Openers", value: insights.scoreBreakdown.openerQuality },
-            { label: "Escalation", value: insights.scoreBreakdown.escalationTiming },
-            { label: "Equilibre", value: insights.scoreBreakdown.conversationBalance },
-          ].map((kpi) => (
-            <div key={kpi.label} className="flex items-center gap-2 text-[11px]">
-              <span className="w-16 text-gray-500 text-right">{kpi.label}</span>
-              <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${(kpi.value / 20) * 100}%`,
-                    backgroundColor: scoreColor,
-                  }}
-                />
-              </div>
-              <span className="w-6 text-gray-600 text-right">{kpi.value}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Fatigue detection */}
-        {insights.fatigueDetected && (
-          <motion.div
-            className="mt-4 rounded-xl bg-violet-950/30 border border-violet-500/20 px-4 py-3"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <p className="text-xs text-violet-300">
-              Signe de fatigue detecte — tes openers raccourcissent ces derniers mois.
-              Prends une pause et reviens plus fort.
+          {nextLabel && pointsToNext > 0 && (
+            <p className="mt-2 text-[11px] text-gray-500">
+              Tu es a <span className="text-white font-medium">{pointsToNext} pts</span> de devenir <span style={{ color: scoreColor }} className="font-medium">{nextLabel}</span>
             </p>
-          </motion.div>
-        )}
+          )}
+        </div>
 
         {/* Share button */}
         {onShareClick && (
           <motion.button
             onClick={onShareClick}
-            className={`mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r ${appColor.gradient} px-4 py-2.5 text-xs font-semibold text-white transition hover:brightness-110`}
+            className={`mt-6 w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r ${appColor.gradient} px-4 py-2.5 text-xs font-semibold text-white transition hover:brightness-110`}
             whileTap={{ scale: 0.98 }}
           >
             Partager mon Conversation Pulse
           </motion.button>
         )}
-
-        <p className="mt-3 text-[10px] text-gray-600 text-center">
-          Base sur {insights.conversationsAnalyzed} conversations analysees · 100% client-side
-        </p>
       </Card>
-    </div>
+
+      <CPExpandToggle title="Comment le score est calcule">
+        <div className="space-y-2 text-xs text-gray-500">
+          <p>Le score CDS (Conversation Dating Score) est base sur 5 axes, chacun note sur 20 :</p>
+          <ul className="space-y-1 pl-4">
+            <li><span className="text-gray-300 font-medium">Questions (0-20)</span> — densite de "?" dans tes messages envoyes (H27)</li>
+            <li><span className="text-gray-300 font-medium">Reactivite (0-20)</span> — temps de reponse median (H34)</li>
+            <li><span className="text-gray-300 font-medium">Openers (0-20)</span> — longueur + question + personnalisation (H43, H50)</li>
+            <li><span className="text-gray-300 font-medium">Escalation (0-20)</span> — timing de proposition de rendez-vous (H29)</li>
+            <li><span className="text-gray-300 font-medium">Equilibre (0-20)</span> — ratio messages envoyes vs recus</li>
+          </ul>
+          <p className="text-[10px] text-gray-600 mt-2">
+            Base sur {insights.conversationsAnalyzed} conversations analysees · 100% client-side · Confiance: {insights.confidenceLevel}
+          </p>
+        </div>
+      </CPExpandToggle>
+    </section>
   );
 }
 
@@ -1195,30 +1534,21 @@ export default function WrappedReport({ metrics, conversationInsights, onShareCl
         )}
       </Card>
 
-      {/* ═══ CONVERSATION PULSE — 7 emotional screens ═══ */}
+      {/* ═══ CONVERSATION PULSE — 10 premium sections ═══ */}
       {conversationInsights && conversationInsights.conversationsAnalyzed >= 5 && (
-        <>
-          {/* ─── CP1. Le Chiffre qui Gifle ─── */}
-          <CPScreen1 insights={conversationInsights} appColor={appColor} />
-
-          {/* ─── CP2. Le Mur du Message #2 ─── */}
-          <CPScreen2 insights={conversationInsights} appColor={appColor} />
-
-          {/* ─── CP3. Ton Diagnostic Personnel ─── */}
-          <CPScreen3 insights={conversationInsights} appColor={appColor} />
-
-          {/* ─── CP4. Les Patterns ─── */}
-          <CPScreen4 insights={conversationInsights} appColor={appColor} />
-
-          {/* ─── CP5. Ton ADN Conversationnel ─── */}
-          <CPScreen5 insights={conversationInsights} appColor={appColor} />
-
-          {/* ─── CP6. La Formule Magique ─── */}
-          <CPScreen6 insights={conversationInsights} appColor={appColor} />
-
-          {/* ─── CP7. Le Verdict Conversation Pulse ─── */}
-          <CPScreen7 insights={conversationInsights} appColor={appColor} onShareClick={onShareClick} />
-        </>
+        <div className="space-y-12">
+          <CPSectionNav />
+          <CPSectionHero insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+          <CPSectionGhost insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+          <CPSectionQuestions insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+          <CPSectionTempo insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+          <CPSectionOpeners insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+          <CPSectionEscalation insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+          <CPSectionDoubleText insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+          <CPSectionBalance insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+          <CPSectionFatigue insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+          <CPSectionVerdict insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} onShareClick={onShareClick} />
+        </div>
       )}
 
       {/* ─── 9b. Boost Intelligence (Tinder only) ─── */}

@@ -199,22 +199,59 @@ async function generateConversationShareImage(
   ctx.fillStyle = "#6b7280";
   ctx.fillText(source.charAt(0).toUpperCase() + source.slice(1), width / 2, 150);
 
-  // Score (big center)
+  // 3 SpotlightCard-like zones (ghost rate, score, archetype)
+  const ghostPct = insights.ghostBreakdown.total > 0
+    ? Math.round(((insights.ghostBreakdown.neverReplied + insights.ghostBreakdown.diedAtMsg2) / insights.ghostBreakdown.total) * 100)
+    : 0;
   const scoreColor = insights.score >= 80 ? "#34d399" : insights.score >= 60 ? "#818cf8" : insights.score >= 40 ? "#fbbf24" : "#ef4444";
-  ctx.font = "900 180px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-  ctx.fillStyle = scoreColor;
-  ctx.fillText(`${insights.score}`, width / 2, 380);
-  ctx.font = "400 32px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-  ctx.fillStyle = "#9ca3af";
-  ctx.fillText("/100", width / 2, 420);
 
-  // Archetype
-  ctx.font = "bold 40px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-  ctx.fillStyle = "#e5e7eb";
-  ctx.fillText(insights.archetype, width / 2, 500);
+  const cardW = 300;
+  const cardH = 130;
+  const cardGap = 30;
+  const cardsStartX = (width - 3 * cardW - 2 * cardGap) / 2;
+  const cardY = 180;
 
-  // 5 mini bars (CDS breakdown)
-  const barY = 560;
+  // Helper: draw a spotlight card
+  const drawSpotlightCard = (x: number, y: number, value: string, label: string, color: string) => {
+    // Card background with gradient
+    ctx.save();
+    const cardGrad = ctx.createLinearGradient(x, y, x + cardW, y + cardH);
+    cardGrad.addColorStop(0, `${color}15`);
+    cardGrad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = cardGrad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, cardW, cardH, 16);
+    ctx.fill();
+    // Card border
+    ctx.strokeStyle = `${color}40`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x, y, cardW, cardH, 16);
+    ctx.stroke();
+    ctx.restore();
+    // Value
+    ctx.font = "bold 48px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    ctx.fillStyle = color;
+    ctx.textAlign = "center";
+    ctx.fillText(value, x + cardW / 2, y + 60);
+    // Label
+    ctx.font = "400 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    ctx.fillStyle = "#9ca3af";
+    ctx.fillText(label, x + cardW / 2, y + 95);
+  };
+
+  drawSpotlightCard(cardsStartX, cardY, `${ghostPct}%`, "Ghost rate", "#ef4444");
+  drawSpotlightCard(cardsStartX + cardW + cardGap, cardY, `${insights.score}/100`, "Score CDS", scoreColor);
+  drawSpotlightCard(cardsStartX + 2 * (cardW + cardGap), cardY, insights.archetype, "Archetype", "#818cf8");
+
+  // Conversations analyzed stat
+  ctx.font = "400 22px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  ctx.fillStyle = "#6b7280";
+  ctx.textAlign = "center";
+  ctx.fillText(`${insights.conversationsAnalyzed} conversations analysees`, width / 2, cardY + cardH + 50);
+
+  // 5 mini bars (CDS breakdown) — enhanced with wider bars and labels
+  const barY = cardY + cardH + 90;
   const barLabels = ["Questions", "Reactivite", "Openers", "Escalation", "Equilibre"];
   const barValues = [
     insights.scoreBreakdown.questionDensity,
@@ -223,46 +260,36 @@ async function generateConversationShareImage(
     insights.scoreBreakdown.escalationTiming,
     insights.scoreBreakdown.conversationBalance,
   ];
-  const barWidth = 600;
-  const barHeight = 12;
-  const barGap = 45;
+  const barWidth = 650;
+  const barHeight = 16;
+  const barGap = 50;
   const barStartX = (width - barWidth) / 2;
 
   barLabels.forEach((label, i) => {
     const y = barY + i * barGap;
     // Label
-    ctx.font = "400 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    ctx.font = "500 22px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
     ctx.fillStyle = "#9ca3af";
     ctx.textAlign = "right";
-    ctx.fillText(label, barStartX - 15, y + barHeight / 2 + 6);
+    ctx.fillText(label, barStartX - 20, y + barHeight / 2 + 7);
     // Background
     ctx.fillStyle = "rgba(255,255,255,0.05)";
     ctx.beginPath();
-    ctx.roundRect(barStartX, y, barWidth, barHeight, 6);
+    ctx.roundRect(barStartX, y, barWidth, barHeight, 8);
     ctx.fill();
-    // Fill
+    // Fill — color varies per bar value
+    const valColor = barValues[i] >= 15 ? "#34d399" : barValues[i] >= 10 ? scoreColor : barValues[i] >= 5 ? "#fbbf24" : "#ef4444";
     const fillWidth = (barValues[i] / 20) * barWidth;
-    ctx.fillStyle = scoreColor;
+    ctx.fillStyle = valColor;
     ctx.beginPath();
-    ctx.roundRect(barStartX, y, fillWidth, barHeight, 6);
+    ctx.roundRect(barStartX, y, fillWidth, barHeight, 8);
     ctx.fill();
     // Value
     ctx.textAlign = "left";
-    ctx.fillStyle = "#6b7280";
-    ctx.font = "600 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-    ctx.fillText(`${barValues[i]}`, barStartX + barWidth + 10, y + barHeight / 2 + 6);
+    ctx.fillStyle = "#e5e7eb";
+    ctx.font = "700 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    ctx.fillText(`${barValues[i]}/20`, barStartX + barWidth + 15, y + barHeight / 2 + 7);
   });
-
-  // Stats line
-  ctx.textAlign = "center";
-  const statsY = 830;
-  ctx.font = "400 22px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-  ctx.fillStyle = "#6b7280";
-  ctx.fillText(
-    `${insights.conversationsAnalyzed} conversations analysees · Ghost rate ${Math.round(((insights.ghostBreakdown.neverReplied + insights.ghostBreakdown.diedAtMsg2) / Math.max(1, insights.ghostBreakdown.total)) * 100)}%`,
-    width / 2,
-    statsY
-  );
 
   // Branding footer
   ctx.font = "bold 36px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
