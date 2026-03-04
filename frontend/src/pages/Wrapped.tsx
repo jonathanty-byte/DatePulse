@@ -94,7 +94,7 @@ export default function Wrapped() {
             <span className="mx-2 text-slate-300">|</span>
             <a href="/coach" className="hover:text-slate-900 transition">Coach</a>
             <span className="mx-2 text-slate-300">|</span>
-            <a href="/tracker" className="hover:text-slate-900 transition">Tracker</a>
+            <a href="/coach?tab=tracker" className="hover:text-slate-900 transition">Tracker</a>
             <span className="mx-2 text-slate-300">|</span>
             <a href="/insights" className="hover:text-slate-900 transition">Insights</a>
           </p>

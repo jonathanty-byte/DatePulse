@@ -2,7 +2,6 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import Home from "./pages/Home";
 const Coach = lazy(() => import("./pages/Coach"));
 const Wrapped = lazy(() => import("./pages/Wrapped"));
-const Tracker = lazy(() => import("./pages/Tracker"));
 const Insights = lazy(() => import("./pages/Insights"));
 
 /**
@@ -45,7 +44,7 @@ export default function App() {
         </div>
       }
     >
-      {page === "coach" ? <Coach /> : page === "wrapped" ? <Wrapped /> : page === "tracker" ? <Tracker /> : page === "insights" ? <Insights /> : <Coach />}
+      {page === "coach" ? <Coach /> : page === "wrapped" ? <Wrapped /> : page === "insights" ? <Insights /> : <Coach />}
     </Suspense>
   );
 }
@@ -56,7 +55,7 @@ function getPage(path?: string): string {
   if (p.startsWith("/audit")) return "coach";
   if (p.startsWith("/coach")) return "coach";
   if (p.startsWith("/wrapped")) return "wrapped";
-  if (p.startsWith("/tracker")) return "tracker";
+  if (p.startsWith("/tracker")) return "coach";
   if (p.startsWith("/insights")) return "insights";
   return "home";
 }

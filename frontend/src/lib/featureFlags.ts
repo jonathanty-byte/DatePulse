@@ -2,7 +2,7 @@
 
 import { track } from "@vercel/analytics";
 
-const CP_KILL_DATE = new Date("2026-03-24"); // J+21
+const CP_KILL_DATE = new Date("2026-06-24"); // J+90 (extended for Reddit launch)
 
 /** Check if Conversation Pulse feature is enabled (before kill date). */
 export function isConversationPulseEnabled(): boolean {

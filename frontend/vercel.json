@@ -11,7 +11,9 @@
     { "source": "/coach", "destination": "/index.html" },
     { "source": "/coach/(.*)", "destination": "/index.html" },
     { "source": "/wrapped", "destination": "/index.html" },
-    { "source": "/wrapped/(.*)", "destination": "/index.html" }
+    { "source": "/wrapped/(.*)", "destination": "/index.html" },
+    { "source": "/insights", "destination": "/index.html" },
+    { "source": "/insights/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {

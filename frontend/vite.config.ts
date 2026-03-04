@@ -19,8 +19,8 @@ export default defineConfig({
         short_name: "DatePulse",
         description:
           "Sais exactement quand les apps de dating sont actives. Score temps reel, fenetres optimales, optimisation intelligente.",
-        theme_color: "#080b14",
-        background_color: "#080b14",
+        theme_color: "#f8f9fc",
+        background_color: "#f8f9fc",
         display: "standalone",
         orientation: "portrait",
         scope: "/",

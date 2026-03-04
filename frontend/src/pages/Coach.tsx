@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import NavBar from "../components/NavBar";
 import MessageCoach from "../components/MessageCoach";
 import ProfileAudit from "../components/ProfileAudit";
+import { TrackerContent } from "./Tracker";
 import { motion } from "framer-motion";
 
-type CoachTab = "messages" | "photos";
+type CoachTab = "messages" | "photos" | "tracker";
 
 export default function Coach() {
   // Check URL for tab hint (e.g. /coach?tab=photo or redirect from /audit)
@@ -13,6 +14,7 @@ export default function Coach() {
     const fromRedLight = params.get("from") === "redlight";
     const tabParam = params.get("tab");
     if (fromRedLight || tabParam === "photo" || tabParam === "photos") return "photos";
+    if (tabParam === "tracker" || window.location.pathname.startsWith("/tracker")) return "tracker";
     if (window.location.pathname.startsWith("/audit")) return "photos";
     return "messages";
   });
@@ -37,7 +39,9 @@ export default function Coach() {
             <p className="mt-2 text-sm sm:text-base text-slate-500">
               {tab === "messages"
                 ? "Colle ta conversation et recois 3 suggestions calibrees"
-                : "Ton profil est-il au niveau ? L'IA te donne un score et des recommandations."}
+                : tab === "photos"
+                  ? "Ton profil est-il au niveau ? L'IA te donne un score et des recommandations."
+                  : "Note tes matches, decouvre tes patterns."}
             </p>
           </motion.div>
 
@@ -63,6 +67,16 @@ export default function Coach() {
             >
               <span>📷</span> Photos
             </button>
+            <button
+              onClick={() => setTab("tracker")}
+              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition ${
+                tab === "tracker"
+                  ? "bg-brand-50 border border-brand-500/40 text-brand-500"
+                  : "bg-white border border-gray-200 text-slate-500 hover:bg-gray-100 hover:text-slate-900"
+              }`}
+            >
+              <span>📊</span> Tracker
+            </button>
           </div>
 
           {/* Red Light context message */}
@@ -80,7 +94,7 @@ export default function Coach() {
           )}
 
           {/* Tab content */}
-          {tab === "messages" ? <MessageCoach /> : <ProfileAudit />}
+          {tab === "messages" ? <MessageCoach /> : tab === "photos" ? <ProfileAudit /> : <TrackerContent />}
         </div>
       </section>
       <footer className="border-t border-gray-200 px-4 py-6 sm:py-8">
@@ -91,7 +105,7 @@ export default function Coach() {
             <span className="mx-2 text-slate-300">|</span>
             <a href="/wrapped" className="hover:text-slate-900 transition">Wrapped</a>
             <span className="mx-2 text-slate-300">|</span>
-            <a href="/tracker" className="hover:text-slate-900 transition">Tracker</a>
+            <a href="/coach?tab=tracker" className="hover:text-slate-900 transition">Tracker</a>
             <span className="mx-2 text-slate-300">|</span>
             <a href="/insights" className="hover:text-slate-900 transition">Insights</a>
           </p>

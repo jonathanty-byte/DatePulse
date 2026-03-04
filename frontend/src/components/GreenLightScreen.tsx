@@ -135,8 +135,8 @@ export default function GreenLightScreen({ score, event, app, now, onStartSessio
           Lancer ma session ({selectedDuration} min)
         </motion.button>
 
-        {/* Auto Swiper button */}
-        {SWIPEABLE_APPS.has(app) && (
+        {/* Auto Swiper — localhost only (hidden in production) */}
+        {SWIPEABLE_APPS.has(app) && window.location.hostname === "localhost" && (
           <motion.button
             onClick={async () => {
               setTriggerStatus("launching");

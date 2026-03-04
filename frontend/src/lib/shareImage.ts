@@ -29,12 +29,12 @@ export async function generateShareImage(
   canvas.height = height;
   const ctx = canvas.getContext("2d")!;
 
-  // Background gradient (dark theme with app-source tint)
+  // Background gradient (light theme with app-source tint)
   const tint = APP_TINT[metrics.source] ?? "#1e1b4b";
   const gradient = ctx.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, "#080b14"); // dark
+  gradient.addColorStop(0, "#f8f9fc"); // light
   gradient.addColorStop(0.5, tint);    // app-source tint
-  gradient.addColorStop(1, "#080b14"); // dark
+  gradient.addColorStop(1, "#f8f9fc"); // light
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height);
 
@@ -175,8 +175,8 @@ async function generateConversationShareImage(
   canvas.height = height;
   const ctx = canvas.getContext("2d")!;
 
-  // Background: dark with radial indigo
-  ctx.fillStyle = "#080b14";
+  // Background: light with radial indigo
+  ctx.fillStyle = "#f8f9fc";
   ctx.fillRect(0, 0, width, height);
   const radial = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, 400);
   radial.addColorStop(0, "rgba(99, 102, 241, 0.12)");
@@ -236,7 +236,7 @@ async function generateConversationShareImage(
     ctx.fillText(value, x + cardW / 2, y + 60);
     // Label
     ctx.font = "400 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-    ctx.fillStyle = "#9ca3af";
+    ctx.fillStyle = "#64748b";
     ctx.fillText(label, x + cardW / 2, y + 95);
   };
 
@@ -273,7 +273,7 @@ async function generateConversationShareImage(
     ctx.textAlign = "right";
     ctx.fillText(label, barStartX - 20, y + barHeight / 2 + 7);
     // Background
-    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fillStyle = "rgba(0,0,0,0.06)";
     ctx.beginPath();
     ctx.roundRect(barStartX, y, barWidth, barHeight, 8);
     ctx.fill();
@@ -286,7 +286,7 @@ async function generateConversationShareImage(
     ctx.fill();
     // Value
     ctx.textAlign = "left";
-    ctx.fillStyle = "#e5e7eb";
+    ctx.fillStyle = "#1e293b";
     ctx.font = "700 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
     ctx.fillText(`${barValues[i]}/20`, barStartX + barWidth + 15, y + barHeight / 2 + 7);
   });

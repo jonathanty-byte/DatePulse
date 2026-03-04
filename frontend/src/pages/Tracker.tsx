@@ -76,9 +76,9 @@ function MiniBarChart({ data }: { data: WeeklyData[] }) {
   );
 }
 
-// ── Main page ───────────────────────────────────────────────────
+// ── Tracker content (used as tab inside Coach) ──────────────────
 
-export default function Tracker() {
+export function TrackerContent() {
   const [matches, setMatches] = useState<MatchEntry[]>([]);
   const [stats, setStats] = useState<MatchStats | null>(null);
   const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
@@ -135,26 +135,16 @@ export default function Tracker() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fc] text-slate-900">
-      <NavBar />
-      <section className="px-4 py-8 sm:py-12">
-        <div className="mx-auto max-w-4xl">
+    <div>
           {/* Header */}
           <motion.div
-            className="mb-8 flex items-center justify-between"
+            className="mb-6 flex items-center justify-between"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                <span className="bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">
-                  Match Tracker
-                </span>
-              </h1>
-              <p className="mt-1 text-sm text-slate-500">
-                Note tes matches, decouvre tes patterns
-              </p>
-            </div>
+            <p className="text-sm text-slate-500">
+              Note tes matches, decouvre tes patterns
+            </p>
             <motion.button
               onClick={() => setShowForm(!showForm)}
               className="flex items-center gap-1.5 bg-gradient-to-r from-brand-500 to-emerald-500 px-4 sm:px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:shadow-md active:scale-95"
@@ -435,22 +425,26 @@ export default function Tracker() {
           <p className="mt-6 text-center text-[10px] text-slate-400">
             Donnees stockees localement sur ton appareil. Rien n'est envoye.
           </p>
+    </div>
+  );
+}
+
+// ── Page wrapper (kept for direct /tracker route compat) ────────
+
+export default function Tracker() {
+  return (
+    <div className="min-h-screen bg-[#f8f9fc] text-slate-900">
+      <NavBar />
+      <section className="px-4 py-8 sm:py-12">
+        <div className="mx-auto max-w-2xl">
+          <h1 className="mb-6 text-2xl sm:text-3xl font-extrabold tracking-tight">
+            <span className="bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">
+              Match Tracker
+            </span>
+          </h1>
+          <TrackerContent />
         </div>
       </section>
-      <footer className="border-t border-gray-200 px-4 py-6 sm:py-8">
-        <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-slate-400 space-y-2">
-          <p className="font-medium text-slate-400">DatePulse — Swipe when it matters.</p>
-          <p>
-            <a href="/" className="hover:text-slate-900 transition">Accueil</a>
-            <span className="mx-2 text-slate-300">|</span>
-            <a href="/coach" className="hover:text-slate-900 transition">Coach</a>
-            <span className="mx-2 text-slate-300">|</span>
-            <a href="/wrapped" className="hover:text-slate-900 transition">Wrapped</a>
-            <span className="mx-2 text-slate-300">|</span>
-            <a href="/insights" className="hover:text-slate-900 transition">Insights</a>
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

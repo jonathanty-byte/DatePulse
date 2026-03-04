@@ -507,7 +507,7 @@ export default function Home() {
             <span className="mx-2 text-slate-300">|</span>
             <a href="/wrapped" className="hover:text-slate-700 transition">Wrapped</a>
             <span className="mx-2 text-slate-300">|</span>
-            <a href="/tracker" className="hover:text-slate-700 transition">Tracker</a>
+            <a href="/coach?tab=tracker" className="hover:text-slate-700 transition">Tracker</a>
             <span className="mx-2 text-slate-300">|</span>
             <a href="/insights" className="hover:text-slate-700 transition">Insights</a>
             <span className="mx-2 text-slate-300">|</span>

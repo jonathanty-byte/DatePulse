@@ -40,6 +40,18 @@ export default async function handler(req: Request) {
     );
   }
 
+  // Server-side enforcement: force model and cap max_tokens to prevent abuse
+  const ALLOWED_MODEL = "openrouter/quasar-alpha";
+  const MAX_TOKENS_CAP = 1024;
+  const sanitizedBody = {
+    ...(body as Record<string, unknown>),
+    model: ALLOWED_MODEL,
+    max_tokens: Math.min(
+      Number((body as Record<string, unknown>).max_tokens) || MAX_TOKENS_CAP,
+      MAX_TOKENS_CAP
+    ),
+  };
+
   try {
     const res = await fetch(OPENROUTER_URL, {
       method: "POST",
@@ -49,7 +61,7 @@ export default async function handler(req: Request) {
         "HTTP-Referer": "https://datepulse.app",
         "X-Title": "DatePulse",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(sanitizedBody),
     });
 
     const data = await res.json();

@@ -874,7 +874,7 @@ function CPSectionFatigue({ insights, appColor }: CPScreenProps) {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
         >
-          <p className="text-xs text-violet-300">
+          <p className="text-xs text-violet-600">
             Signe de fatigue detecte — tes openers raccourcissent ces derniers mois.
             C'est normal apres plusieurs mois d'utilisation. Prends une pause et reviens plus fort.
           </p>
@@ -2033,7 +2033,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
         {/* Selectivity warning */}
         {metrics.rightSwipeRate > 70 && metrics.source !== "hinge" && (
           <motion.div
-            className="rounded-xl bg-amber-950/30 border border-amber-500/20 px-4 py-3"
+            className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -2260,11 +2260,11 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
           {/* Worth-it badge */}
           <div className="text-center">
             {metrics.premiumROI.isWorthIt ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-950/40 border border-emerald-500/20 px-3 py-1 text-xs text-emerald-400">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs text-emerald-400">
                 Le premium vaut le coup (x{metrics.premiumROI.boostFactor})
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-950/40 border border-red-200 px-3 py-1 text-xs text-red-500">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs text-red-500">
                 Le premium ne change rien pour toi
               </span>
             )}
@@ -2891,4 +2891,3 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
     </div>
   );
 }
-              

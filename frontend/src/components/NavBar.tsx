@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 const NAV_LINKS: { href: string; label: string; badge?: string }[] = [
   { href: "/", label: "Score" },
   { href: "/wrapped", label: "Wrapped" },
-  { href: "/tracker", label: "Tracker" },
   { href: "/insights", label: "Insights" },
   { href: "/coach", label: "Coach" },
 ];
