@@ -56,12 +56,12 @@ export default function PoolFreshness({ now }: PoolFreshnessProps) {
     <div className="space-y-4">
       {/* Existing Pool Freshness card */}
       <motion.div
-        className="rounded-2xl border border-white/10 bg-white/[0.02] p-6"
+        className="border border-gray-200 bg-white shadow-sm p-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.35 }}
       >
-        <h2 className="mb-4 text-lg font-semibold text-white">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">
           Etat du pool
         </h2>
 
@@ -76,11 +76,11 @@ export default function PoolFreshness({ now }: PoolFreshnessProps) {
               >
                 {pool.labelFr}
               </span>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-slate-400">
                 {pool.netGrowth}/100
               </span>
             </div>
-            <p className="mt-1.5 text-sm text-gray-400">
+            <p className="mt-1.5 text-sm text-slate-500">
               {pool.message}
             </p>
           </div>
@@ -91,10 +91,10 @@ export default function PoolFreshness({ now }: PoolFreshnessProps) {
           {/* Installs bar */}
           <div>
             <div className="mb-1 flex items-center justify-between text-xs">
-              <span className="text-gray-400">Nouveaux profils</span>
-              <span className="font-medium text-green-400">{pool.installs}%</span>
+              <span className="text-slate-500">Nouveaux profils</span>
+              <span className="font-medium text-green-600">{pool.installs}%</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/5">
+            <div className="h-2 overflow-hidden rounded-full bg-gray-50">
               <motion.div
                 className="h-full rounded-full bg-green-500"
                 initial={{ width: 0 }}
@@ -107,10 +107,10 @@ export default function PoolFreshness({ now }: PoolFreshnessProps) {
           {/* Churn bar */}
           <div>
             <div className="mb-1 flex items-center justify-between text-xs">
-              <span className="text-gray-400">Departs</span>
-              <span className="font-medium text-red-400">{pool.churn}%</span>
+              <span className="text-slate-500">Departs</span>
+              <span className="font-medium text-red-500">{pool.churn}%</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/5">
+            <div className="h-2 overflow-hidden rounded-full bg-gray-50">
               <motion.div
                 className="h-full rounded-full bg-red-500"
                 initial={{ width: 0 }}
@@ -123,12 +123,12 @@ export default function PoolFreshness({ now }: PoolFreshnessProps) {
           {/* Net growth bar */}
           <div>
             <div className="mb-1 flex items-center justify-between text-xs">
-              <span className="text-gray-400">Qualite du pool</span>
+              <span className="text-slate-500">Qualite du pool</span>
               <span className="font-medium" style={{ color: config.color }}>
                 {pool.netGrowth}%
               </span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/5">
+            <div className="h-2 overflow-hidden rounded-full bg-gray-50">
               <motion.div
                 className="h-full rounded-full"
                 style={{ backgroundColor: config.barColor }}
@@ -141,7 +141,7 @@ export default function PoolFreshness({ now }: PoolFreshnessProps) {
         </div>
 
         {/* Source */}
-        <p className="mt-4 text-[10px] text-gray-600">
+        <p className="mt-4 text-[10px] text-slate-400">
           Source : Adjust Benchmarks 2024, Sensor Tower France 2024-2025
         </p>
       </motion.div>
@@ -151,7 +151,7 @@ export default function PoolFreshness({ now }: PoolFreshnessProps) {
         {rankings && rankings.apps && Object.keys(rankings.apps).length > 0 &&
           RANKED_APPS.some((k) => rankings.apps[k]?.trend && rankings.apps[k]?.trend !== "stable") && (
           <motion.div
-            className="rounded-2xl border border-white/10 bg-white/[0.02] p-6"
+            className="border border-gray-200 bg-white shadow-sm p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -159,11 +159,11 @@ export default function PoolFreshness({ now }: PoolFreshnessProps) {
           >
             {/* Header */}
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-slate-900">
                 Tendance telechargements
               </h2>
               {rankings.updated && (
-                <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[10px] text-gray-500">
+                <span className="rounded-full bg-gray-50 px-2.5 py-0.5 text-[10px] text-slate-400">
                   {formatUpdatedAgo(rankings.updated)}
                 </span>
               )}
@@ -180,26 +180,26 @@ export default function PoolFreshness({ now }: PoolFreshnessProps) {
                 return (
                   <motion.div
                     key={appKey}
-                    className="flex items-center gap-3 rounded-xl bg-white/[0.03] px-4 py-2.5"
+                    className="flex items-center gap-3 bg-gray-50 px-4 py-2.5"
                     initial={{ opacity: 0, x: -12 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 + index * 0.07 }}
                   >
                     {/* Trend icon */}
-                    <span className={`text-sm font-bold ${isUp ? "text-green-400" : "text-red-400"}`}>
+                    <span className={`text-sm font-bold ${isUp ? "text-green-600" : "text-red-500"}`}>
                       {isUp ? "\u25B2" : "\u25BC"}
                     </span>
 
                     {/* App name */}
-                    <span className="flex-1 text-sm font-medium text-white">
+                    <span className="flex-1 text-sm font-medium text-slate-900">
                       {APP_DISPLAY_NAMES[appKey] ?? appKey}
                     </span>
 
                     {/* Trend label */}
                     <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${
                       isUp
-                        ? "bg-green-500/15 text-green-400"
-                        : "bg-red-500/15 text-red-400"
+                        ? "bg-green-50 text-green-600"
+                        : "bg-red-50 text-red-500"
                     }`}>
                       {isUp ? "Plus de telechargements" : "Moins de telechargements"}
                     </span>
@@ -209,7 +209,7 @@ export default function PoolFreshness({ now }: PoolFreshnessProps) {
             </div>
 
             {/* Source */}
-            <p className="mt-3 text-[10px] text-gray-600">
+            <p className="mt-3 text-[10px] text-slate-400">
               Source : Google Play Store France — tendance sur 7 jours
             </p>
           </motion.div>

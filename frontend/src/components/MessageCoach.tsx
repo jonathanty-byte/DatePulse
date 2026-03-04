@@ -33,9 +33,9 @@ const LOADING_MESSAGES = [
 ];
 
 const STRATEGY_STYLES: Record<string, { bg: string; border: string; text: string }> = {
-  Conservateur: { bg: "bg-green-950/30", border: "border-green-500/30", text: "text-green-400" },
-  Equilibre: { bg: "bg-amber-950/30", border: "border-amber-500/30", text: "text-amber-400" },
-  Audacieux: { bg: "bg-red-950/30", border: "border-red-500/30", text: "text-red-400" },
+  Conservateur: { bg: "bg-green-50", border: "border-green-200", text: "text-green-600" },
+  Equilibre: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-600" },
+  Audacieux: { bg: "bg-red-50", border: "border-red-200", text: "text-red-500" },
 };
 
 // ── Component ───────────────────────────────────────────────────
@@ -195,16 +195,16 @@ export default function MessageCoach() {
           >
             {/* Context selector */}
             <div className="mb-6">
-              <span className="block text-sm text-gray-400 mb-3">Situation :</span>
+              <span className="block text-sm text-slate-500 mb-3">Situation :</span>
               <div className="flex flex-wrap gap-2">
                 {CONTEXT_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => setContext(opt.value)}
-                    className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium transition ${
+                    className={` px-3 py-1.5 text-xs sm:text-sm font-medium transition ${
                       context === opt.value
-                        ? "bg-brand-600/20 border border-brand-500/30 text-brand-400"
-                        : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10"
+                        ? "bg-brand-50 border border-brand-500/30 text-brand-500"
+                        : "bg-gray-50 border border-gray-200 text-slate-500 hover:bg-gray-100"
                     }`}
                   >
                     {opt.label}
@@ -217,20 +217,20 @@ export default function MessageCoach() {
             <div className="mb-4 flex gap-2">
               <button
                 onClick={() => setInputMode("text")}
-                className={`rounded-lg px-4 py-2 text-xs sm:text-sm font-medium transition ${
+                className={` px-4 py-2 text-xs sm:text-sm font-medium transition ${
                   inputMode === "text"
-                    ? "bg-white/10 text-white border border-white/20"
-                    : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"
+                    ? "bg-gray-100 text-slate-900 border border-gray-300"
+                    : "bg-gray-50 text-slate-500 border border-gray-200 hover:bg-gray-100"
                 }`}
               >
                 Texte
               </button>
               <button
                 onClick={() => setInputMode("screenshots")}
-                className={`rounded-lg px-4 py-2 text-xs sm:text-sm font-medium transition ${
+                className={` px-4 py-2 text-xs sm:text-sm font-medium transition ${
                   inputMode === "screenshots"
-                    ? "bg-white/10 text-white border border-white/20"
-                    : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"
+                    ? "bg-gray-100 text-slate-900 border border-gray-300"
+                    : "bg-gray-50 text-slate-500 border border-gray-200 hover:bg-gray-100"
                 }`}
               >
                 Screenshots
@@ -243,7 +243,7 @@ export default function MessageCoach() {
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 placeholder={"Colle ta conversation ici...\n\nExemple :\nMoi : Salut, ton profil m'a fait sourire\nElle : Merci haha\nMoi : Tu fais quoi dans la vie ?\nElle : Infirmiere et toi ?"}
-                className="w-full h-48 sm:h-56 rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-gray-200 placeholder-gray-600 resize-none focus:outline-none focus:border-brand-500/40 focus:bg-white/[0.04] transition"
+                className="w-full h-48 sm:h-56  border border-gray-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none focus:border-brand-500/40 focus:bg-white transition"
               />
             )}
 
@@ -255,10 +255,10 @@ export default function MessageCoach() {
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`relative cursor-pointer rounded-2xl border-2 border-dashed p-8 sm:p-10 text-center transition ${
+                  className={`relative cursor-pointer  border-2 border-dashed p-8 sm:p-10 text-center transition ${
                     isDragging
                       ? "border-brand-500 bg-brand-600/10"
-                      : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
+                      : "border-gray-200 bg-white hover:border-gray-300 hover:bg-white"
                   }`}
                 >
                   <input
@@ -273,10 +273,10 @@ export default function MessageCoach() {
                     }}
                   />
                   <div className="text-3xl mb-3">&#x1F4F1;</div>
-                  <p className="text-sm sm:text-base text-gray-300">
+                  <p className="text-sm sm:text-base text-slate-800">
                     Glisse tes screenshots ici
                   </p>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-slate-400">
                     ou clique pour selectionner — JPG, PNG, WebP — max {MAX_IMAGES} images, {MAX_SIZE_MB}MB chacune
                   </p>
                 </div>
@@ -289,7 +289,7 @@ export default function MessageCoach() {
                         <img
                           src={img.preview}
                           alt="Preview"
-                          className="h-20 w-20 sm:h-24 sm:w-24 rounded-xl object-cover border border-white/10"
+                          className="h-20 w-20 sm:h-24 sm:w-24  object-cover border border-gray-200"
                         />
                         <button
                           onClick={(e) => {
@@ -305,7 +305,7 @@ export default function MessageCoach() {
                     {images.length < MAX_IMAGES && (
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-xl border border-dashed border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-400 transition text-2xl"
+                        className="flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center  border border-dashed border-gray-200 text-slate-400 hover:border-gray-300 hover:text-slate-500 transition text-2xl"
                       >
                         +
                       </button>
@@ -316,7 +316,7 @@ export default function MessageCoach() {
             )}
 
             {/* Privacy note */}
-            <p className="mt-4 text-xs text-gray-600 flex items-center gap-1.5">
+            <p className="mt-4 text-xs text-slate-400 flex items-center gap-1.5">
               <span>&#x1F512;</span>
               Tes messages ne sont pas stockes. Ils sont envoyes a l'IA pour analyse puis supprimes.
             </p>
@@ -325,7 +325,7 @@ export default function MessageCoach() {
             <motion.button
               onClick={handleAnalyze}
               disabled={!hasInput}
-              className="mt-6 w-full flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3.5 text-sm sm:text-base font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-brand-500/25 disabled:hover:brightness-100"
+              className="mt-6 w-full flex items-center justify-center gap-2.5  bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3.5 text-sm sm:text-base font-semibold text-white shadow-sm transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-brand-500/25 disabled:hover:brightness-100"
               whileTap={{ scale: 0.98 }}
             >
               <span className="text-lg">&#x1F4AC;</span>
@@ -344,12 +344,12 @@ export default function MessageCoach() {
           >
             {/* Shimmer skeleton */}
             <div className="w-full max-w-md space-y-4">
-              <div className="h-24 rounded-xl bg-white/5 animate-pulse" />
+              <div className="h-24  bg-gray-50 animate-pulse" />
               <div className="space-y-3 mt-6">
                 {[1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="h-28 rounded-xl bg-white/5 animate-pulse"
+                    className="h-28  bg-gray-50 animate-pulse"
                     style={{ animationDelay: `${i * 150}ms` }}
                   />
                 ))}
@@ -360,7 +360,7 @@ export default function MessageCoach() {
             <AnimatePresence mode="wait">
               <motion.p
                 key={loadingMsg}
-                className="mt-8 text-sm text-gray-400"
+                className="mt-8 text-sm text-slate-500"
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
@@ -371,7 +371,7 @@ export default function MessageCoach() {
             </AnimatePresence>
 
             {/* Indeterminate progress bar */}
-            <div className="mt-4 h-1 w-48 overflow-hidden rounded-full bg-white/5">
+            <div className="mt-4 h-1 w-48 overflow-hidden rounded-full bg-gray-50">
               <motion.div
                 className="h-full w-1/3 rounded-full bg-brand-500"
                 animate={{ x: ["-100%", "300%"] }}
@@ -395,22 +395,22 @@ export default function MessageCoach() {
           >
             {/* Diagnostic card */}
             <motion.div
-              className="rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-4"
+              className=" border border-gray-200 bg-white px-5 py-4"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <h3 className="text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2">
                 <span>&#x1F9E0;</span> Diagnostic
               </h3>
-              <p className="text-sm text-gray-400 leading-relaxed">
+              <p className="text-sm text-slate-500 leading-relaxed">
                 {result.diagnostic}
               </p>
             </motion.div>
 
             {/* Suggestion cards */}
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                 <span>&#x1F4AC;</span> Suggestions
               </h3>
               {result.suggestions.map((suggestion, i) => (
@@ -427,7 +427,7 @@ export default function MessageCoach() {
             {/* Reset button */}
             <motion.button
               onClick={handleReset}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2  bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]"
               whileTap={{ scale: 0.98 }}
             >
               Nouvelle analyse
@@ -444,13 +444,13 @@ export default function MessageCoach() {
             className="flex flex-col items-center py-12 text-center"
           >
             <span className="text-5xl mb-4">&#x26A0;&#xFE0F;</span>
-            <h3 className="text-lg font-bold text-white mb-2">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">
               L'analyse a echoue
             </h3>
-            <p className="text-sm text-gray-400 max-w-md mb-6">{errorMsg}</p>
+            <p className="text-sm text-slate-500 max-w-md mb-6">{errorMsg}</p>
             <motion.button
               onClick={handleRetry}
-              className="flex items-center gap-2 rounded-xl bg-brand-600/20 border border-brand-500/30 px-6 py-3 text-sm font-semibold text-brand-400 transition hover:bg-brand-600/30 active:scale-95"
+              className="flex items-center gap-2  bg-brand-50 border border-brand-500/30 px-6 py-3 text-sm font-semibold text-brand-500 transition hover:bg-brand-600/30 active:scale-95"
               whileTap={{ scale: 0.95 }}
             >
               Reessayer
@@ -479,7 +479,7 @@ function SuggestionCard({
 
   return (
     <motion.div
-      className="rounded-xl border border-white/10 bg-white/[0.02] p-4"
+      className=" border border-gray-200 bg-white p-4"
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.15 * (index + 1) }}
@@ -493,10 +493,10 @@ function SuggestionCard({
         </span>
         <button
           onClick={onCopy}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+          className={`flex items-center gap-1.5  px-3 py-1.5 text-xs font-medium transition ${
             isCopied
-              ? "bg-green-600/20 border border-green-500/30 text-green-400"
-              : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-300"
+              ? "bg-green-50 border border-green-500/30 text-green-600"
+              : "bg-gray-50 border border-gray-200 text-slate-500 hover:bg-gray-100 hover:text-slate-800"
           }`}
         >
           {isCopied ? (
@@ -512,12 +512,12 @@ function SuggestionCard({
       </div>
 
       {/* Message text */}
-      <p className="text-sm text-gray-200 leading-relaxed bg-white/[0.03] rounded-lg px-3 py-2.5 border border-white/5">
+      <p className="text-sm text-slate-800 leading-relaxed bg-white  px-3 py-2.5 border border-gray-200">
         {suggestion.text}
       </p>
 
       {/* Explanation */}
-      <p className="mt-2 text-xs text-gray-500 italic">
+      <p className="mt-2 text-xs text-slate-400 italic">
         {suggestion.explanation}
       </p>
     </motion.div>

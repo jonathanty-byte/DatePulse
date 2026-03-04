@@ -7,6 +7,8 @@
 // NE JAMAIS presenter comme conseil prescriptif. Decision COMEX 2026-03-03.
 
 import type { ConversationRecord, RawMessage, WrappedAppSource } from "./wrappedParser";
+import type { AdvancedConversationInsights } from "./conversationAdvanced";
+import { computeAdvancedInsights } from "./conversationAdvanced";
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -107,6 +109,9 @@ export interface ConversationInsights {
   confidenceLevel: "population" | "hypothesis";
   conversationsAnalyzed: number;
   source: WrappedAppSource;
+
+  // Advanced insights (H51-H70)
+  advancedInsights?: AdvancedConversationInsights;
 }
 
 // ── Escalation detection regex (H29) ────────────────────────────
@@ -637,6 +642,16 @@ export function computeConversationInsights(
   // Archetype
   const { name: archetype, description: archetypeDescription } = determineArchetype(breakdown);
 
+  // Advanced insights (H51-H70) — non-blocking, optional enrichment
+  let advancedInsights: AdvancedConversationInsights | undefined;
+  try {
+    if (conversations.length >= 5) {
+      advancedInsights = computeAdvancedInsights(conversations, source);
+    }
+  } catch {
+    // Graceful degradation: advanced insights are optional
+  }
+
   return {
     ghostBreakdown,
     survivalCurve,
@@ -659,5 +674,6 @@ export function computeConversationInsights(
     confidenceLevel: "hypothesis", // All based on H1-H50 (n=1 CEO)
     conversationsAnalyzed: conversations.length,
     source,
+    advancedInsights,
   };
 }

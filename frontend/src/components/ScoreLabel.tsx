@@ -29,21 +29,21 @@ export default function ScoreLabel({ score, event, app = "tinder", now }: ScoreL
       </span>
 
       {/* Message */}
-      <p className="text-base sm:text-lg font-medium text-gray-200">{message}</p>
+      <p className="text-base sm:text-lg font-medium text-slate-800">{message}</p>
 
       {/* Delta vs average */}
-      <p className="text-xs sm:text-sm text-gray-400">
+      <p className="text-xs sm:text-sm text-slate-500">
         {delta >= 0 ? (
-          <span className="text-green-400">+{delta}%</span>
+          <span className="text-green-600">+{delta}%</span>
         ) : (
-          <span className="text-red-400">{delta}%</span>
+          <span className="text-red-500">{delta}%</span>
         )}{" "}
         vs la moyenne de la semaine
       </p>
 
       {/* Active event */}
       {event && (
-        <span className="rounded-lg bg-brand-600/20 px-3 py-1 text-xs font-medium text-brand-400">
+        <span className="bg-brand-50 px-3 py-1 text-xs font-medium text-brand-500">
           {event}
         </span>
       )}

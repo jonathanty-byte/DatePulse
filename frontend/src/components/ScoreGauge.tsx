@@ -41,7 +41,7 @@ export default function ScoreGauge({ score, size = 220, mode }: ScoreGaugeProps)
           fill="none"
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          className="text-white/5"
+          className="text-gray-200"
         />
         {/* Animated score arc */}
         <motion.circle
@@ -116,7 +116,7 @@ export default function ScoreGauge({ score, size = 220, mode }: ScoreGaugeProps)
         >
           {score}
         </motion.span>
-        <span className="text-xs sm:text-sm text-gray-400">/100</span>
+        <span className="text-xs sm:text-sm text-slate-500">/100</span>
         <span className="mt-1 text-base sm:text-lg">{icon}</span>
       </div>
     </div>

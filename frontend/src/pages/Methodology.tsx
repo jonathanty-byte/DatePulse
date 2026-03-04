@@ -18,7 +18,7 @@ function Section({
 }) {
   return (
     <motion.section className="space-y-4" {...fade(delay)}>
-      <h2 className="text-xl font-bold text-white">{title}</h2>
+      <h2 className="text-xl font-bold text-slate-900">{title}</h2>
       {children}
     </motion.section>
   );
@@ -32,12 +32,12 @@ function Table({
   rows: (string | number)[][];
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-white/10">
+    <div className="overflow-x-auto border border-gray-200">
       <table className="w-full text-left text-sm">
         <thead>
-          <tr className="border-b border-white/10 bg-white/[0.03]">
+          <tr className="border-b border-gray-200 bg-gray-50">
             {headers.map((h) => (
-              <th key={h} className="px-4 py-2.5 font-semibold text-gray-300">
+              <th key={h} className="px-4 py-2.5 font-semibold text-slate-600">
                 {h}
               </th>
             ))}
@@ -47,10 +47,10 @@ function Table({
           {rows.map((row, i) => (
             <tr
               key={i}
-              className="border-b border-white/5 last:border-0 hover:bg-white/[0.02]"
+              className="border-b border-gray-100 last:border-0 hover:bg-gray-50"
             >
               {row.map((cell, j) => (
-                <td key={j} className="px-4 py-2 text-gray-400">
+                <td key={j} className="px-4 py-2 text-slate-500">
                   {cell}
                 </td>
               ))}
@@ -64,21 +64,21 @@ function Table({
 
 export default function Methodology() {
   return (
-    <div className="min-h-screen bg-[#080b14] text-gray-100">
+    <div className="min-h-screen bg-[#f8f9fc] text-slate-900">
       <NavBar />
       <main className="mx-auto max-w-4xl space-y-12 px-4 py-8 sm:py-12">
         {/* Title */}
         <motion.div {...fade(0)}>
           <a
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition mb-6"
+            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition mb-6"
           >
             &#x2190; Retour
           </a>
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
             Methodologie
           </h1>
-          <p className="mt-3 text-lg text-gray-400">
+          <p className="mt-3 text-lg text-slate-500">
             Comment DatePulse calcule le score d'activite de chaque app de
             rencontre, heure par heure.
           </p>
@@ -86,22 +86,22 @@ export default function Methodology() {
 
         {/* ── Pourquoi DatePulse ──────────────────────────── */}
         <Section title="Pourquoi DatePulse ?" delay={0.02}>
-          <div className="space-y-3 text-gray-400">
+          <div className="space-y-3 text-slate-500">
             <p>
-              <strong className="text-white">Le probleme :</strong> les apps de
+              <strong className="text-slate-900">Le probleme :</strong> les apps de
               dating sont concues pour te garder le plus longtemps possible. Le
               doomscroll dating — scroller sans but a des heures creuses —
               gaspille ton temps et tue ta motivation.
             </p>
             <p>
-              <strong className="text-white">L'approche data-driven :</strong> l'activite
+              <strong className="text-slate-900">L'approche data-driven :</strong> l'activite
               sur les apps suit des patterns previsibles a 99% (confirme par
               correlation r=0.995 avec Google Trends FR). DatePulse exploite ces
               donnees publiques pour te dire exactement quand les apps sont
               actives.
             </p>
             <p>
-              <strong className="text-white">Pourquoi "moins = mieux" :</strong> 15
+              <strong className="text-slate-900">Pourquoi "moins = mieux" :</strong> 15
               minutes pendant un momentum valent plus que 2 heures hors pic.
               En swipant au bon moment, tu maximises tes matches tout en
               recuperant du temps.
@@ -111,16 +111,16 @@ export default function Methodology() {
 
         {/* ── Principe ──────────────────────────────────── */}
         <Section title="Principe general" delay={0.05}>
-          <p className="text-gray-400">
+          <p className="text-slate-500">
             L'activite sur les apps de rencontre suit des patterns temporels
             previsibles : les utilisateurs swipent plus le samedi soir qu'un
             mardi matin. Ces patterns sont documentes par les apps elles-memes
             (publications officielles, blogs, RP) et par des cabinets d'analyse
             independants.
           </p>
-          <p className="text-gray-400">
+          <p className="text-slate-500">
             DatePulse agrege ces donnees publiques et les traduit en un score
-            0-100 calcule <strong className="text-white">100% cote client</strong>.
+            0-100 calcule <strong className="text-slate-900">100% cote client</strong>.
             Aucune donnee utilisateur n'est collectee, aucune API externe n'est
             appelee en temps reel. Le calcul est deterministe et reproductible.
           </p>
@@ -128,38 +128,38 @@ export default function Methodology() {
 
         {/* ── Formule ───────────────────────────────────── */}
         <Section title="Formule de scoring" delay={0.1}>
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-5">
-            <code className="text-base font-semibold text-brand-400">
+          <div className="border border-gray-200 bg-gray-50 p-5">
+            <code className="text-base font-semibold text-brand-500">
               score(t) = hourly[h] &times; weekly[d] &times; monthly[m] / 10 000
               &times; event_multiplier &times; weather_modifier
             </code>
           </div>
-          <p className="text-gray-400">
+          <p className="text-slate-500">
             Le score combine 5 facteurs independants :
           </p>
-          <ul className="list-inside list-disc space-y-1 text-gray-400">
+          <ul className="list-inside list-disc space-y-1 text-slate-500">
             <li>
-              <strong className="text-gray-200">Indice horaire (0-100)</strong>{" "}
+              <strong className="text-slate-800">Indice horaire (0-100)</strong>{" "}
               — pic a 20h, creux entre 1h-5h
             </li>
             <li>
-              <strong className="text-gray-200">Indice journalier (0-100)</strong>{" "}
+              <strong className="text-slate-800">Indice journalier (0-100)</strong>{" "}
               — pic le samedi, creux le vendredi
             </li>
             <li>
-              <strong className="text-gray-200">Indice mensuel (0-100)</strong>{" "}
+              <strong className="text-slate-800">Indice mensuel (0-100)</strong>{" "}
               — pic en janvier, creux en decembre
             </li>
             <li>
-              <strong className="text-gray-200">Multiplicateur evenementiel</strong>{" "}
+              <strong className="text-slate-800">Multiplicateur evenementiel</strong>{" "}
               — boost ou reduction pour les periodes speciales et patterns psychologiques
             </li>
             <li>
-              <strong className="text-gray-200">Modificateur meteo</strong>{" "}
+              <strong className="text-slate-800">Modificateur meteo</strong>{" "}
               — ajustement leger base sur les conditions a Paris (pluie, neige = plus d'activite)
             </li>
           </ul>
-          <p className="text-gray-400">
+          <p className="text-slate-500">
             Le resultat est borne entre 0 et 100, puis converti en label
             contextuel : HORS PIC, TRANSITION, MOMENTUM, MOMENTUM+, MOMENTUM OPTIMAL.
           </p>
@@ -167,7 +167,7 @@ export default function Methodology() {
 
         {/* ── Sources per factor ─────────────────────────── */}
         <Section title="Sources de donnees" delay={0.15}>
-          <h3 className="font-semibold text-gray-200">
+          <h3 className="font-semibold text-slate-800">
             Indice horaire — Pic d'activite en soiree
           </h3>
           <Table
@@ -211,7 +211,7 @@ export default function Methodology() {
             ]}
           />
 
-          <h3 className="mt-6 font-semibold text-gray-200">
+          <h3 className="mt-6 font-semibold text-slate-800">
             Indice journalier — Le samedi domine
           </h3>
           <Table
@@ -245,7 +245,7 @@ export default function Methodology() {
             ]}
           />
 
-          <h3 className="mt-6 font-semibold text-gray-200">
+          <h3 className="mt-6 font-semibold text-slate-800">
             Indice mensuel — Janvier en tete
           </h3>
           <Table
@@ -279,7 +279,7 @@ export default function Methodology() {
             ]}
           />
 
-          <h3 className="mt-6 font-semibold text-gray-200">
+          <h3 className="mt-6 font-semibold text-slate-800">
             Evenements speciaux et patterns psychologiques
           </h3>
           <Table
@@ -384,10 +384,10 @@ export default function Methodology() {
             ]}
           />
 
-          <h3 className="mt-6 font-semibold text-gray-200">
+          <h3 className="mt-6 font-semibold text-slate-800">
             Modificateur meteo
           </h3>
-          <p className="text-gray-400">
+          <p className="text-slate-500">
             Les conditions meteorologiques a Paris influencent l'utilisation des
             apps. Par mauvais temps, les gens restent chez eux et ouvrent plus
             les apps de rencontre.
@@ -408,7 +408,7 @@ export default function Methodology() {
 
         {/* ── Per-app calibration ────────────────────────── */}
         <Section title="Calibrage par app" delay={0.2}>
-          <p className="text-gray-400">
+          <p className="text-slate-500">
             Chaque app a ses propres patterns. DatePulse maintient des tables
             separees pour Tinder, Bumble, Hinge et Happn, calibrees sur les
             publications specifiques de chaque app.
@@ -450,34 +450,34 @@ export default function Methodology() {
 
         {/* ── Pool Freshness ─────────────────────────────── */}
         <Section title="Pool Freshness Score" delay={0.25}>
-          <p className="text-gray-400">
+          <p className="text-slate-500">
             En complement du score d'activite (qui mesure{" "}
             <em>quand</em> les utilisateurs sont connectes), le Pool Freshness
-            mesure la <strong className="text-white">qualite du pool de profils</strong>{" "}
+            mesure la <strong className="text-slate-900">qualite du pool de profils</strong>{" "}
             ce mois-ci : y a-t-il beaucoup de nouveaux inscrits, ou le pool stagne ?
           </p>
 
-          <h3 className="font-semibold text-gray-200">Formule</h3>
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-5">
-            <code className="text-base font-semibold text-brand-400">
+          <h3 className="font-semibold text-slate-800">Formule</h3>
+          <div className="border border-gray-200 bg-gray-50 p-5">
+            <code className="text-base font-semibold text-brand-500">
               netGrowth = installs &times; 0.6 + (100 &minus; churn) &times; 0.4
             </code>
           </div>
-          <ul className="list-inside list-disc space-y-1 text-gray-400">
+          <ul className="list-inside list-disc space-y-1 text-slate-500">
             <li>
-              <strong className="text-gray-200">Installs (0-100)</strong> — Indice
+              <strong className="text-slate-800">Installs (0-100)</strong> — Indice
               d'installations du mois, normalise. Source : Adjust Benchmarks
               2023-2024 (% vs moyenne annuelle, toutes apps de rencontre
               confondues).
             </li>
             <li>
-              <strong className="text-gray-200">Churn (0-100)</strong> — Intensite
+              <strong className="text-slate-800">Churn (0-100)</strong> — Intensite
               des departs. Source : Sensor Tower (taux de churn MoM 20-30% pour
               les apps de rencontre), croise avec les tendances MAU France.
             </li>
           </ul>
 
-          <h3 className="mt-4 font-semibold text-gray-200">Niveaux</h3>
+          <h3 className="mt-4 font-semibold text-slate-800">Niveaux</h3>
           <Table
             headers={["Score", "Label", "Signification"]}
             rows={[
@@ -489,7 +489,7 @@ export default function Methodology() {
             ]}
           />
 
-          <h3 className="mt-4 font-semibold text-gray-200">
+          <h3 className="mt-4 font-semibold text-slate-800">
             Donnees source detaillees
           </h3>
           <Table
@@ -513,7 +513,7 @@ export default function Methodology() {
 
         {/* ── AI Profile Audit ──────────────────────────── */}
         <Section title="Comment fonctionne l'audit IA" delay={0.28}>
-          <p className="text-gray-400">
+          <p className="text-slate-500">
             L'AI Profile Audit analyse tes screenshots de profil via un modele
             de vision (DeepSeek V3 via OpenRouter). Le scoring evalue 5 criteres :
           </p>
@@ -527,11 +527,11 @@ export default function Methodology() {
               ["Features de l'app", "10%", "Prompts Hinge, Spotify anthem, interets"],
             ]}
           />
-          <p className="mt-3 text-gray-400">
+          <p className="mt-3 text-slate-500">
             Les recommandations s'appuient sur les etudes publiees par Hinge et
             Tinder. Score moyen attendu : 40-60. Un 80+ est rare.
           </p>
-          <div className="mt-3 flex items-center gap-2 text-xs text-gray-600">
+          <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
             <span>&#x1F512;</span>
             <span>Tes photos ne sont pas stockees. Elles sont envoyees a l'IA pour analyse puis supprimees.</span>
           </div>
@@ -539,36 +539,36 @@ export default function Methodology() {
 
         {/* ── Limites ───────────────────────────────────── */}
         <Section title="Limites et transparence" delay={0.3}>
-          <ul className="list-inside list-disc space-y-2 text-gray-400">
+          <ul className="list-inside list-disc space-y-2 text-slate-500">
             <li>
-              <strong className="text-gray-200">Donnees publiques uniquement</strong>{" "}
+              <strong className="text-slate-800">Donnees publiques uniquement</strong>{" "}
               — DatePulse n'a pas acces aux donnees internes des apps (DAU, MAU
               en temps reel, nombre de swipes). Les indices sont derives de
               publications officielles et d'etudes tierces.
             </li>
             <li>
-              <strong className="text-gray-200">Granularite mensuelle limitee</strong>{" "}
+              <strong className="text-slate-800">Granularite mensuelle limitee</strong>{" "}
               — L'indice mensuel provient de benchmarks annuels agreges. Les
               variations jour par jour au sein d'un mois ne sont pas captees.
             </li>
             <li>
-              <strong className="text-gray-200">Pas de donnees geo-localisees</strong>{" "}
+              <strong className="text-slate-800">Pas de donnees geo-localisees</strong>{" "}
               — Les patterns sont calibres pour la France metropolitaine.
               Les variations regionales (Paris vs province) ne sont pas modelisees.
             </li>
             <li>
-              <strong className="text-gray-200">Churn estime</strong>{" "}
+              <strong className="text-slate-800">Churn estime</strong>{" "}
               — Les taux de churn sont estimes a partir de tendances MAU et de
               donnees sectorielles (20-30% MoM), pas de chiffres exacts par app.
             </li>
             <li>
-              <strong className="text-gray-200">Meteo limitee a Paris</strong>{" "}
+              <strong className="text-slate-800">Meteo limitee a Paris</strong>{" "}
               — Le modificateur meteo utilise les conditions actuelles a Paris.
               Il n'est pas disponible pour les autres villes et n'affecte que le
               score en temps reel (pas la heatmap ni les meilleurs creneaux).
             </li>
             <li>
-              <strong className="text-gray-200">Modele statique</strong>{" "}
+              <strong className="text-slate-800">Modele statique</strong>{" "}
               — Les tables ne sont pas mises a jour en temps reel. Elles sont
               recalibrees periodiquement quand de nouvelles publications sortent.
             </li>
@@ -577,7 +577,7 @@ export default function Methodology() {
 
         {/* ── References ────────────────────────────────── */}
         <Section title="References" delay={0.35}>
-          <ul className="list-inside list-disc space-y-1.5 text-sm text-gray-500">
+          <ul className="list-inside list-disc space-y-1.5 text-sm text-slate-400">
             <li>Adjust — Global App Trends 2024: Dating App Benchmarks</li>
             <li>Sensor Tower — France Dating Apps Quarterly Reports (Q1-Q4 2024, Q1 2025)</li>
             <li>data.ai (ex App Annie) — State of Mobile 2024: Dating Category</li>
@@ -599,19 +599,19 @@ export default function Methodology() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 px-4 py-8">
-        <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-gray-600 space-y-2">
-          <p className="font-medium text-gray-500">
+      <footer className="border-t border-gray-200 px-4 py-8">
+        <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-slate-400 space-y-2">
+          <p className="font-medium text-slate-400">
             DatePulse — Swipe when it matters.
           </p>
           <p>
-            <a href="/methodology" className="hover:text-gray-400 transition">Methodologie</a>
-            <span className="mx-2 text-gray-700">|</span>
-            <a href="/audit" className="hover:text-gray-400 transition">Audit</a>
-            <span className="mx-2 text-gray-700">|</span>
+            <a href="/methodology" className="hover:text-slate-900 transition">Methodologie</a>
+            <span className="mx-2 text-slate-300">|</span>
+            <a href="/audit" className="hover:text-slate-900 transition">Audit</a>
+            <span className="mx-2 text-slate-300">|</span>
             <span>@EvolvedMonkey</span>
           </p>
-          <p className="text-gray-700">
+          <p className="text-slate-300">
             Aucune donnee personnelle stockee sur nos serveurs.
           </p>
         </div>

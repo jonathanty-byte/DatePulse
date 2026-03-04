@@ -6,11 +6,11 @@ interface AppSelectorProps {
   onChange: (app: AppName) => void;
 }
 
-const APP_COLORS: Record<AppName, string> = {
-  tinder: "from-orange-500 to-pink-500",
-  bumble: "from-yellow-400 to-yellow-600",
-  hinge: "from-gray-500 to-gray-700",
-  happn: "from-orange-500 to-orange-700",
+const APP_STYLES: Record<AppName, { border: string; text: string; bg: string; activeBg: string }> = {
+  tinder: { border: "border-pink-300", text: "text-pink-500", bg: "bg-pink-50", activeBg: "bg-pink-500" },
+  bumble: { border: "border-amber-300", text: "text-amber-600", bg: "bg-amber-50", activeBg: "bg-amber-500" },
+  hinge: { border: "border-violet-300", text: "text-violet-600", bg: "bg-violet-50", activeBg: "bg-violet-500" },
+  happn: { border: "border-orange-300", text: "text-orange-600", bg: "bg-orange-50", activeBg: "bg-orange-500" },
 };
 
 function capitalize(s: string) {
@@ -19,17 +19,18 @@ function capitalize(s: string) {
 
 export default function AppSelector({ selected, onChange }: AppSelectorProps) {
   return (
-    <div className="flex gap-1.5 sm:gap-2">
+    <div className="flex gap-3">
       {APPS.map((app) => {
         const isActive = app === selected;
+        const s = APP_STYLES[app];
         return (
           <button
             key={app}
             onClick={() => onChange(app)}
-            className={`rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-all active:scale-95 ${
+            className={`px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-[13px] font-semibold tracking-wide transition-all active:scale-95 border ${
               isActive
-                ? `bg-gradient-to-r ${APP_COLORS[app]} text-white shadow-lg`
-                : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200"
+                ? `${s.activeBg} text-white border-transparent shadow-sm`
+                : `${s.bg} ${s.text} ${s.border} hover:shadow-sm`
             }`}
           >
             {capitalize(app)}

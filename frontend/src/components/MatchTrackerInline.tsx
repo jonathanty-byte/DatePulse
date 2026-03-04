@@ -55,7 +55,7 @@ function MiniBarChart({ data }: { data: WeeklyData[] }) {
     <div className="flex items-end gap-1.5 sm:gap-2 h-28 sm:h-32">
       {data.map((d, i) => (
         <div key={i} className="flex-1 flex flex-col items-center gap-1">
-          <span className="text-[10px] sm:text-xs text-gray-400 font-medium">
+          <span className="text-[10px] sm:text-xs text-slate-500 font-medium">
             {d.matches}
           </span>
           <motion.div
@@ -65,7 +65,7 @@ function MiniBarChart({ data }: { data: WeeklyData[] }) {
             animate={{ height: `${(d.matches / maxMatches) * 100}%` }}
             transition={{ duration: 0.5, delay: i * 0.05 }}
           />
-          <span className="text-[8px] sm:text-[10px] text-gray-500 truncate w-full text-center">
+          <span className="text-[8px] sm:text-[10px] text-slate-400 truncate w-full text-center">
             {d.week}
           </span>
         </div>
@@ -168,7 +168,7 @@ export default function MatchTrackerInline({ currentApp }: Props) {
 
   return (
     <motion.div
-      className="rounded-2xl border border-brand-500/15 bg-white/[0.02] p-4 sm:p-6"
+      className="border border-gray-200 bg-white shadow-sm p-4 sm:p-6"
       initial={{ opacity: 0, y: 20, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: 0.35, duration: 0.5 }}
@@ -176,16 +176,16 @@ export default function MatchTrackerInline({ currentApp }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-base sm:text-lg font-semibold text-white">
+          <h2 className="text-base sm:text-lg font-semibold text-slate-900">
             Match Tracker
           </h2>
-          <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5">
+          <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">
             Note tes matches, decouvre tes patterns
           </p>
         </div>
         <motion.button
           onClick={() => { if (showForm) resetForm(); else setShowForm(true); }}
-          className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-emerald-600 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-md shadow-brand-500/20 transition hover:shadow-brand-500/30 active:scale-95"
+          className="flex items-center gap-1.5 bg-gradient-to-r from-brand-600 to-emerald-600 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-95"
           whileTap={{ scale: 0.95 }}
         >
           <span>{showForm ? "\u2715" : "+"}</span>
@@ -197,7 +197,7 @@ export default function MatchTrackerInline({ currentApp }: Props) {
       <AnimatePresence>
         {showForm && (
           <motion.div
-            className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-4"
+            className="mb-4 border border-gray-200 bg-gray-50 p-3 sm:p-4"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -205,7 +205,7 @@ export default function MatchTrackerInline({ currentApp }: Props) {
           >
             {/* App selector */}
             <div className="mb-2.5">
-              <label className="mb-1 block text-[10px] sm:text-xs text-gray-400">App</label>
+              <label className="mb-1 block text-[10px] sm:text-xs text-slate-500">App</label>
               <div className="flex gap-1.5">
                 {APPS.map((app) => (
                   <button
@@ -213,8 +213,8 @@ export default function MatchTrackerInline({ currentApp }: Props) {
                     onClick={() => setFormApp(app)}
                     className={`rounded-md px-2.5 py-1 text-[10px] sm:text-xs font-medium transition-all active:scale-95 ${
                       formApp === app
-                        ? "bg-white/15 text-white ring-1 ring-white/20"
-                        : "bg-white/5 text-gray-400 hover:bg-white/10"
+                        ? "bg-gray-200 text-slate-900 ring-1 ring-gray-300"
+                        : "bg-gray-50 text-slate-500 hover:bg-gray-100"
                     }`}
                   >
                     {capitalize(app)}
@@ -226,30 +226,30 @@ export default function MatchTrackerInline({ currentApp }: Props) {
             {/* Date + Note row */}
             <div className="flex gap-2 mb-3">
               <div className="flex-1">
-                <label className="mb-1 block text-[10px] sm:text-xs text-gray-400">Quand</label>
+                <label className="mb-1 block text-[10px] sm:text-xs text-slate-500">Quand</label>
                 <input
                   type="datetime-local"
                   value={formDate}
                   onChange={(e) => setFormDate(e.target.value)}
-                  className="w-full rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-gray-200 outline-none focus:border-brand-500/50"
+                  className="w-full rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-brand-500/50"
                 />
               </div>
               <div className="flex-1">
-                <label className="mb-1 block text-[10px] sm:text-xs text-gray-400">Note</label>
+                <label className="mb-1 block text-[10px] sm:text-xs text-slate-500">Note</label>
                 <input
                   type="text"
                   value={formNote}
                   onChange={(e) => setFormNote(e.target.value)}
                   placeholder="Optionnel..."
                   maxLength={80}
-                  className="w-full rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-gray-200 placeholder:text-gray-600 outline-none focus:border-brand-500/50"
+                  className="w-full rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:border-brand-500/50"
                 />
               </div>
             </div>
 
             {/* Compatibility rating */}
             <div className="mb-3">
-              <label className="mb-1.5 block text-[10px] sm:text-xs text-gray-400">
+              <label className="mb-1.5 block text-[10px] sm:text-xs text-slate-500">
                 Compatibilite{formRating > 0 ? ` — ${formRating}/10` : ""}
               </label>
               <div className="flex gap-1">
@@ -261,11 +261,11 @@ export default function MatchTrackerInline({ currentApp }: Props) {
                     className={`flex-1 rounded-md py-1.5 text-[10px] sm:text-xs font-medium transition-all active:scale-90 ${
                       formRating >= v
                         ? v >= 8
-                          ? "bg-green-500/30 text-green-300 ring-1 ring-green-500/30"
+                          ? "bg-green-50 text-green-600 ring-1 ring-green-200"
                           : v >= 5
-                            ? "bg-yellow-500/25 text-yellow-300 ring-1 ring-yellow-500/25"
-                            : "bg-red-500/25 text-red-300 ring-1 ring-red-500/25"
-                        : "bg-white/5 text-gray-500 hover:bg-white/10"
+                            ? "bg-yellow-50 text-yellow-600 ring-1 ring-yellow-200"
+                            : "bg-red-50 text-red-500 ring-1 ring-red-200"
+                        : "bg-gray-50 text-slate-400 hover:bg-gray-100"
                     }`}
                   >
                     {v}
@@ -288,39 +288,39 @@ export default function MatchTrackerInline({ currentApp }: Props) {
       {/* Stats row */}
       {stats && stats.total > 0 && (
         <div className="mb-4 grid grid-cols-4 gap-2">
-          <div className="rounded-lg bg-white/[0.04] p-2 sm:p-3 text-center">
-            <p className="text-lg sm:text-xl font-bold text-white">{stats.total}</p>
-            <p className="text-[8px] sm:text-[10px] text-gray-500">matches</p>
+          <div className="bg-gray-50 p-2 sm:p-3 text-center">
+            <p className="text-lg sm:text-xl font-bold text-slate-900">{stats.total}</p>
+            <p className="text-[8px] sm:text-[10px] text-slate-400">matches</p>
           </div>
-          <div className="rounded-lg bg-white/[0.04] p-2 sm:p-3 text-center">
+          <div className="bg-gray-50 p-2 sm:p-3 text-center">
             <p className="text-lg sm:text-xl font-bold" style={{ color: scoreToColor(stats.avgScore) }}>
               {stats.avgScore}
             </p>
-            <p className="text-[8px] sm:text-[10px] text-gray-500">score moy.</p>
+            <p className="text-[8px] sm:text-[10px] text-slate-400">score moy.</p>
           </div>
-          <div className="rounded-lg bg-white/[0.04] p-2 sm:p-3 text-center">
-            <p className="text-sm sm:text-base font-bold text-white truncate">
+          <div className="bg-gray-50 p-2 sm:p-3 text-center">
+            <p className="text-sm sm:text-base font-bold text-slate-900 truncate">
               {stats.bestDay ? stats.bestDay.slice(0, 3) : "—"}
             </p>
-            <p className="text-[8px] sm:text-[10px] text-gray-500">jour</p>
+            <p className="text-[8px] sm:text-[10px] text-slate-400">jour</p>
           </div>
-          <div className="rounded-lg bg-white/[0.04] p-2 sm:p-3 text-center">
-            <p className="text-lg sm:text-xl font-bold text-white">
+          <div className="bg-gray-50 p-2 sm:p-3 text-center">
+            <p className="text-lg sm:text-xl font-bold text-slate-900">
               {stats.bestHour !== null ? `${stats.bestHour}h` : "—"}
             </p>
-            <p className="text-[8px] sm:text-[10px] text-gray-500">heure</p>
+            <p className="text-[8px] sm:text-[10px] text-slate-400">heure</p>
           </div>
         </div>
       )}
 
       {/* Correlation insight */}
       {stats && stats.total >= 3 && (
-        <div className="mb-4 rounded-lg bg-gradient-to-r from-brand-900/20 to-transparent px-3 py-2.5 text-xs text-gray-300">
-          <span className="text-green-400 font-medium">{stats.highScoreMatches}</span> matches score &ge;60
+        <div className="mb-4 rounded-lg bg-brand-50 px-3 py-2.5 text-xs text-slate-500">
+          <span className="text-green-600 font-medium">{stats.highScoreMatches}</span> matches score &ge;60
           {" · "}
-          <span className="text-red-400 font-medium">{stats.lowScoreMatches}</span> score &lt;40
+          <span className="text-red-500 font-medium">{stats.lowScoreMatches}</span> score &lt;40
           {stats.highScoreMatches > stats.lowScoreMatches && stats.total >= 5 && (
-            <span className="block mt-1 text-brand-400 font-medium text-[10px] sm:text-xs">
+            <span className="block mt-1 text-brand-500 font-medium text-[10px] sm:text-xs">
               Tu matches plus quand DatePulse est haut !
             </span>
           )}
@@ -331,7 +331,7 @@ export default function MatchTrackerInline({ currentApp }: Props) {
       {weeklyData.length > 1 && (
         <div className="mb-4">
           <MiniBarChart data={weeklyData} />
-          <p className="mt-1 text-[8px] sm:text-[10px] text-gray-600 text-center">
+          <p className="mt-1 text-[8px] sm:text-[10px] text-slate-400 text-center">
             Matches/semaine — couleur = score moyen
           </p>
         </div>
@@ -341,7 +341,7 @@ export default function MatchTrackerInline({ currentApp }: Props) {
       {matches.length === 0 ? (
         <div className="py-6 text-center">
           <p className="text-2xl mb-1">{"\u2764\uFE0F"}</p>
-          <p className="text-xs text-gray-400">Aucun match — clique "+" pour commencer</p>
+          <p className="text-xs text-slate-500">Aucun match — clique "+" pour commencer</p>
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -351,7 +351,7 @@ export default function MatchTrackerInline({ currentApp }: Props) {
               return (
                 <motion.div
                   key={m.id}
-                  className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-2.5 sm:px-3 py-2 group"
+                  className="flex items-center gap-2 rounded-lg bg-gray-50 px-2.5 sm:px-3 py-2 group"
                   layout
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -363,15 +363,15 @@ export default function MatchTrackerInline({ currentApp }: Props) {
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] sm:text-xs font-medium text-gray-200">
+                      <span className="text-[10px] sm:text-xs font-medium text-slate-800">
                         {capitalize(m.app)}
                       </span>
-                      <span className="text-[9px] sm:text-[10px] text-gray-500">
+                      <span className="text-[9px] sm:text-[10px] text-slate-400">
                         {formatDate(m.timestamp)}
                       </span>
                     </div>
                     {m.note && (
-                      <p className="text-[9px] sm:text-[10px] text-gray-500 truncate">{m.note}</p>
+                      <p className="text-[9px] sm:text-[10px] text-slate-400 truncate">{m.note}</p>
                     )}
                   </div>
                   {/* Rating badge */}
@@ -379,10 +379,10 @@ export default function MatchTrackerInline({ currentApp }: Props) {
                     <span
                       className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold ${
                         m.rating >= 8
-                          ? "bg-green-500/20 text-green-400"
+                          ? "bg-green-50 text-green-600"
                           : m.rating >= 5
-                            ? "bg-yellow-500/20 text-yellow-300"
-                            : "bg-red-500/20 text-red-400"
+                            ? "bg-yellow-50 text-yellow-600"
+                            : "bg-red-50 text-red-500"
                       }`}
                     >
                       {m.rating}/10
@@ -399,7 +399,7 @@ export default function MatchTrackerInline({ currentApp }: Props) {
                   </div>
                   <button
                     onClick={() => handleEdit(m)}
-                    className="shrink-0 rounded px-1.5 py-0.5 text-[9px] text-gray-600 opacity-0 group-hover:opacity-100 hover:text-blue-400 transition"
+                    className="shrink-0 rounded px-1.5 py-0.5 text-[9px] text-slate-400 opacity-0 group-hover:opacity-100 hover:text-blue-400 transition"
                     title="Modifier"
                   >
                     &#9998;
@@ -408,8 +408,8 @@ export default function MatchTrackerInline({ currentApp }: Props) {
                     onClick={() => handleDelete(m.id)}
                     className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] transition ${
                       deleteConfirm === m.id
-                        ? "bg-red-500/20 text-red-400"
-                        : "text-gray-600 opacity-0 group-hover:opacity-100 hover:text-red-400"
+                        ? "bg-red-50 text-red-500"
+                        : "text-slate-400 opacity-0 group-hover:opacity-100 hover:text-red-500"
                     }`}
                   >
                     {deleteConfirm === m.id ? "OK" : "\u2715"}
@@ -422,7 +422,7 @@ export default function MatchTrackerInline({ currentApp }: Props) {
           {matches.length > 5 && (
             <button
               onClick={() => setExpanded(!expanded)}
-              className="w-full text-center text-[10px] sm:text-xs text-gray-500 hover:text-gray-300 py-1.5 transition"
+              className="w-full text-center text-[10px] sm:text-xs text-slate-400 hover:text-slate-500 py-1.5 transition"
             >
               {expanded ? "Voir moins" : `Voir tout (${matches.length})`}
             </button>
@@ -431,7 +431,7 @@ export default function MatchTrackerInline({ currentApp }: Props) {
       )}
 
       {/* Privacy note */}
-      <p className="mt-3 text-center text-[8px] sm:text-[9px] text-gray-600">
+      <p className="mt-3 text-center text-[8px] sm:text-[9px] text-slate-400">
         Stocke localement — rien n'est envoye
       </p>
     </motion.div>

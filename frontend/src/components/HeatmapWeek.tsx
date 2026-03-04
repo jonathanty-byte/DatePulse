@@ -56,7 +56,7 @@ export default function HeatmapWeek({ now, app = "tinder" }: HeatmapWeekProps) {
       {/* Tooltip for mobile */}
       {tooltip && (
         <motion.div
-          className="mb-2 flex items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 text-xs sm:hidden"
+          className="mb-2 flex items-center justify-center gap-2 bg-gray-100 px-3 py-1.5 text-xs sm:hidden"
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -64,10 +64,10 @@ export default function HeatmapWeek({ now, app = "tinder" }: HeatmapWeekProps) {
             className="inline-block h-2.5 w-2.5 rounded-sm"
             style={{ backgroundColor: scoreToHex(tooltip.score) }}
           />
-          <span className="font-medium text-gray-200">
+          <span className="font-medium text-slate-800">
             {tooltip.dayName} {tooltip.hour}h
           </span>
-          <span className="text-gray-400">—</span>
+          <span className="text-slate-500">—</span>
           <span className="font-semibold" style={{ color: scoreToHex(tooltip.score) }}>
             {tooltip.score}/100
           </span>
@@ -83,7 +83,7 @@ export default function HeatmapWeek({ now, app = "tinder" }: HeatmapWeekProps) {
             {HOURS.map((h) => (
               <div
                 key={h}
-                className="flex-1 text-center text-[10px] text-gray-500"
+                className="flex-1 text-center text-[10px] text-slate-400"
               >
                 {h % 3 === 0 ? `${h}h` : ""}
               </div>
@@ -99,7 +99,7 @@ export default function HeatmapWeek({ now, app = "tinder" }: HeatmapWeekProps) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 + rowIdx * 0.04 }}
             >
-              <div className="w-10 shrink-0 text-xs font-medium text-gray-400">
+              <div className="w-10 shrink-0 text-xs font-medium text-slate-500">
                 {slots[0].dayName}
               </div>
               <div className="flex flex-1 gap-0.5">
@@ -134,7 +134,7 @@ export default function HeatmapWeek({ now, app = "tinder" }: HeatmapWeekProps) {
           {HOURS.map((h) => (
             <div
               key={h}
-              className="flex-1 text-center text-[8px] text-gray-500"
+              className="flex-1 text-center text-[8px] text-slate-400"
             >
               {h % 4 === 0 ? `${h}h` : ""}
             </div>
@@ -150,7 +150,7 @@ export default function HeatmapWeek({ now, app = "tinder" }: HeatmapWeekProps) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 + rowIdx * 0.04 }}
           >
-            <div className="w-8 shrink-0 text-[10px] font-medium text-gray-400">
+            <div className="w-8 shrink-0 text-[10px] font-medium text-slate-500">
               {slots[0].dayName.slice(0, 2)}
             </div>
             <div className="flex flex-1 gap-px">
@@ -177,7 +177,7 @@ export default function HeatmapWeek({ now, app = "tinder" }: HeatmapWeekProps) {
       </div>
 
       {/* Legend */}
-      <div className="mt-3 flex items-center justify-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-gray-500">
+      <div className="mt-3 flex items-center justify-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-slate-400">
         <span className="flex items-center gap-1">
           <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm bg-red-600/60" />
           Zone morte

@@ -1,7 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
 import Home from "./pages/Home";
-const Methodology = lazy(() => import("./pages/Methodology"));
-const Audit = lazy(() => import("./pages/Audit"));
 const Coach = lazy(() => import("./pages/Coach"));
 const Wrapped = lazy(() => import("./pages/Wrapped"));
 const Tracker = lazy(() => import("./pages/Tracker"));
@@ -42,20 +40,20 @@ export default function App() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#080b14]">
+        <div className="flex min-h-screen items-center justify-center bg-[#f8f9fc]">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
         </div>
       }
     >
-      {page === "methodology" ? <Methodology /> : page === "coach" ? <Coach /> : page === "wrapped" ? <Wrapped /> : page === "tracker" ? <Tracker /> : page === "insights" ? <Insights /> : <Audit />}
+      {page === "coach" ? <Coach /> : page === "wrapped" ? <Wrapped /> : page === "tracker" ? <Tracker /> : page === "insights" ? <Insights /> : <Coach />}
     </Suspense>
   );
 }
 
 function getPage(path?: string): string {
   const p = path || window.location.pathname;
-  if (p.startsWith("/methodology")) return "methodology";
-  if (p.startsWith("/audit")) return "audit";
+  if (p.startsWith("/methodology")) return "coach";
+  if (p.startsWith("/audit")) return "coach";
   if (p.startsWith("/coach")) return "coach";
   if (p.startsWith("/wrapped")) return "wrapped";
   if (p.startsWith("/tracker")) return "tracker";

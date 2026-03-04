@@ -50,7 +50,7 @@ function DeltaBadge({
   return (
     <span
       className={`ml-1.5 text-xs font-medium ${
-        isGood ? "text-green-400" : "text-red-400"
+        isGood ? "text-green-600" : "text-red-500"
       }`}
     >
       {isPositive ? "+" : ""}{delta}%
@@ -77,25 +77,25 @@ export default function WeeklyReportCard() {
 
   return (
     <motion.div
-      className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-6"
+      className="border border-gray-200 bg-white shadow-sm p-4 sm:p-6"
       initial={{ opacity: 0, y: 20, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: 0.2, duration: 0.5 }}
     >
       {/* Header with week navigation */}
       <div className="flex items-center justify-between mb-4 sm:mb-5">
-        <h2 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2">
+        <h2 className="text-base sm:text-lg font-semibold text-slate-900 flex items-center gap-2">
           <span>&#x1F4CA;</span>
           Ton bilan
         </h2>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setWeekOffset((o) => o - 1)}
-            className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition text-sm"
+            className="flex h-7 w-7 items-center justify-center bg-gray-50 text-slate-500 hover:bg-gray-100 hover:text-slate-900 transition text-sm"
           >
             &#x2039;
           </button>
-          <span className="text-xs text-gray-500 min-w-[120px] text-center">
+          <span className="text-xs text-slate-400 min-w-[120px] text-center">
             {weekOffset === 0
               ? "Cette semaine"
               : weekOffset === -1
@@ -105,7 +105,7 @@ export default function WeeklyReportCard() {
           <button
             onClick={() => setWeekOffset((o) => o + 1)}
             disabled={!canGoForward}
-            className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex h-7 w-7 items-center justify-center bg-gray-50 text-slate-500 hover:bg-gray-100 hover:text-slate-900 transition text-sm disabled:opacity-30 disabled:cursor-not-allowed"
           >
             &#x203A;
           </button>
@@ -113,17 +113,17 @@ export default function WeeklyReportCard() {
       </div>
 
       {/* Week range subtitle */}
-      <p className="text-xs text-gray-600 mb-4">
+      <p className="text-xs text-slate-400 mb-4">
         {formatDateRange(report.weekStart, report.weekEnd)}
       </p>
 
       {report.sessionsCount === 0 ? (
         /* Empty state */
         <div className="py-8 text-center">
-          <p className="text-sm text-gray-400 mb-2">
+          <p className="text-sm text-slate-500 mb-2">
             Aucune session cette semaine.
           </p>
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-slate-400">
             Lance ta premiere session pendant un momentum !
           </p>
         </div>
@@ -164,7 +164,7 @@ export default function WeeklyReportCard() {
 
           {/* Bar chart: matches by day */}
           <div className="mb-5">
-            <p className="text-xs text-gray-500 mb-2">Matches par jour</p>
+            <p className="text-xs text-slate-400 mb-2">Matches par jour</p>
             <div className="h-32 sm:h-40">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={report.dailyMatches} barCategoryGap="20%">
@@ -182,14 +182,14 @@ export default function WeeklyReportCard() {
                     width={20}
                   />
                   <Tooltip
-                    cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                    cursor={{ fill: "rgba(0,0,0,0.03)" }}
                     contentStyle={{
-                      background: "#1F2937",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: "8px",
+                      background: "#ffffff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "4px",
                       fontSize: "12px",
                     }}
-                    labelStyle={{ color: "#9CA3AF" }}
+                    labelStyle={{ color: "#64748b" }}
                     formatter={(value: number, _name: string, props: unknown) => {
                       const p = props as { payload?: { avgScore?: number } } | undefined;
                       const avg = p?.payload?.avgScore ?? 0;
@@ -200,7 +200,7 @@ export default function WeeklyReportCard() {
                     {report.dailyMatches.map((entry, i) => (
                       <Cell
                         key={i}
-                        fill={entry.matches > 0 ? scoreToBarColor(entry.avgScore) : "rgba(255,255,255,0.05)"}
+                        fill={entry.matches > 0 ? scoreToBarColor(entry.avgScore) : "rgba(0,0,0,0.05)"}
                       />
                     ))}
                   </Bar>
@@ -211,17 +211,17 @@ export default function WeeklyReportCard() {
 
           {/* Insight card */}
           <motion.div
-            className="rounded-xl bg-brand-600/10 border border-brand-500/20 px-4 py-3"
+            className="bg-brand-50 border border-brand-200 px-4 py-3"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <p className="text-sm text-brand-300">{insight}</p>
+            <p className="text-sm text-brand-500">{insight}</p>
           </motion.div>
 
           {/* Extra info */}
           {(report.bestDay || report.bestHour !== null) && (
-            <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-600">
+            <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-400">
               {report.bestDay && (
                 <span>Meilleur jour : {report.bestDay}</span>
               )}
@@ -258,25 +258,25 @@ function StatCard({
 }) {
   return (
     <motion.div
-      className="rounded-xl bg-white/[0.03] border border-white/5 p-3 sm:p-4"
+      className="bg-gray-50 border border-gray-200 p-3 sm:p-4"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
     >
       <div className="flex items-center gap-1.5 mb-1">
         <span className="text-sm" dangerouslySetInnerHTML={{ __html: icon }} />
-        <span className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wide">
+        <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wide">
           {label}
         </span>
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-lg sm:text-xl font-bold text-white">{value}</span>
+        <span className="text-lg sm:text-xl font-bold text-slate-900">{value}</span>
         {delta !== undefined && delta !== 0 && (
           <DeltaBadge delta={delta} invertColor={invertDelta} />
         )}
       </div>
       {subtitle && (
-        <p className="text-[10px] text-gray-600 mt-0.5">{subtitle}</p>
+        <p className="text-[10px] text-slate-400 mt-0.5">{subtitle}</p>
       )}
     </motion.div>
   );

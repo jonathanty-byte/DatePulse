@@ -64,7 +64,7 @@ export default function SessionSummary({
       transition={{ duration: 0.5 }}
     >
       {/* Celebratory gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-green-950/30 to-[#080b14]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-green-50 to-[#f8f9fc]" />
 
       <div className="relative mx-auto max-w-md flex flex-col items-center text-center">
         {/* Success badge */}
@@ -80,7 +80,7 @@ export default function SessionSummary({
 
         {/* Title */}
         <motion.h2
-          className="mt-4 text-xl sm:text-2xl font-extrabold text-white"
+          className="mt-4 text-xl sm:text-2xl font-extrabold text-slate-900"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -90,7 +90,7 @@ export default function SessionSummary({
 
         {/* Stats card */}
         <motion.div
-          className="mt-6 w-full rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
+          className="mt-6 w-full border border-gray-200 bg-white shadow-sm p-5 sm:p-6"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
@@ -124,7 +124,7 @@ export default function SessionSummary({
 
           {/* Score range */}
           <motion.div
-            className="mt-4 pt-4 border-t border-white/5 flex items-center justify-center gap-3 text-xs text-gray-500"
+            className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-center gap-3 text-xs text-slate-400"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.55 }}
@@ -138,12 +138,12 @@ export default function SessionSummary({
         {/* Percentile comparison */}
         {percentile !== null && (
           <motion.div
-            className="mt-4 w-full rounded-xl bg-brand-600/10 border border-brand-500/20 px-5 py-3"
+            className="mt-4 w-full bg-brand-50 border border-brand-200 px-5 py-3"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
           >
-            <p className="text-sm text-brand-300">
+            <p className="text-sm text-brand-500">
               &#x1F4C8; Mieux que {percentile}% de tes sessions
             </p>
           </motion.div>
@@ -152,7 +152,7 @@ export default function SessionSummary({
         {/* Global stats hint */}
         {stats.sessionsCount > 1 && (
           <motion.p
-            className="mt-3 text-xs text-gray-600"
+            className="mt-3 text-xs text-slate-400"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.65 }}
@@ -164,15 +164,15 @@ export default function SessionSummary({
         {/* Next green light */}
         {nextGreen && !isGreenLight && (
           <motion.div
-            className="mt-5 flex items-center gap-3 rounded-xl bg-white/5 border border-green-500/20 px-5 py-3"
+            className="mt-5 flex items-center gap-3 bg-gray-50 border border-green-200 px-5 py-3"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
           >
             <span className="text-xl">&#x1F7E2;</span>
             <div className="text-left">
-              <p className="text-xs text-gray-400">Prochain momentum</p>
-              <p className="text-sm font-bold text-green-400">
+              <p className="text-xs text-slate-500">Prochain momentum</p>
+              <p className="text-sm font-bold text-green-600">
                 {formatNext(nextGreen)}
               </p>
             </div>
@@ -189,7 +189,7 @@ export default function SessionSummary({
           {isGreenLight && (
             <motion.button
               onClick={onNewSession}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-600 to-emerald-500 px-6 py-3 text-sm sm:text-base font-semibold text-white shadow-lg shadow-green-500/25 transition hover:shadow-green-500/40 hover:brightness-110 active:scale-95"
+              className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-500 px-6 py-3 text-sm sm:text-base font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-95"
               whileTap={{ scale: 0.95 }}
             >
               <span>&#x1F3AF;</span>
@@ -200,8 +200,8 @@ export default function SessionSummary({
             onClick={onClose}
             className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm sm:text-base font-semibold transition active:scale-95 ${
               isGreenLight
-                ? "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-200"
-                : "bg-gradient-to-r from-gray-700 to-gray-600 text-white shadow-lg"
+                ? "bg-gray-50 border border-gray-200 text-slate-500 hover:bg-gray-100 hover:text-slate-900"
+                : "bg-gradient-to-r from-gray-600 to-gray-500 text-white shadow-sm"
             }`}
             whileTap={{ scale: 0.95 }}
           >
@@ -234,8 +234,8 @@ function StatItem({
       transition={{ delay }}
     >
       <span className="text-xl" dangerouslySetInnerHTML={{ __html: icon }} />
-      <span className="text-lg sm:text-xl font-bold text-white">{value}</span>
-      <span className="text-xs text-gray-500">{label}</span>
+      <span className="text-lg sm:text-xl font-bold text-slate-900">{value}</span>
+      <span className="text-xs text-slate-400">{label}</span>
     </motion.div>
   );
 }

@@ -144,7 +144,7 @@ export default function SessionTimer({
       transition={{ duration: 0.5 }}
     >
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-brand-900/20 to-[#080b14]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-brand-50 to-[#f8f9fc]" />
 
       {/* Pulsing session glow */}
       <motion.div
@@ -160,7 +160,7 @@ export default function SessionTimer({
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
         >
-          <span className="inline-block rounded-full bg-green-600/20 border border-green-500/30 px-5 py-1.5 text-sm sm:text-base font-bold tracking-widest text-green-400 uppercase">
+          <span className="inline-block rounded-full bg-green-50 border border-green-200 px-5 py-1.5 text-sm sm:text-base font-bold tracking-widest text-green-600 uppercase">
             Session en cours
           </span>
         </motion.div>
@@ -181,7 +181,7 @@ export default function SessionTimer({
               fill="none"
               stroke="currentColor"
               strokeWidth={strokeWidth}
-              className="text-white/5"
+              className="text-gray-200"
             />
             {/* Progress arc */}
             <motion.circle
@@ -239,7 +239,7 @@ export default function SessionTimer({
             >
               {timeStr}
             </motion.span>
-            <span className="text-xs sm:text-sm text-gray-400 mt-1">
+            <span className="text-xs sm:text-sm text-slate-500 mt-1">
               restantes
             </span>
           </div>
@@ -260,14 +260,14 @@ export default function SessionTimer({
 
         {/* Live score */}
         <motion.div
-          className="mt-5 flex items-center gap-2 text-sm text-gray-400"
+          className="mt-5 flex items-center gap-2 text-sm text-slate-500"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
           <span>Score actuel :</span>
-          <span className="font-bold text-green-400 text-base">{liveScore}</span>
-          <span className="text-gray-600">/100</span>
+          <span className="font-bold text-green-600 text-base">{liveScore}</span>
+          <span className="text-slate-400">/100</span>
         </motion.div>
 
         {/* Match counter */}
@@ -277,15 +277,15 @@ export default function SessionTimer({
           animate={{ opacity: 1 }}
           transition={{ delay: 0.35 }}
         >
-          <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-4 py-2">
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-4 py-2">
             <span className="text-lg">&#x1F495;</span>
-            <span className="text-sm text-gray-300">
+            <span className="text-sm text-slate-500">
               {matches} match{matches !== 1 ? "es" : ""}
             </span>
           </div>
           <motion.button
             onClick={handleAddMatch}
-            className="flex items-center justify-center w-10 h-10 rounded-xl bg-brand-600/20 border border-brand-500/30 text-brand-400 text-xl font-bold transition hover:bg-brand-600/30 active:scale-90"
+            className="flex items-center justify-center w-10 h-10 bg-brand-50 border border-brand-200 text-brand-500 text-xl font-bold transition hover:bg-brand-100 active:scale-90"
             whileTap={{ scale: 0.85 }}
           >
             +
@@ -297,8 +297,8 @@ export default function SessionTimer({
           onClick={handleStop}
           className={`mt-6 sm:mt-8 flex items-center gap-2 rounded-xl px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-semibold transition active:scale-95 ${
             showConfirm
-              ? "bg-red-600/80 text-white shadow-red-500/25 shadow-lg"
-              : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-200"
+              ? "bg-red-600 text-white shadow-sm"
+              : "bg-gray-50 border border-gray-200 text-slate-500 hover:bg-gray-100 hover:text-slate-900"
           }`}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -315,7 +315,7 @@ export default function SessionTimer({
         <AnimatePresence>
           {showMidToast && (
             <motion.div
-              className="mt-4 rounded-xl bg-amber-600/20 border border-amber-500/30 px-5 py-3 text-sm text-amber-300"
+              className="mt-4 bg-amber-50 border border-amber-200 px-5 py-3 text-sm text-amber-700"
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10 }}
@@ -350,10 +350,10 @@ export function DurationSelector({ selected, onChange }: DurationSelectorProps) 
         <button
           key={d}
           onClick={() => onChange(d)}
-          className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium transition ${
+          className={`px-3 py-1.5 text-xs sm:text-sm font-medium transition ${
             selected === d
-              ? "bg-green-600/30 border border-green-500/40 text-green-400"
-              : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-300"
+              ? "bg-green-50 border border-green-200 text-green-600"
+              : "bg-gray-50 border border-gray-200 text-slate-500 hover:bg-gray-100 hover:text-slate-700"
           }`}
         >
           {d} min

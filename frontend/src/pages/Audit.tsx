@@ -7,12 +7,12 @@ export default function Audit() {
   const fromRedLight = new URLSearchParams(window.location.search).get("from") === "redlight";
 
   return (
-    <div className="min-h-screen bg-[#080b14] text-gray-100">
+    <div className="min-h-screen bg-[#f8f9fc] text-slate-900">
       <NavBar />
 
       {/* Header */}
       <section className="relative overflow-hidden px-4 pb-6 pt-8 sm:pb-8 sm:pt-12">
-        <div className="absolute inset-0 bg-gradient-to-b from-brand-900/10 to-transparent" />
+        <div className="absolute inset-0" />
         <div className="relative mx-auto max-w-2xl text-center">
           <motion.div
             initial={{ opacity: 0, y: -16 }}
@@ -24,7 +24,7 @@ export default function Audit() {
                 AI Profile Audit
               </span>
             </h1>
-            <p className="mt-2 sm:mt-3 text-sm sm:text-base text-gray-400">
+            <p className="mt-2 sm:mt-3 text-sm sm:text-base text-slate-500">
               Ton profil est-il au niveau ? L'IA te donne un score et des recommandations.
             </p>
           </motion.div>
@@ -32,12 +32,12 @@ export default function Audit() {
           {/* Red Light context message */}
           {fromRedLight && (
             <motion.div
-              className="mt-4 rounded-xl bg-red-950/20 border border-red-500/20 px-5 py-3"
+              className="mt-4 bg-red-50 border border-red-200 px-5 py-3"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <p className="text-sm text-red-300">
+              <p className="text-sm text-red-500">
                 &#x1F534; Profite de ce moment calme pour ameliorer ton profil.
               </p>
             </motion.div>
@@ -51,8 +51,8 @@ export default function Audit() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 px-4 py-6">
-        <div className="mx-auto max-w-2xl text-center text-xs text-gray-600">
+      <footer className="border-t border-gray-200 px-4 py-6">
+        <div className="mx-auto max-w-2xl text-center text-xs text-slate-400">
           <p>L'analyse est effectuee par IA. Les resultats sont indicatifs.</p>
         </div>
       </footer>

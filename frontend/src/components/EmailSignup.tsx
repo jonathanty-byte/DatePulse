@@ -42,26 +42,26 @@ export default function EmailSignup() {
 
   return (
     <motion.div
-      className="rounded-2xl border border-brand-500/20 bg-gradient-to-br from-gray-900 to-brand-900/20 p-6 sm:p-8 text-center"
+      className="border border-gray-200 bg-white shadow-sm p-6 sm:p-8 text-center"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2, duration: 0.5 }}
     >
       <span className="text-3xl">&#x1F7E2;</span>
-      <h2 className="mt-3 text-lg sm:text-xl font-bold text-white">
+      <h2 className="mt-3 text-lg sm:text-xl font-bold text-slate-900">
         Recois ton momentum par email
       </h2>
-      <p className="mt-2 text-sm text-gray-400 max-w-md mx-auto">
+      <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
         Un email par jour a 20h45 avec ton score du soir et tes meilleurs creneaux.
       </p>
 
       {status === "success" ? (
         <motion.div
-          className="mt-5 rounded-xl bg-green-600/10 border border-green-500/20 px-5 py-4"
+          className="mt-5 bg-green-50 border border-green-200 px-5 py-4"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
         >
-          <p className="text-sm text-green-400 font-medium">
+          <p className="text-sm text-green-600 font-medium">
             &#x2705; C'est fait ! Premier email ce soir.
           </p>
         </motion.div>
@@ -76,12 +76,12 @@ export default function EmailSignup() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-brand-500/40 focus:ring-1 focus:ring-brand-500/20 transition"
+            className="flex-1 border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-brand-500/40 focus:ring-1 focus:ring-brand-500/20 transition"
           />
           <motion.button
             type="submit"
             disabled={!email || status === "submitting"}
-            className="rounded-xl bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             whileTap={{ scale: 0.98 }}
           >
             {status === "submitting" ? "..." : "S'inscrire"}
@@ -89,7 +89,7 @@ export default function EmailSignup() {
         </form>
       )}
 
-      <p className="mt-3 text-[10px] text-gray-600">
+      <p className="mt-3 text-[10px] text-slate-400">
         Pas de spam. Desabonnement en 1 clic.
       </p>
     </motion.div>

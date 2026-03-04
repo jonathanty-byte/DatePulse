@@ -101,7 +101,7 @@ export default function WrappedShare({ metrics, onClose }: WrappedShareProps) {
       }}
     >
       <motion.div
-        className="rounded-2xl border border-white/10 bg-gray-900 p-5 sm:p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto"
+        className=" border border-gray-200 bg-white p-5 sm:p-6 shadow-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto"
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -109,10 +109,10 @@ export default function WrappedShare({ metrics, onClose }: WrappedShareProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-bold text-white">Partager</h3>
+          <h3 className="text-lg font-bold text-slate-900">Partager</h3>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-white/10 hover:text-white"
+            className="flex h-8 w-8 items-center justify-center  text-slate-500 transition hover:bg-gray-100 hover:text-slate-900"
             aria-label="Fermer"
           >
             <svg
@@ -133,20 +133,20 @@ export default function WrappedShare({ metrics, onClose }: WrappedShareProps) {
         <div className="mb-5 flex gap-2">
           <button
             onClick={() => setTemplate("story")}
-            className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+            className={`flex-1  px-4 py-2.5 text-sm font-medium transition ${
               template === "story"
-                ? "bg-brand-600/20 text-brand-400 border border-brand-500/30"
-                : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"
+                ? "bg-brand-50 text-brand-500 border border-brand-500/30"
+                : "bg-gray-50 text-slate-500 border border-gray-200 hover:bg-gray-100"
             }`}
           >
             Story (9:16)
           </button>
           <button
             onClick={() => setTemplate("square")}
-            className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+            className={`flex-1  px-4 py-2.5 text-sm font-medium transition ${
               template === "square"
-                ? "bg-brand-600/20 text-brand-400 border border-brand-500/30"
-                : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"
+                ? "bg-brand-50 text-brand-500 border border-brand-500/30"
+                : "bg-gray-50 text-slate-500 border border-gray-200 hover:bg-gray-100"
             }`}
           >
             Carre (1:1)
@@ -154,20 +154,20 @@ export default function WrappedShare({ metrics, onClose }: WrappedShareProps) {
         </div>
 
         {/* Image preview */}
-        <div className="mb-5 flex items-center justify-center rounded-lg border border-white/10 bg-black/30 p-3 min-h-[200px]">
+        <div className="mb-5 flex items-center justify-center  border border-gray-200 bg-gray-50 p-3 min-h-[200px]">
           {loading ? (
             <div className="flex flex-col items-center gap-3">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
-              <p className="text-xs text-gray-500">Generation de l'image...</p>
+              <p className="text-xs text-slate-400">Generation de l'image...</p>
             </div>
           ) : previewUrl ? (
             <img
               src={previewUrl}
               alt="Apercu Dating Wrapped"
-              className="rounded-lg border border-white/10 max-h-80 object-contain"
+              className=" border border-gray-200 max-h-80 object-contain"
             />
           ) : (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-slate-400">
               Erreur lors de la generation
             </p>
           )}
@@ -178,7 +178,7 @@ export default function WrappedShare({ metrics, onClose }: WrappedShareProps) {
           <button
             onClick={handleDownload}
             disabled={!blob || sharing}
-            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-2  bg-gradient-to-r from-brand-600 to-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg
               width="16"
@@ -198,7 +198,7 @@ export default function WrappedShare({ metrics, onClose }: WrappedShareProps) {
             <button
               onClick={handleShare}
               disabled={!blob || sharing}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 transition hover:bg-white/10 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-2  border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:bg-gray-100 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg
                 width="16"

@@ -24,10 +24,10 @@ import { addMatch } from "../lib/matchTracker";
 
 type SessionPhase = "idle" | "session_active" | "session_complete";
 
-const WEATHER_EMOJI: Record<string, string> = {
-  clear: "\u2600\uFE0F", clouds: "\u2601\uFE0F", rain: "\uD83C\uDF27\uFE0F",
-  drizzle: "\uD83C\uDF26\uFE0F", snow: "\u2744\uFE0F", thunderstorm: "\u26C8\uFE0F",
-  mist: "\uD83C\uDF2B\uFE0F", fog: "\uD83C\uDF2B\uFE0F",
+const WEATHER_ICON: Record<string, string> = {
+  clear: "sun", clouds: "cloud", rain: "cloud-rain",
+  drizzle: "cloud-drizzle", snow: "snowflake", thunderstorm: "cloud-lightning",
+  mist: "cloud-fog", fog: "cloud-fog",
 };
 
 const WEATHER_LABEL_FR: Record<string, string> = {
@@ -212,65 +212,79 @@ export default function Home() {
   const [showMore, setShowMore] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#080b14] text-gray-100">
+    <div className="min-h-screen bg-[#f8f9fc] text-slate-900">
       <NavBar />
 
-      {/* ── Above fold: App selector + Context badges ──── */}
-      <section className="relative overflow-hidden px-4 pb-4 pt-6 sm:pb-6 sm:pt-10">
-        <div className="absolute inset-0 bg-gradient-to-b from-brand-900/10 to-transparent" />
-        <div className="relative mx-auto max-w-4xl">
-          <motion.div
-            className="flex justify-center"
+      {/* ── Above fold: Hero + App selector + Context badges ──── */}
+      <section className="px-4 pb-4 pt-12 sm:pb-8 sm:pt-20">
+        <div className="mx-auto max-w-4xl text-center">
+          <motion.h1
+            className="text-4xl sm:text-6xl font-extrabold tracking-[-0.04em] text-slate-900"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            Swipe when it matters.
+          </motion.h1>
+          <motion.p
+            className="mt-4 text-base sm:text-lg text-slate-500 max-w-xl mx-auto leading-relaxed"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+          >
+            Scores en temps réel basés sur l'activité féminine. Optimise chaque swipe.
+          </motion.p>
+
+          <motion.div
+            className="mt-8 flex justify-center"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
           >
             <AppSelector selected={app} onChange={setApp} />
           </motion.div>
 
           {/* Context badges: time, weather, trends */}
-          <div className="mt-3 sm:mt-4 flex flex-col items-center gap-2">
+          <div className="mt-4 sm:mt-6 flex flex-col items-center gap-2">
             <motion.p
-              className="text-xs sm:text-sm font-medium uppercase tracking-wider text-gray-500"
+              className="text-xs sm:text-sm font-medium uppercase tracking-[0.08em] text-slate-400"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
+              transition={{ delay: 0.2 }}
             >
-              {capitalize(app)} — {formatParisDay(now)} — {formatParisTime(now)} (heure de Paris)
+              {capitalize(app)} — {formatParisDay(now)} — {formatParisTime(now)}
             </motion.p>
             {weatherData && (
               <motion.div
-                className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs sm:text-sm"
-                initial={{ opacity: 0, scale: 0.9 }}
+                className="flex items-center gap-2 border border-gray-200 bg-white px-4 py-1.5 text-xs sm:text-sm shadow-sm"
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.13 }}
+                transition={{ delay: 0.23 }}
               >
-                <span>{WEATHER_EMOJI[weatherData.condition] ?? "\u2601\uFE0F"}</span>
-                <span className="text-gray-400">
+                <span className="text-slate-400">
                   Paris {weatherData.temp}&deg;C &middot; {WEATHER_LABEL_FR[weatherData.condition] ?? weatherData.condition}
                 </span>
-                <span className="text-gray-600">|</span>
-                <span className={weatherPct > 0 ? "text-green-400" : weatherPct < 0 ? "text-amber-400" : "text-gray-500"}>
+                <span className="text-gray-300">|</span>
+                <span className={weatherPct > 0 ? "text-green-600" : weatherPct < 0 ? "text-amber-600" : "text-slate-400"}>
                   {weatherPct === 0 ? "Impact neutre" : `${weatherPct > 0 ? "+" : ""}${weatherPct}% sur le score`}
                 </span>
               </motion.div>
             )}
             {trendsData && trendsData.trend_pct !== 0 && trendsData.confidence !== "none" && (
               <motion.div
-                className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs sm:text-sm"
-                initial={{ opacity: 0, scale: 0.9 }}
+                className="flex items-center gap-2 border border-gray-200 bg-white px-4 py-1.5 text-xs sm:text-sm shadow-sm"
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.16 }}
+                transition={{ delay: 0.26 }}
                 style={{
                   opacity: trendsData.confidence === "high" ? 1
                     : trendsData.confidence === "medium" ? 0.75
                     : 0.5,
                 }}
               >
-                <span>{trendsData.direction === "up" ? "\uD83D\uDCC8" : "\uD83D\uDCC9"}</span>
-                <span className="text-gray-400">Tendance Google</span>
-                <span className="text-gray-600">|</span>
-                <span className={trendsData.trend_pct > 0 ? "text-green-400" : "text-amber-400"}>
+                <span className="text-slate-400">Tendance Google</span>
+                <span className="text-gray-300">|</span>
+                <span className={trendsData.trend_pct > 0 ? "text-green-600" : "text-amber-600"}>
                   {trendsData.trend_pct > 0 ? "+" : ""}{trendsData.trend_pct}% ce mois
                 </span>
               </motion.div>
@@ -322,30 +336,30 @@ export default function Home() {
       {/* ── Heatmap + Best Times + Pool Freshness (visible after scroll) ── */}
       <section className="px-4 py-8 sm:py-12">
         <div className="mx-auto max-w-6xl">
-          <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+          <div className="grid gap-5 sm:gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <motion.div
-                className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-6"
+                className="border border-gray-200 bg-white p-5 sm:p-7 shadow-[0_6px_32px_-8px_rgba(15,23,42,0.06)]"
                 initial={{ opacity: 0, y: 20, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
               >
-                <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-white">
-                  Activite de la semaine — {capitalize(app)}
+                <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                  Activité de la semaine — {capitalize(app)}
                 </h2>
                 <HeatmapWeek now={now} app={app} />
               </motion.div>
             </div>
 
-            <div className="flex flex-col gap-4 sm:gap-6">
+            <div className="flex flex-col gap-5 sm:gap-6">
               <motion.div
-                className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-6"
+                className="border border-gray-200 bg-white p-5 sm:p-7 shadow-[0_6px_32px_-8px_rgba(15,23,42,0.06)]"
                 initial={{ opacity: 0, y: 20, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
               >
-                <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-white">
-                  Tes 3 fenetres de la semaine
+                <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                  Tes 3 fenêtres de la semaine
                 </h2>
                 <BestTimes now={now} app={app} />
               </motion.div>
@@ -361,10 +375,10 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <motion.button
             onClick={() => setShowMore(!showMore)}
-            className="mx-auto flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-6 py-3 text-sm font-medium text-gray-400 transition hover:bg-white/[0.06] hover:text-gray-200"
+            className="mx-auto flex items-center gap-2 border border-gray-200 bg-white px-6 py-3 text-sm font-medium text-slate-500 transition hover:bg-gray-50 hover:text-slate-900 shadow-sm"
             whileTap={{ scale: 0.97 }}
           >
-            {showMore ? "Masquer les details" : "Voir les details"}
+            {showMore ? "Masquer les détails" : "Voir les détails"}
             <motion.span
               animate={{ rotate: showMore ? 180 : 0 }}
               transition={{ duration: 0.2 }}
@@ -403,15 +417,15 @@ export default function Home() {
             {/* How it works */}
             <section className="px-4 py-10 sm:py-16">
               <div className="mx-auto max-w-4xl">
-                <h2 className="mb-8 sm:mb-10 text-center text-xl sm:text-2xl font-bold">
-                  Comment ca marche
+                <h2 className="mb-8 sm:mb-10 text-center text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
+                  Comment ça marche
                 </h2>
-                <div className="grid gap-4 sm:gap-6 sm:grid-cols-3">
+                <div className="grid gap-5 sm:gap-6 sm:grid-cols-3">
                   {[
                     {
                       num: "1",
                       title: "On analyse",
-                      desc: "Donnees officielles Tinder, Bumble, Hinge, Happn + etudes independantes. On sait quand les apps sont actives.",
+                      desc: "Données officielles Tinder, Bumble, Hinge, Happn + études indépendantes.",
                     },
                     {
                       num: "2",
@@ -426,13 +440,13 @@ export default function Home() {
                   ].map((step) => (
                     <div
                       key={step.num}
-                      className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6 text-center"
+                      className="border border-gray-200 bg-white p-5 sm:p-7 text-center shadow-[0_4px_24px_-6px_rgba(15,23,42,0.06)]"
                     >
-                      <div className="mx-auto mb-3 sm:mb-4 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white shadow-lg shadow-brand-600/30">
+                      <div className="mx-auto mb-3 sm:mb-4 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center bg-brand-500 text-sm font-bold text-white">
                         {step.num}
                       </div>
-                      <h3 className="mb-1.5 sm:mb-2 font-semibold text-sm sm:text-base">{step.title}</h3>
-                      <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">{step.desc}</p>
+                      <h3 className="mb-1.5 sm:mb-2 font-bold text-sm sm:text-base text-slate-900">{step.title}</h3>
+                      <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">{step.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -441,51 +455,33 @@ export default function Home() {
 
             {/* Feature CTAs */}
             <section className="px-4 py-8 sm:py-12">
-              <div className="mx-auto max-w-4xl grid gap-4 sm:gap-6 sm:grid-cols-2">
+              <div className="mx-auto max-w-4xl grid gap-5 sm:gap-6 sm:grid-cols-2">
                 <a
                   href="/wrapped"
-                  className="group rounded-2xl border border-white/10 bg-gradient-to-br from-brand-900/30 to-purple-900/20 p-6 sm:p-8 text-center transition hover:border-white/20 hover:bg-white/[0.04]"
+                  className="group border border-gray-200 bg-white p-6 sm:p-8 transition hover:shadow-lg hover:border-brand-200 shadow-[0_4px_24px_-6px_rgba(15,23,42,0.06)]"
                 >
-                  <span className="text-3xl">&#x1F4CA;</span>
-                  <h3 className="mt-3 text-lg font-bold text-white">Dating Wrapped</h3>
-                  <p className="mt-2 text-xs sm:text-sm text-gray-400 leading-relaxed">
-                    Upload ton export RGPD et decouvre tes vrais stats : swipes, matches, ghost rate, temps perdu...
+                  <div className="text-[10px] font-bold tracking-[0.15em] text-pink-500 uppercase">Wrapped</div>
+                  <h3 className="mt-2 text-lg font-bold text-slate-900">Dating Wrapped</h3>
+                  <p className="mt-2 text-sm text-slate-500 leading-relaxed">
+                    Upload ton export RGPD et découvre tes vrais stats : swipes, matches, ghost rate...
                   </p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-brand-400 group-hover:text-brand-300 transition">
-                    Analyser mes donnees
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 group-hover:text-brand-600 transition">
+                    Analyser mes données →
                   </span>
                 </a>
 
                 <a
                   href="/coach"
-                  className="group rounded-2xl border border-white/10 bg-gradient-to-br from-brand-900/20 to-gray-900 p-6 sm:p-8 text-center transition hover:border-white/20 hover:bg-white/[0.04]"
+                  className="group border border-gray-200 bg-white p-6 sm:p-8 transition hover:shadow-lg hover:border-brand-200 shadow-[0_4px_24px_-6px_rgba(15,23,42,0.06)]"
                 >
-                  <span className="text-3xl">&#x1F4AC;</span>
-                  <h3 className="mt-3 text-lg font-bold text-white">Message Coach</h3>
-                  <p className="mt-2 text-xs sm:text-sm text-gray-400 leading-relaxed">
-                    Colle ta conversation et recois 3 suggestions calibrees — du safe a l'audacieux.
+                  <div className="text-[10px] font-bold tracking-[0.15em] text-amber-600 uppercase">Coach</div>
+                  <h3 className="mt-2 text-lg font-bold text-slate-900">Message Coach</h3>
+                  <p className="mt-2 text-sm text-slate-500 leading-relaxed">
+                    Colle ta conversation et reçois 3 suggestions calibrées — du safe à l'audacieux.
                   </p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-brand-400 group-hover:text-brand-300 transition">
-                    Lancer le coach
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 group-hover:text-brand-600 transition">
+                    Lancer le coach →
                   </span>
-                </a>
-              </div>
-            </section>
-
-            {/* Methodology teaser */}
-            <section className="px-4 py-8 sm:py-12">
-              <div className="mx-auto max-w-2xl rounded-2xl border border-white/10 bg-gradient-to-br from-gray-900 to-brand-900/20 p-6 sm:p-8 text-center">
-                <h2 className="text-lg sm:text-xl font-bold">Donnees 100% transparentes</h2>
-                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-400 leading-relaxed">
-                  DatePulse n'invente rien. Chaque app a ses propres patterns d'activite,
-                  calibres sur les publications officielles (Tinder Year in Swipe,
-                  Hinge Blog, Bumble PR) et les etudes tierces (Nielsen, Ogury).
-                </p>
-                <a
-                  href="/methodology"
-                  className="mt-4 sm:mt-5 inline-block rounded-lg bg-white/5 px-5 sm:px-6 py-2 text-sm font-medium text-gray-200 transition hover:bg-white/10 hover:text-white"
-                >
-                  Voir la methodologie
                 </a>
               </div>
             </section>
@@ -501,26 +497,24 @@ export default function Home() {
       </AnimatePresence>
 
       {/* ── Footer ───────────────────────────────────── */}
-      <footer className="border-t border-white/5 px-4 py-6 sm:py-8">
-        <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-gray-600 space-y-2">
-          <p className="font-medium text-gray-500">
+      <footer className="border-t border-gray-200 px-4 py-6 sm:py-8">
+        <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-slate-400 space-y-2">
+          <p className="font-medium text-slate-500">
             DatePulse — Swipe when it matters.
           </p>
           <p>
-            <a href="/methodology" className="hover:text-gray-400 transition">Methodologie</a>
-            <span className="mx-2 text-gray-700">|</span>
-            <a href="/audit" className="hover:text-gray-400 transition">Audit</a>
-            <span className="mx-2 text-gray-700">|</span>
-            <a href="/coach" className="hover:text-gray-400 transition">Coach</a>
-            <span className="mx-2 text-gray-700">|</span>
-            <a href="/wrapped" className="hover:text-gray-400 transition">Wrapped</a>
-            <span className="mx-2 text-gray-700">|</span>
-            <a href="/tracker" className="hover:text-gray-400 transition">Tracker</a>
-            <span className="mx-2 text-gray-700">|</span>
+            <a href="/coach" className="hover:text-slate-700 transition">Coach</a>
+            <span className="mx-2 text-slate-300">|</span>
+            <a href="/wrapped" className="hover:text-slate-700 transition">Wrapped</a>
+            <span className="mx-2 text-slate-300">|</span>
+            <a href="/tracker" className="hover:text-slate-700 transition">Tracker</a>
+            <span className="mx-2 text-slate-300">|</span>
+            <a href="/insights" className="hover:text-slate-700 transition">Insights</a>
+            <span className="mx-2 text-slate-300">|</span>
             <span>@EvolvedMonkey</span>
           </p>
-          <p className="text-gray-700">
-            Aucune donnee personnelle stockee sur nos serveurs.
+          <p className="text-slate-300">
+            Aucune donnée personnelle stockée sur nos serveurs.
           </p>
         </div>
       </footer>

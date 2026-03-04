@@ -61,8 +61,8 @@ function ChartTooltip({
   const sorted = [...visible].sort((a, b) => b.value - a.value);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-gray-900/95 px-3 py-2.5 shadow-xl backdrop-blur-sm">
-      <p className="mb-1.5 text-xs font-semibold text-gray-300">{label}</p>
+    <div className="border border-gray-200 bg-white px-3 py-2.5 shadow-md">
+      <p className="mb-1.5 text-xs font-semibold text-slate-500">{label}</p>
       {sorted.map((entry) => (
         <div
           key={entry.dataKey}
@@ -75,7 +75,7 @@ function ChartTooltip({
           <span style={{ color: entry.color }}>
             {APP_LABELS[entry.dataKey as AppName]}
           </span>
-          <span className="ml-auto tabular-nums text-white">
+          <span className="ml-auto tabular-nums text-slate-900">
             {entry.value}
           </span>
         </div>
@@ -130,7 +130,7 @@ function CurrentMonthDot({
         cy={cy}
         r={5}
         fill={color}
-        stroke="#0a0a0a"
+        stroke="#f8f9fc"
         strokeWidth={2}
       />
     </g>
@@ -186,14 +186,14 @@ export default function YearlyChart({ app, now }: YearlyChartProps) {
 
   return (
     <motion.div
-      className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-6"
+      className="border border-gray-200 bg-white shadow-sm p-4 sm:p-6"
       initial={{ opacity: 0, y: 20, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: 0.35, duration: 0.5 }}
     >
       {/* Header */}
       <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-base font-semibold text-white sm:text-lg">
+        <h2 className="text-base font-semibold text-slate-900 sm:text-lg">
           Activite sur l'annee
         </h2>
 
@@ -207,8 +207,8 @@ export default function YearlyChart({ app, now }: YearlyChartProps) {
                 onClick={() => toggleApp(a)}
                 className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200 ${
                   isActive
-                    ? "border-white/20 bg-white/[0.08] text-white"
-                    : "border-white/5 bg-transparent text-gray-500 hover:border-white/10 hover:text-gray-400"
+                    ? "border-gray-300 bg-gray-100 text-slate-900"
+                    : "border-gray-200 bg-transparent text-slate-400 hover:border-gray-300 hover:text-slate-500"
                 }`}
               >
                 <span
@@ -258,7 +258,7 @@ export default function YearlyChart({ app, now }: YearlyChartProps) {
 
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="rgba(255,255,255,0.04)"
+              stroke="rgba(0,0,0,0.06)"
               vertical={false}
             />
 
@@ -280,14 +280,14 @@ export default function YearlyChart({ app, now }: YearlyChartProps) {
             {/* Current month reference line */}
             <ReferenceLine
               x={MONTH_LABELS[currentMonth]}
-              stroke="rgba(255,255,255,0.08)"
+              stroke="rgba(0,0,0,0.08)"
               strokeDasharray="4 4"
             />
 
             <Tooltip
               content={<ChartTooltip selectedApps={selectedApps} />}
               cursor={{
-                stroke: "rgba(255,255,255,0.06)",
+                stroke: "rgba(0,0,0,0.06)",
                 strokeWidth: 1,
               }}
             />
@@ -326,7 +326,7 @@ export default function YearlyChart({ app, now }: YearlyChartProps) {
                           r: 4,
                           stroke: APP_COLORS[a],
                           strokeWidth: 2,
-                          fill: "#0a0a0a",
+                          fill: "#f8f9fc",
                         }
                       : false
                   }
@@ -340,7 +340,7 @@ export default function YearlyChart({ app, now }: YearlyChartProps) {
       </div>
 
       {/* Subtitle */}
-      <p className="mt-3 text-center text-[11px] text-gray-500 sm:text-xs">
+      <p className="mt-3 text-center text-[11px] text-slate-400 sm:text-xs">
         Indice d'activite mensuel (0-100) — Sources : Adjust, Sensor Tower FR
       </p>
     </motion.div>

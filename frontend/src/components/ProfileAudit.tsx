@@ -168,7 +168,7 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
           >
             {/* App selector */}
             <div className="mb-6 flex items-center gap-3">
-              <span className="text-sm text-gray-400">Profil :</span>
+              <span className="text-sm text-slate-500">Profil :</span>
               <div className="flex gap-2">
                 {(["tinder", "bumble", "hinge", "happn"] as AppName[]).map(
                   (a) => (
@@ -177,8 +177,8 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
                       onClick={() => setSelectedApp(a)}
                       className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium transition ${
                         selectedApp === a
-                          ? "bg-brand-600/20 border border-brand-500/30 text-brand-400"
-                          : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10"
+                          ? "bg-brand-50 border border-brand-500/30 text-brand-500"
+                          : "bg-gray-50 border border-gray-200 text-slate-500 hover:bg-gray-100"
                       }`}
                     >
                       {a.charAt(0).toUpperCase() + a.slice(1)}
@@ -194,10 +194,10 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`relative cursor-pointer rounded-2xl border-2 border-dashed p-8 sm:p-10 text-center transition ${
+              className={`relative cursor-pointer  border-2 border-dashed p-8 sm:p-10 text-center transition ${
                 isDragging
                   ? "border-brand-500 bg-brand-600/10"
-                  : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
+                  : "border-gray-200 bg-white hover:border-gray-300 hover:bg-white"
               }`}
             >
               <input
@@ -212,10 +212,10 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
                 }}
               />
               <div className="text-3xl mb-3">&#x1F4F7;</div>
-              <p className="text-sm sm:text-base text-gray-300">
+              <p className="text-sm sm:text-base text-slate-800">
                 Glisse tes screenshots ici
               </p>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-slate-400">
                 ou clique pour selectionner — JPG, PNG, WebP — max {MAX_IMAGES} images, {MAX_SIZE_MB}MB chacune
               </p>
             </div>
@@ -228,7 +228,7 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
                     <img
                       src={img.preview}
                       alt="Preview"
-                      className="h-20 w-20 sm:h-24 sm:w-24 rounded-xl object-cover border border-white/10"
+                      className="h-20 w-20 sm:h-24 sm:w-24  object-cover border border-gray-200"
                     />
                     <button
                       onClick={(e) => {
@@ -244,7 +244,7 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
                 {images.length < MAX_IMAGES && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-xl border border-dashed border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-400 transition text-2xl"
+                    className="flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center  border border-dashed border-gray-200 text-slate-400 hover:border-gray-300 hover:text-slate-500 transition text-2xl"
                   >
                     +
                   </button>
@@ -253,7 +253,7 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
             )}
 
             {/* Privacy note */}
-            <p className="mt-4 text-xs text-gray-600 flex items-center gap-1.5">
+            <p className="mt-4 text-xs text-slate-400 flex items-center gap-1.5">
               <span>&#x1F512;</span>
               Tes photos ne sont pas stockees. Elles sont envoyees a l'IA pour analyse puis supprimees.
             </p>
@@ -262,7 +262,7 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
             <motion.button
               onClick={handleAnalyze}
               disabled={images.length === 0}
-              className="mt-6 w-full flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3.5 text-sm sm:text-base font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-brand-500/25 disabled:hover:brightness-100"
+              className="mt-6 w-full flex items-center justify-center gap-2.5  bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3.5 text-sm sm:text-base font-semibold text-white shadow-sm transition hover:shadow-brand-500/40 hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-brand-500/25 disabled:hover:brightness-100"
               whileTap={{ scale: 0.98 }}
             >
               <span className="text-lg">&#x1F50D;</span>
@@ -281,14 +281,14 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
           >
             {/* Shimmer skeleton */}
             <div className="w-full max-w-md space-y-4">
-              <div className="mx-auto h-[180px] w-[180px] sm:h-[220px] sm:w-[220px] rounded-full bg-white/5 animate-pulse" />
-              <div className="h-6 w-3/4 mx-auto rounded-lg bg-white/5 animate-pulse" />
-              <div className="h-4 w-1/2 mx-auto rounded-lg bg-white/5 animate-pulse" />
+              <div className="mx-auto h-[180px] w-[180px] sm:h-[220px] sm:w-[220px] rounded-full bg-gray-50 animate-pulse" />
+              <div className="h-6 w-3/4 mx-auto rounded-lg bg-gray-50 animate-pulse" />
+              <div className="h-4 w-1/2 mx-auto rounded-lg bg-gray-50 animate-pulse" />
               <div className="space-y-3 mt-8">
                 {[1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="h-20 rounded-xl bg-white/5 animate-pulse"
+                    className="h-20  bg-gray-50 animate-pulse"
                     style={{ animationDelay: `${i * 150}ms` }}
                   />
                 ))}
@@ -299,7 +299,7 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
             <AnimatePresence mode="wait">
               <motion.p
                 key={loadingMsg}
-                className="mt-8 text-sm text-gray-400"
+                className="mt-8 text-sm text-slate-500"
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
@@ -310,7 +310,7 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
             </AnimatePresence>
 
             {/* Indeterminate progress bar */}
-            <div className="mt-4 h-1 w-48 overflow-hidden rounded-full bg-white/5">
+            <div className="mt-4 h-1 w-48 overflow-hidden rounded-full bg-gray-50">
               <motion.div
                 className="h-full w-1/3 rounded-full bg-brand-500"
                 animate={{ x: ["-100%", "300%"] }}
@@ -338,7 +338,7 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
                 score={result.score}
                 mode={getScoreMode(result.score)}
               />
-              <p className="mt-3 text-sm text-gray-400">
+              <p className="mt-3 text-sm text-slate-500">
                 Score profil — {selectedApp.charAt(0).toUpperCase() + selectedApp.slice(1)}
               </p>
             </div>
@@ -349,7 +349,7 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
                 title="Problemes critiques"
                 icon="&#x1F534;"
                 items={result.critical}
-                cardClass="border-red-500/20 bg-red-950/20"
+                cardClass="border-red-200 bg-red-50"
                 showRecommendation
               />
             )}
@@ -360,7 +360,7 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
                 title="Ameliorations"
                 icon="&#x1F7E1;"
                 items={result.improvements}
-                cardClass="border-amber-500/20 bg-amber-950/20"
+                cardClass="border-amber-200 bg-amber-50"
                 showRecommendation
               />
             )}
@@ -371,18 +371,18 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
                 title="Points forts"
                 icon="&#x2705;"
                 items={result.strengths}
-                cardClass="border-green-500/20 bg-green-950/20"
+                cardClass="border-green-200 bg-green-50"
               />
             )}
 
             {/* Potential score */}
             <motion.div
-              className="rounded-xl bg-brand-600/10 border border-brand-500/20 px-5 py-4 text-center"
+              className=" bg-brand-50 border border-brand-200 px-5 py-4 text-center"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <p className="text-sm text-brand-300">
+              <p className="text-sm text-brand-500">
                 &#x1F4A1; Apres corrections : ~{result.potential_score}/100
               </p>
             </motion.div>
@@ -391,18 +391,18 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
             <div className="flex flex-col sm:flex-row gap-3">
               <motion.button
                 onClick={handleReset}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]"
+                className="flex-1 flex items-center justify-center gap-2  bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]"
                 whileTap={{ scale: 0.98 }}
               >
                 Refaire un audit
               </motion.button>
               <motion.button
                 onClick={() => {}}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-white/10 px-6 py-3 text-sm font-semibold text-gray-400 transition hover:bg-white/10 cursor-not-allowed opacity-50"
+                className="flex-1 flex items-center justify-center gap-2  bg-gray-50 border border-gray-200 px-6 py-3 text-sm font-semibold text-slate-500 transition hover:bg-gray-100 cursor-not-allowed opacity-50"
                 disabled
               >
                 Partager mon score
-                <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px]">bientot</span>
+                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px]">bientot</span>
               </motion.button>
             </div>
           </motion.div>
@@ -417,13 +417,13 @@ export default function ProfileAudit({ initialApp = "tinder" }: ProfileAuditProp
             className="flex flex-col items-center py-12 text-center"
           >
             <span className="text-5xl mb-4">&#x26A0;&#xFE0F;</span>
-            <h3 className="text-lg font-bold text-white mb-2">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">
               L'analyse a echoue
             </h3>
-            <p className="text-sm text-gray-400 max-w-md mb-6">{errorMsg}</p>
+            <p className="text-sm text-slate-500 max-w-md mb-6">{errorMsg}</p>
             <motion.button
               onClick={handleRetry}
-              className="flex items-center gap-2 rounded-xl bg-brand-600/20 border border-brand-500/30 px-6 py-3 text-sm font-semibold text-brand-400 transition hover:bg-brand-600/30 active:scale-95"
+              className="flex items-center gap-2  bg-brand-50 border border-brand-500/30 px-6 py-3 text-sm font-semibold text-brand-500 transition hover:bg-brand-600/30 active:scale-95"
               whileTap={{ scale: 0.95 }}
             >
               Reessayer
@@ -455,21 +455,21 @@ function RateLimitedView() {
       className="flex flex-col items-center py-12 text-center"
     >
       <span className="text-5xl mb-4">&#x1F512;</span>
-      <h3 className="text-lg font-bold text-white mb-2">
+      <h3 className="text-lg font-bold text-slate-900 mb-2">
         Tu as utilise ton audit gratuit ce mois-ci
       </h3>
       {formatted && (
-        <p className="text-sm text-gray-400 mb-6">
+        <p className="text-sm text-slate-500 mb-6">
           Prochain audit gratuit : {formatted}
         </p>
       )}
       <motion.button
-        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 cursor-not-allowed opacity-60"
+        className="flex items-center gap-2  bg-gradient-to-r from-brand-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 cursor-not-allowed opacity-60"
         disabled
       >
         Passe a Pulse Pro pour des audits illimites &#x2192;
       </motion.button>
-      <p className="mt-2 text-xs text-gray-600">Bientot disponible</p>
+      <p className="mt-2 text-xs text-slate-400">Bientot disponible</p>
     </motion.div>
   );
 }
@@ -489,7 +489,7 @@ function AuditSection({
 }) {
   return (
     <div>
-      <h3 className="mb-3 flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+      <h3 className="mb-3 flex items-center gap-2 text-sm sm:text-base font-semibold text-slate-900">
         <span dangerouslySetInnerHTML={{ __html: icon }} />
         {title} ({items.length})
       </h3>
@@ -497,15 +497,15 @@ function AuditSection({
         {items.map((item, i) => (
           <motion.div
             key={i}
-            className={`rounded-xl border p-4 ${cardClass}`}
+            className={` border p-4 ${cardClass}`}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 * i }}
           >
-            <p className="font-medium text-sm text-white">{item.title}</p>
-            <p className="mt-1 text-xs text-gray-400">{item.detail}</p>
+            <p className="font-medium text-sm text-slate-900">{item.title}</p>
+            <p className="mt-1 text-xs text-slate-500">{item.detail}</p>
             {showRecommendation && item.recommendation && (
-              <p className="mt-2 text-xs text-brand-300 flex items-start gap-1.5">
+              <p className="mt-2 text-xs text-brand-500 flex items-start gap-1.5">
                 <span className="shrink-0">&#x2192;</span>
                 {item.recommendation}
               </p>
