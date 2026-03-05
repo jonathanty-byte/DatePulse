@@ -1,8 +1,8 @@
-# CDC — DatePulse V4.0
+# CDC — DatePulse V4.1
 
 > **"Swipe when it matters."** — Score d'activite temps reel + analyse complete de tes donnees dating.
 >
-> **Mise a jour : 04/03/2026** — 90 hypotheses data-driven, Conversation Pulse, Swipe Pulse, benchmarks, UX convergee.
+> **Mise a jour : 05/03/2026** — Insights personnalises inline sous Wrapped, composant InsightsContent reutilisable, moteur generateUserInsights(), bridge localStorage.
 
 ---
 
@@ -20,7 +20,8 @@
 | V3.7 | 03/2026 | Conversation Pulse : 50 hypotheses (H1-H50), 7 ecrans emotionnels, CDS 5 axes |
 | V3.8 | 03/2026 | Hinge deep insights : funnel, comments, response time, premium ROI, unmatch survival |
 | V3.9 | 03/2026 | Advanced Conversation (H51-H70), page /insights, insightsData.ts |
-| **V4.0** | **03/2026** | **Swipe Pulse (H71-H90), convergence UX Wrapped/Insights, composants partages, standardisation layout** |
+| V4.0 | 03/2026 | Swipe Pulse (H71-H90), convergence UX Wrapped/Insights, composants partages, standardisation layout |
+| **V4.1** | **03/2026** | **Insights personnalises inline sous Wrapped : InsightsContent.tsx reutilisable, generateUserInsights() moteur, bridge localStorage dp_user_insights, dual-mode Insights page** |
 
 > Les archives detaillees (CDC V1 DateDetox, CDC V3.3, 6 COSTRAT) sont dans `archive/`.
 
@@ -118,7 +119,7 @@ score(t) = hourly[h] x weekly[d] x monthly[m] / 10000
 | `/coach` | Coach | Profile Audit IA + Message Coach (absorbe /audit et /methodology) |
 | `/wrapped` | Wrapped | Upload RGPD → rapport complet (10 sections + Conversation Pulse + Swipe Pulse) |
 | `/tracker` | Tracker | Match Tracker manuel (localStorage) |
-| `/insights` | Insights | Encyclopedie des 90 hypotheses avec filtres et recherche |
+| `/insights` | Insights | Encyclopedie des 90 hypotheses — mode dual (personnalise si dp_user_insights present, demo sinon) |
 
 ### Navigation
 
@@ -156,15 +157,24 @@ score(t) = hourly[h] x weekly[d] x monthly[m] / 10000
 - Tab system : Photo, Bio, Message
 - Absorbe les anciennes routes /audit et /methodology
 
-### F5 — Dating Wrapped
+### F5 — Dating Wrapped + Insights personnalises
 
-Upload d'export RGPD → rapport interactif complet. 100% client-side.
+Upload d'export RGPD → rapport interactif complet + insights personnalises inline. 100% client-side.
 
 **Parser** (`wrappedParser.ts`) :
 - Auto-detection app source (Tinder, Bumble, Hinge)
 - Tinder Format A (pre-2024, arrays) et Format B (2024+, Usage dicts)
 - Hinge multi-fichier (matches.json, subscriptions.json, user.json)
 - Flag `dailyOnly` quand pas de timestamps per-swipe
+
+**Flow post-upload** :
+1. Upload → parsing → `WrappedMetrics` + `ConversationInsights` + `AdvancedSwipeInsights`
+2. `generateUserInsights()` transforme les metriques en `InsightsDataSet` (41 champs)
+3. `saveUserInsights()` persiste dans localStorage (`dp_user_insights`)
+4. Rapport Wrapped s'affiche (6 sections + Conversation/Swipe Pulse)
+5. Separateur visuel "Tes Insights personnalises"
+6. `InsightsContent` rend les 11 sections Insights avec les donnees personnalisees
+7. L'utilisateur peut aussi voir `/insights` en mode personnalise (donnees persistees)
 
 **Rapport** (`WrappedReport.tsx`) — 6 sections principales + 2 modules avances :
 
@@ -192,14 +202,25 @@ Upload d'export RGPD → rapport interactif complet. 100% client-side.
 
 **Feature flags** : `isConversationPulseEnabled()` avec kill switch J+21 (2026-03-24)
 
-### F6 — Page Insights
+### F6 — Page Insights (dual-mode)
 
-Encyclopedie des 90 hypotheses avec :
-- Filtres par app (Tinder/Hinge/Both), status (confirmed/debunked/mixed), severite
-- Recherche textuelle
-- 9 themes : Ghosting, Openers, Timing, Conversations, Algorithme, Comportement, Premium, Psychologie, Meta
-- Recommendations associees
-- Hero stats animes (90 hypotheses, compteurs filtres dynamiques)
+Encyclopedie des 90 hypotheses — mode **personnalise** ou **demo** :
+
+**Mode dual** (`useInsightsData` hook) :
+- Si `dp_user_insights` present dans localStorage → mode "personal" via `generateUserInsights()`
+- Sinon → mode "demo" avec donnees CEO anonymisees (`insightsData.ts`)
+- Banniere de contexte adaptee ("Tes donnees [app]" vs "Exemple — etude de cas")
+
+**Architecture composant** :
+- `InsightsContent.tsx` : composant de rendu pur, prend `InsightsDataSet` + `mode` en props
+- Reutilise dans `/insights` (page standalone) ET dans `/wrapped` (inline apres rapport)
+- 5 composants utilitaires extraits : `VerdictBadge`, `AppTag`, `SeverityDot`, `ImpactDots`, `ComparisonTable`
+
+**Contenu** :
+- 11 sections : Hero, Profil, Conversations, Opener, Timing, Algorithme, Premium, Photo, Hypotheses, Clusters, Plan d'action
+- Filtres par verdict (confirmed/debunked/mixed) et par theme
+- Recommendations associees a chaque hypothese
+- Hero stats animes (compteurs filtres dynamiques)
 
 ### F7 — Match Tracker
 
@@ -253,7 +274,7 @@ DatePulse/
 │   │   ├── App.tsx                        # SPA routing custom (5 routes)
 │   │   ├── main.tsx                       # Entry point
 │   │   │
-│   │   ├── lib/                           # 20 fichiers logique metier
+│   │   ├── lib/                           # 23 fichiers logique metier
 │   │   │   ├── data.ts                    # Lookup tables par app
 │   │   │   ├── scoring.ts                 # computeScore(), heatmap, labels
 │   │   │   ├── franceTime.ts              # Helpers timezone Europe/Paris
@@ -262,7 +283,10 @@ DatePulse/
 │   │   │   ├── conversationIntelligence.ts # Conversation Pulse (H1-H50)
 │   │   │   ├── conversationAdvanced.ts    # Conversation avancee (H51-H70)
 │   │   │   ├── swipeAdvanced.ts           # Swipe Pulse (H71-H90)
-│   │   │   ├── insightsData.ts            # 90 hypotheses + verdicts + recommendations
+│   │   │   ├── insightsData.ts            # 90 hypotheses + verdicts + recommendations (demo)
+│   │   │   ├── insightsEngine.ts          # generateUserInsights() — moteur personnalisation
+│   │   │   ├── insightsPersistence.ts     # save/load/clear dp_user_insights localStorage
+│   │   │   ├── useInsightsData.ts         # Hook dual-mode (personal vs demo)
 │   │   │   ├── benchmarks.ts              # Quintiles SwipeStats (n=1209)
 │   │   │   ├── featureFlags.ts            # Kill switch Conversation Pulse
 │   │   │   ├── shareImage.ts              # Generation image de partage
@@ -283,8 +307,9 @@ DatePulse/
 │   │   │   ├── swipeAdvanced.test.ts      # 53 tests
 │   │   │   └── benchmarks.test.ts         # 20 tests
 │   │   │
-│   │   ├── components/                    # 23 composants UI
+│   │   ├── components/                    # 24 composants UI
 │   │   │   ├── SharedInsightComponents.tsx # 10 composants partages (Insights + Wrapped)
+│   │   │   ├── InsightsContent.tsx        # Rendu pur des 11 sections Insights (reutilisable)
 │   │   │   ├── NavBar.tsx                 # Navigation sticky
 │   │   │   ├── ScoreGauge.tsx             # Jauge circulaire 0-100
 │   │   │   ├── HeatmapWeek.tsx            # Grille 7j x 24h
@@ -328,9 +353,9 @@ DatePulse/
     └── rankings.yml                       # Daily rankings scraper (06:00 UTC)
 ```
 
-### 6.3 Composants partages (SharedInsightComponents.tsx)
+### 6.3 Composants partages
 
-Depuis V4.0, les composants UI sont mutualises entre Insights et WrappedReport :
+**SharedInsightComponents.tsx** — 11 composants UI mutualises :
 
 | Composant | Description |
 |-----------|-------------|
@@ -346,6 +371,19 @@ Depuis V4.0, les composants UI sont mutualises entre Insights et WrappedReport :
 | `ProgressRing` | Anneau de progression SVG |
 | `SectionNav` | Pilules de navigation sticky (generique) |
 
+**InsightsContent.tsx** — composant de rendu pur (V4.1) :
+
+| Element | Description |
+|---------|-------------|
+| `InsightsContent` | Composant principal — prend `InsightsDataSet` + `mode` en props |
+| `VerdictBadge` | Badge verdict (confirme/refute/mixte) |
+| `AppTag` | Tag app (Tinder/Hinge/Both) |
+| `SeverityDot` | Point de severite (critical/warning/good) |
+| `ImpactDots` | 3 points d'impact |
+| `ComparisonTable` | Tableau comparatif Tinder vs Hinge |
+
+Reutilise dans : `/insights` (page standalone) et `/wrapped` (inline apres rapport, lazy-loaded).
+
 ### 6.4 Data flow
 
 ```
@@ -354,7 +392,9 @@ Frontend (Vercel)
   ├── wttr.in/Paris → Weather modifier (cache localStorage 30min)
   ├── trends.json → Trends modifier (cache localStorage 2h)
   ├── /api/llm → Vercel Edge Function → OpenRouter (Profile Audit, Message Coach)
-  └── Upload RGPD → Parser client-side → 90 hypotheses + benchmarks + verdicts
+  └── Upload RGPD → Parser client-side → Wrapped rapport
+       └── generateUserInsights() → InsightsDataSet → InsightsContent inline
+       └── saveUserInsights() → dp_user_insights localStorage → /insights dual-mode
 
 Automation (local Windows)
   ├── trends_live.py (cron 2h) → trends.json
@@ -370,6 +410,7 @@ Tout en localStorage :
 - `datepulse_last_audit` — Dernier audit
 - `dp_weather` — Cache meteo (30min TTL)
 - `dp_trends` — Cache trends (2h TTL)
+- `dp_user_insights` — Bridge Wrapped→Insights (~200KB metriques agregees, pas de TTL)
 
 ---
 
@@ -418,7 +459,7 @@ Tout en localStorage :
 
 ## 9. Tests
 
-226 tests dans 6 suites Vitest :
+226+ tests dans 8 suites Vitest :
 
 | Suite | Tests | Couverture |
 |-------|-------|-----------|
@@ -428,6 +469,8 @@ Tout en localStorage :
 | conversationAdvanced.test.ts | 53 | Patterns linguistiques, temporels, comportementaux |
 | swipeAdvanced.test.ts | 53 | Velocity, clustering, circadian, archetypes |
 | benchmarks.test.ts | 20 | Quintiles, distributions, edge cases |
+| insightsEngine.test.ts | — | Moteur generateUserInsights(), mapping 41 champs |
+| insightsPersistence.test.ts | — | save/load/clear localStorage bridge |
 
 **CI** : GitHub Actions (push/PR master) execute `npm ci && npm run build`. Les tests ne sont PAS executes en CI (a ajouter).
 
@@ -478,6 +521,8 @@ Modele prevu (pas encore en place) :
 8. **Tinder Format B dailyOnly** — certaines metriques degradees (pas de timestamps per-swipe)
 9. **H18 blacklistee** — "Wait J+1" interdit en prescriptif (variable confondante)
 10. **README.md obsolete** — decrit encore l'ancienne architecture FastAPI/SQLite
+11. **InsightsContent inline dans Wrapped** — lazy-loaded, ajoute ~120KB au chunk Wrapped si utilisateur uploade des donnees
+12. **generateUserInsights() couverture partielle** — 31/74 hypotheses Bucket A implementees (V4.1), reste en fallback demo
 
 ---
 
