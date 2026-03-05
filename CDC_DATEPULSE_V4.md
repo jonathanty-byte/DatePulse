@@ -520,7 +520,7 @@ Modele prevu (pas encore en place) :
 7. **Kill switch J+21** — Conversation Pulse desactive apres 2026-03-24 si engagement < 30%
 8. **Tinder Format B dailyOnly** — certaines metriques degradees (pas de timestamps per-swipe)
 9. **H18 blacklistee** — "Wait J+1" interdit en prescriptif (variable confondante)
-10. **README.md obsolete** — decrit encore l'ancienne architecture FastAPI/SQLite
+10. ~~**README.md obsolete**~~ — resolu V4.1, reecrit pour architecture actuelle
 11. **InsightsContent inline dans Wrapped** — lazy-loaded, ajoute ~120KB au chunk Wrapped si utilisateur uploade des donnees
 12. **generateUserInsights() couverture partielle** — 31/74 hypotheses Bucket A implementees (V4.1), reste en fallback demo
 

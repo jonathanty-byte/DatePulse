@@ -127,7 +127,7 @@ The app is France/Paris-centric. `lib/franceTime.ts` provides `getParisHour()` a
 - **PWA**: Service worker via vite-plugin-pwa (Workbox), `registerType: "autoUpdate"`. CacheFirst for Google Fonts (365d TTL). May cache old bundles — use `--force` on deploy or clear via DevTools.
 - **Rankings scraper**: GitHub Actions daily at 06:00 UTC. Scrapes Google Play FR (Tinder, Bumble, Hinge, Happn), writes to `frontend/public/data/`, auto-commits with `[skip ci]`. Can be triggered manually via `workflow_dispatch`.
 
-**Warning**: `README.md` at root is obsolete (describes a former FastAPI/SQLite architecture). CLAUDE.md is the authoritative project doc.
+**Note**: `README.md` was rewritten in V4.1 to match the current architecture. CLAUDE.md remains the authoritative doc with full detail.
 
 ## Google Trends Integration
 

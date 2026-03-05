@@ -1,142 +1,104 @@
 # DatePulse
 
-> Sais quand ouvrir ton app de dating pour maximiser tes matches.
+> Swipe when it matters.
 
-[![Tests](https://github.com/jonathanty-byte/DatePulse/actions/workflows/test.yml/badge.svg)](https://github.com/jonathanty-byte/DatePulse/actions/workflows/test.yml)
-[![Hourly Collection](https://github.com/jonathanty-byte/DatePulse/actions/workflows/collect.yml/badge.svg)](https://github.com/jonathanty-byte/DatePulse/actions/workflows/collect.yml)
+[![Build](https://github.com/jonathanty-byte/DatePulse/actions/workflows/test.yml/badge.svg)](https://github.com/jonathanty-byte/DatePulse/actions/workflows/test.yml)
 
 **Live**: [frontend-sigma-gules-59.vercel.app](https://frontend-sigma-gules-59.vercel.app)
 
-DatePulse aggregates 6 public data sources in real-time to produce an activity score (0-100) for dating apps in French cities. It predicts optimal times to use Tinder, Bumble, Hinge, and Happn.
+DatePulse is a client-side SPA that helps dating app users optimize their timing and understand their data. Two core features:
 
-## How it works
+1. **Live Score (0-100)** — Real-time activity prediction for Tinder, Bumble, Hinge, Happn based on published studies (Nielsen, Ogury, SwipeStats) and validated against Google Trends FR (r=0.995)
+2. **Dating Wrapped** — Upload your GDPR data export → full diagnostic: 90 data-driven hypotheses, conversation analysis, swipe patterns, benchmarks, personalized insights
+
+**100% client-side** — no data leaves the browser.
+
+## Architecture
 
 ```
-Sources (6 free APIs) --> Data Engine (Python) --> SQLite --> FastAPI REST API --> React Frontend
-                                                         \-> Telegram Bot (alerts)
+Static lookup tables ──→ Scoring engine (client-side) ──→ React UI
+wttr.in weather ────────→ Weather modifier (localStorage cache)
+trends.json ────────────→ Google Trends modifier (Python cron)
+GDPR upload ────────────→ Parser → Wrapped report + 90 hypotheses
+/api/llm ───────────────→ Vercel Edge Function → OpenRouter (Coach AI)
 ```
 
-**Data sources**: Google Trends, Wikipedia Pageviews, Bluesky mentions, App Store reviews, weather (Open-Meteo), calendar events.
+**Stack**: React 18 · TypeScript · Vite · Tailwind CSS 3 · Framer Motion · Recharts · vite-plugin-pwa
 
-**Scoring model**: 7-component weighted composite — Google Trends (35%), Wikipedia (20%), App Reviews (15%), Bluesky (10%), Seasonal (10%), Weather (5%), Day/Hour (5%). Normalized against historical percentiles.
+## Routes
 
-## Deploy
+| Route | Description |
+|-------|-------------|
+| `/` | Landing page — Wrapped CTA + live score ticker |
+| `/score` | Live score gauge + heatmap + best times + pool freshness |
+| `/coach` | Profile Audit AI + Message Coach (via Edge Function) |
+| `/wrapped` | GDPR upload → Wrapped report + personalized Insights inline |
+| `/insights` | 90 hypotheses encyclopedia (personal if data uploaded, demo otherwise) |
+| `/tracker` | Manual match tracker (localStorage) |
 
-### Frontend (Vercel)
-
-Already deployed. For your own fork:
-
-```bash
-cd frontend && vercel --prod
-```
-
-### Backend API (Render — one-click)
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/jonathanty-byte/DatePulse)
-
-Or manually with Railway:
-
-```bash
-railway login && railway init && railway up
-```
-
-## Quick start (local)
-
-### Backend (Python engine + API)
-
-```bash
-# Install dependencies
-pip install -r engine/requirements.txt
-
-# Initialize database and run collection pipeline
-python -m engine.main
-
-# Start the API server
-uvicorn engine.api.routes:app --reload --port 8000
-
-# Run Telegram bot (requires TELEGRAM_BOT_TOKEN in .env)
-python -m engine.alerts.telegram_bot
-```
-
-### Frontend (React dashboard)
+## Quick start
 
 ```bash
 cd frontend
 npm install
-npm run dev      # Dev server on http://localhost:5173
-npm run build    # Production build
+npm run dev          # Vite dev server → http://localhost:5173
+npm run build        # TypeScript check + production build
+npm test             # Vitest (226+ tests)
 ```
 
-### Environment variables
-
-Create `.env` at the project root:
-
-```env
-DB_PATH=data/datepulse.db
-TARGET_APPS=tinder,bumble,hinge,happn
-TARGET_CITIES=paris,lyon,bordeaux,marseille,lille
-DEFAULT_CITY=paris
-SCORING_INTERVAL_MINUTES=60
-ALERT_COOLDOWN_MINUTES=120
-TELEGRAM_BOT_TOKEN=         # Optional, for Telegram alerts
-```
-
-All data source APIs are free and unauthenticated. Only `TELEGRAM_BOT_TOKEN` is required for the bot.
-
-## Pipeline
+## Deploy
 
 ```bash
-python -m engine.main                # Full pipeline: collect -> score -> forecast -> alert
-python -m engine.main --collect-only # Only collect data
-python -m engine.main --score-only   # Only compute scores
-python -m engine.main --dry-run      # Test run
+cd frontend && npx vercel --prod --yes --force
 ```
 
-The pipeline runs hourly via GitHub Actions (`.github/workflows/collect.yml`).
+The Edge Function (`frontend/api/llm.ts`) requires `OPENROUTER_KEY` set in Vercel env vars.
 
-## API
+## Scoring model
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/score/live?app=tinder&city=paris` | Current activity score |
-| `GET /api/score/forecast?app=tinder&city=paris&days=7` | Hourly predictions |
-| `GET /api/score/history?app=tinder&city=paris&period=30d` | Historical scores |
-| `GET /api/score/best-times?app=tinder&city=paris` | Top 10 time slots |
-| `GET /api/apps` | Available apps and cities |
-| `GET /api/health` | System health and source status |
-
-## Tests
-
-```bash
-pip install pytest
-pytest tests/ -v
 ```
+score(t) = hourly[h] × weekly[d] × monthly[m] / 10000
+         × event_multiplier × weather_modifier × trend_modifier
+```
+
+- **Hourly**: Peak 20h (100), lunch boost 12-13h, trough 1-5h
+- **Weekly**: Peak Saturday (100), Friday 65, app-specific variations
+- **Monthly**: Peak January (100), trough December (60)
+- **Events**: 10 boosters + 4 reducers (Nouvel An +35%, Noel -40%, etc.)
+- **Weather**: clear 0.95, clouds 1.00, rain 1.10, snow 1.27
+- **Trends**: Google Trends FR live modifier, clamped [0.70, 1.40]
+
+## Dating Wrapped
+
+Parses GDPR exports from Tinder (Format A + B), Bumble, and Hinge. 100% client-side.
+
+- **Wrapped Report**: 6 sections (overview, timing, conversion, conversations, DNA radar, verdict)
+- **Conversation Pulse** (H1-H70): ghost detection, opener analysis, question density, survival curves
+- **Swipe Pulse** (H71-H90): velocity decay, circadian patterns, selectivity analysis, archetypes
+- **Personalized Insights**: `generateUserInsights()` maps metrics to 41-field `InsightsDataSet`, displayed inline after Wrapped and on `/insights`
 
 ## Project structure
 
 ```
-engine/
-    main.py              # Pipeline orchestrator
-    config.py            # Configuration + .env loading
-    collectors/          # 6 data source collectors
-    processor/           # Normalizer + scorer
-    forecaster/          # Seasonal patterns + J+7 predictor
-    storage/db.py        # SQLite layer (5 tables)
-    alerts/              # Telegram bot + alert logic
-    api/routes.py        # FastAPI REST API
 frontend/
-    src/pages/           # Landing + Dashboard
-    src/components/      # ScoreGauge, HeatmapWeek, HistoryChart, etc.
-    src/hooks/           # useScore, useForecast, useHistory
-    src/services/api.ts  # API client
-tests/
-    test_pipeline.py     # End-to-end pipeline tests (36 tests)
-scripts/
-    seed_historical.py   # 2-year data backfill
-    calibrate_weights.py # Scoring model optimization
-data/
-    events_fr.json       # French calendar events
-    cities.json          # Target cities + coordinates
+  src/
+    pages/          # 6 route-level components
+    components/     # 24 UI components (SharedInsightComponents, InsightsContent, etc.)
+    lib/            # 23 logic modules (scoring, parsing, insights engine, etc.)
+    lib/__tests__/  # 8 test suites (226+ tests)
+  api/llm.ts        # Vercel Edge Function (OpenRouter proxy)
+  public/           # trends.json, weather fallback, rankings data
+scripts/            # Python automation (local): trends, auto-swiper, rankings scraper
+.github/workflows/  # CI (build on push) + daily rankings scraper
+```
+
+## Tests
+
+```bash
+cd frontend
+npm test                                              # All tests
+npx vitest run src/lib/__tests__/wrappedParser.test.ts # Single suite
+npx vitest run -t "findClosestMatch"                   # By name pattern
 ```
 
 ## License
