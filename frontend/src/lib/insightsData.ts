@@ -1070,7 +1070,7 @@ export const HYPOTHESIS_THEMES: HypothesisTheme[] = [
   {
     id: "swipe_algorithm",
     title: "Algorithme Fantome",
-    emoji: "\uD83D\uDC7B",
+    emoji: "👻",
     hypotheses: [
       {
         id: "H71",
@@ -1129,7 +1129,7 @@ export const HYPOTHESIS_THEMES: HypothesisTheme[] = [
   {
     id: "swipe_psychology",
     title: "Psychologie du Swipe",
-    emoji: "\uD83E\uDDE0",
+    emoji: "🧠",
     hypotheses: [
       {
         id: "H75",
@@ -1179,7 +1179,7 @@ export const HYPOTHESIS_THEMES: HypothesisTheme[] = [
   {
     id: "swipe_rhythms",
     title: "Rythmes Caches",
-    emoji: "\uD83D\uDD50",
+    emoji: "🕐",
     hypotheses: [
       {
         id: "H79",
@@ -1229,7 +1229,7 @@ export const HYPOTHESIS_THEMES: HypothesisTheme[] = [
   {
     id: "swipe_conversion",
     title: "Conversion Secrete",
-    emoji: "\uD83C\uDFAF",
+    emoji: "🎯",
     hypotheses: [
       {
         id: "H83",
@@ -1287,7 +1287,7 @@ export const HYPOTHESIS_THEMES: HypothesisTheme[] = [
   {
     id: "swipe_meta",
     title: "Meta-Strategie Swipe",
-    emoji: "\uD83E\uDDEC",
+    emoji: "🧬",
     hypotheses: [
       {
         id: "H87",

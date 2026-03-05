@@ -162,7 +162,7 @@ export default function WrappedUpload({ onDataParsed }: WrappedUploadProps) {
               </p>
             </div>
 
-            {/* Instructions */}
+            {/* Instructions per app */}
             <motion.div
               className=" border border-gray-200 bg-white p-5 sm:p-6"
               initial={{ opacity: 0, y: 20 }}
@@ -173,40 +173,73 @@ export default function WrappedUpload({ onDataParsed }: WrappedUploadProps) {
                 <span>&#x2753;</span>
                 Comment obtenir tes donnees RGPD ?
               </h3>
-              <ol className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-bold text-brand-500">
-                    1
-                  </span>
-                  <p className="text-sm text-slate-800">
-                    Va dans{" "}
-                    <span className="text-slate-900 font-medium">
-                      Parametres &gt; Confidentialite &gt; Telecharger mes donnees
-                    </span>{" "}
-                    sur Tinder, Bumble ou Hinge
-                  </p>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-bold text-brand-500">
-                    2
-                  </span>
-                  <p className="text-sm text-slate-800">
-                    Attend l'email avec le lien de telechargement{" "}
-                    <span className="text-slate-400">(1-3 jours)</span>
-                  </p>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-bold text-brand-500">
-                    3
-                  </span>
-                  <div className="text-sm text-slate-800">
-                    <p>Upload le fichier .json ou .zip ici</p>
-                    <p className="mt-1 text-xs text-slate-400">
-                      <span className="text-violet-400 font-medium">Hinge</span> : selectionne les 3 fichiers ensemble (matches.json, subscriptions.json, user.json)
-                    </p>
+              <div className="space-y-4">
+                {/* Tinder */}
+                <div className="border border-gray-100 bg-gray-50/50 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-bold text-pink-500">Tinder</span>
+                    <span className="text-[10px] text-slate-400">JSON ou ZIP</span>
                   </div>
-                </li>
-              </ol>
+                  <ol className="space-y-1.5 text-sm text-slate-600">
+                    <li>1. Ouvre Tinder &gt; <span className="font-medium text-slate-800">Profil</span> &gt; <span className="font-medium text-slate-800">Parametres</span></li>
+                    <li>2. Descend jusqu'a <span className="font-medium text-slate-800">Telecharger mes donnees</span></li>
+                    <li>3. Entre ton email et valide la demande</li>
+                    <li>4. Tu recevras un email avec un lien de telechargement <span className="text-slate-400">(1-3 jours)</span></li>
+                    <li>5. Upload le fichier <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded text-pink-600">data.json</code> ici</li>
+                  </ol>
+                </div>
+
+                {/* Bumble */}
+                <div className="border border-gray-100 bg-gray-50/50 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-bold text-amber-500">Bumble</span>
+                    <span className="text-[10px] text-slate-400">JSON</span>
+                  </div>
+                  <ol className="space-y-1.5 text-sm text-slate-600">
+                    <li>1. Va sur <a href="https://bumble.com/fr/settings" target="_blank" rel="noopener noreferrer" className="font-medium text-amber-600 underline underline-offset-2">bumble.com/settings</a> (version web)</li>
+                    <li>2. Clique sur <span className="font-medium text-slate-800">Telecharger mes donnees personnelles</span></li>
+                    <li>3. Valide avec ton numero ou email</li>
+                    <li>4. Tu recevras un lien par email <span className="text-slate-400">(quelques heures a 2 jours)</span></li>
+                    <li>5. Upload le fichier <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded text-amber-600">data.json</code> ici</li>
+                  </ol>
+                </div>
+
+                {/* Hinge */}
+                <div className="border border-gray-100 bg-gray-50/50 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-bold text-violet-500">Hinge</span>
+                    <span className="text-[10px] text-slate-400">3 fichiers JSON</span>
+                  </div>
+                  <ol className="space-y-1.5 text-sm text-slate-600">
+                    <li>1. Va sur <a href="https://hingeapp.zendesk.com/hc/en-us/requests/new?ticket_form_id=360000837012" target="_blank" rel="noopener noreferrer" className="font-medium text-violet-600 underline underline-offset-2">le formulaire Hinge RGPD</a></li>
+                    <li>2. Remplis le formulaire avec ton email Hinge et demande un export complet</li>
+                    <li>3. Tu recevras un ZIP par email <span className="text-slate-400">(2-5 jours)</span></li>
+                    <li>4. Dezippe et selectionne les 3 fichiers ensemble :
+                      <span className="flex flex-wrap gap-1 mt-1">
+                        <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded text-violet-600">matches.json</code>
+                        <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded text-violet-600">subscriptions.json</code>
+                        <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded text-violet-600">user.json</code>
+                      </span>
+                    </li>
+                  </ol>
+                </div>
+
+                {/* Happn */}
+                <div className="border border-gray-100 bg-gray-50/50 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-bold text-orange-500">Happn</span>
+                    <span className="text-[10px] text-slate-400">JSON</span>
+                  </div>
+                  <ol className="space-y-1.5 text-sm text-slate-600">
+                    <li>1. Ouvre Happn &gt; <span className="font-medium text-slate-800">Mon compte</span> &gt; <span className="font-medium text-slate-800">Gerer mes donnees</span></li>
+                    <li>2. Clique sur <span className="font-medium text-slate-800">Demander mes donnees</span></li>
+                    <li>3. Confirme par email</li>
+                    <li>4. Tu recevras un lien de telechargement <span className="text-slate-400">(1-3 jours)</span></li>
+                    <li>5. Fusionne les fichiers avec : <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded text-orange-600">node scripts/merge_happn.js all-data</code></li>
+                    <li>6. Upload le fichier <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded text-orange-600">happn_export.json</code> ici</li>
+                  </ol>
+                </div>
+              </div>
             </motion.div>
 
             {/* Privacy notice */}

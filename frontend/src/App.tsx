@@ -1,5 +1,6 @@
 import { useEffect, useState, lazy, Suspense } from "react";
 import Home from "./pages/Home";
+const Score = lazy(() => import("./pages/Score"));
 const Coach = lazy(() => import("./pages/Coach"));
 const Wrapped = lazy(() => import("./pages/Wrapped"));
 const Insights = lazy(() => import("./pages/Insights"));
@@ -25,7 +26,7 @@ export default function App() {
       const anchor = (e.target as HTMLElement).closest("a");
       if (!anchor) return;
       const href = anchor.getAttribute("href");
-      if (!href || href.startsWith("http") || href.startsWith("//")) return;
+      if (!href || href.startsWith("http") || href.startsWith("//") || href.startsWith("#")) return;
       e.preventDefault();
       window.history.pushState({}, "", href);
       setPage(getPage(href));
@@ -44,13 +45,14 @@ export default function App() {
         </div>
       }
     >
-      {page === "coach" ? <Coach /> : page === "wrapped" ? <Wrapped /> : page === "insights" ? <Insights /> : <Coach />}
+      {page === "score" ? <Score /> : page === "coach" ? <Coach /> : page === "wrapped" ? <Wrapped /> : page === "insights" ? <Insights /> : <Coach />}
     </Suspense>
   );
 }
 
 function getPage(path?: string): string {
   const p = path || window.location.pathname;
+  if (p.startsWith("/score")) return "score";
   if (p.startsWith("/methodology")) return "coach";
   if (p.startsWith("/audit")) return "coach";
   if (p.startsWith("/coach")) return "coach";

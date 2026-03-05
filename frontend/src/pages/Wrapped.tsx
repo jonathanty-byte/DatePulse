@@ -7,6 +7,7 @@ import WrappedShare from "../components/WrappedShare";
 import type { WrappedMetrics } from "../lib/wrappedMetrics";
 import type { ConversationInsights } from "../lib/conversationIntelligence";
 import type { AdvancedSwipeInsights } from "../lib/swipeAdvanced";
+import { saveUserInsights } from "../lib/insightsPersistence";
 
 export default function Wrapped() {
   const [metrics, setMetrics] = useState<WrappedMetrics | null>(null);
@@ -21,6 +22,9 @@ export default function Wrapped() {
   ) => {
     setMetrics(m);
 
+    let convInsights: ConversationInsights | undefined;
+    let swipeIns: AdvancedSwipeInsights | undefined;
+
     // Compute conversation insights if message content is available
     if (parsedConversations && parsedConversations.length > 0) {
       const { computeConversationInsights } = await import("../lib/conversationIntelligence");
@@ -29,12 +33,12 @@ export default function Wrapped() {
         const totalMatches = m.totalSwipes > 0
           ? Math.round((m.swipeToMatchRate / 100) * m.rightSwipes)
           : 0;
-        const insights = computeConversationInsights(
+        convInsights = computeConversationInsights(
           parsedConversations,
           m.source as import("../lib/wrappedParser").WrappedAppSource,
           totalMatches
         );
-        setConversationInsights(insights);
+        setConversationInsights(convInsights);
         trackConversationUpload(m.source, parsedConversations.length);
       }
     }
@@ -43,12 +47,22 @@ export default function Wrapped() {
     if (parsedData && parsedData.swipes && parsedData.swipes.length >= 50) {
       try {
         const { computeAdvancedSwipeInsights } = await import("../lib/swipeAdvanced");
-        const swipeInsights = computeAdvancedSwipeInsights(parsedData, m);
-        setAdvancedSwipeInsights(swipeInsights);
+        swipeIns = computeAdvancedSwipeInsights(parsedData, m);
+        setAdvancedSwipeInsights(swipeIns);
       } catch {
         // Graceful degradation: advanced swipe insights are optional
       }
     }
+
+    // Persist for Insights page personalization
+    saveUserInsights({
+      version: 1,
+      persistedAt: new Date().toISOString(),
+      source: m.source,
+      metrics: m,
+      conversationInsights: convInsights,
+      advancedSwipeInsights: swipeIns,
+    });
   };
 
   return (
@@ -64,6 +78,30 @@ export default function Wrapped() {
               advancedSwipeInsights={advancedSwipeInsights}
               onShareClick={() => setShowShare(true)}
             />
+            {/* Teaser paywall — personalized insights coming soon */}
+            <motion.div
+              className="mt-8 mx-auto max-w-md rounded-2xl border border-brand-200 bg-brand-50/50 px-6 py-6 text-center"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <h3 className="text-lg font-bold text-slate-900">Debloquer tes Insights personnalises</h3>
+              <p className="mt-2 text-sm text-slate-500">
+                90 hypotheses testees contre tes donnees — profil, conversations, timing, algorithme, et plus.
+              </p>
+              <button
+                disabled
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-300 px-6 py-3 text-sm font-semibold text-white cursor-not-allowed"
+              >
+                Bientot disponible
+              </button>
+              <a
+                href="/insights"
+                className="mt-3 block text-xs text-brand-500 hover:text-brand-600 transition"
+              >
+                Voir un exemple d'Insights →
+              </a>
+            </motion.div>
           </div>
         ) : (
           /* Upload mode: narrow centered container */
@@ -96,7 +134,7 @@ export default function Wrapped() {
             <span className="mx-2 text-slate-300">|</span>
             <a href="/coach?tab=tracker" className="hover:text-slate-900 transition">Tracker</a>
             <span className="mx-2 text-slate-300">|</span>
-            <a href="/insights" className="hover:text-slate-900 transition">Insights</a>
+            <a href="/insights" className="hover:text-slate-900 transition">Exemple Insights</a>
           </p>
         </div>
       </footer>

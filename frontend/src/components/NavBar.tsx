@@ -2,9 +2,10 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const NAV_LINKS: { href: string; label: string; badge?: string }[] = [
-  { href: "/", label: "Score" },
+  { href: "/", label: "Accueil" },
   { href: "/wrapped", label: "Wrapped" },
-  { href: "/insights", label: "Insights" },
+  { href: "/score", label: "Score" },
+  { href: "/insights", label: "Exemple Insights" },
   { href: "/coach", label: "Coach" },
 ];
 

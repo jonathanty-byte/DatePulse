@@ -110,7 +110,7 @@ export function MiniBar({ bars, maxOverride }: { bars: { label: string; value: n
               transition={{ duration: 0.6, ease: "easeOut" }}
             />
           </div>
-          <span className="w-10 text-right text-[11px] font-medium text-slate-800">{b.value}</span>
+          <span className="w-10 text-right text-[11px] font-medium text-slate-800">{Number.isInteger(b.value) ? b.value : parseFloat(b.value.toFixed(2))}</span>
         </div>
       ))}
     </div>

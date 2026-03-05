@@ -349,21 +349,21 @@ function BenchmarkBadge({ benchmark }: { benchmark: BenchmarkResult }) {
 }
 
 const CP_NAV_ITEMS = [
-  { id: "cp-hero", emoji: "\uD83D\uDCAC", label: "Vue" },
-  { id: "cp-ghost", emoji: "\uD83D\uDC7B", label: "Ghosting" },
-  { id: "cp-questions", emoji: "\u2753", label: "Questions" },
-  { id: "cp-tempo", emoji: "\u23F1\uFE0F", label: "Tempo" },
-  { id: "cp-openers", emoji: "\u2709\uFE0F", label: "Openers" },
-  { id: "cp-escalation", emoji: "\uD83D\uDCC5", label: "Escalade" },
-  { id: "cp-double-text", emoji: "\uD83D\uDCF1", label: "Relance" },
-  { id: "cp-balance", emoji: "\u2696\uFE0F", label: "Equilibre" },
-  { id: "cp-fatigue", emoji: "\uD83D\uDD0B", label: "Fatigue" },
-  { id: "cp-signals", emoji: "\uD83D\uDCE1", label: "Signaux" },
-  { id: "cp-mirroring", emoji: "\uD83E\uDE9E", label: "Miroir" },
-  { id: "cp-language", emoji: "\uD83D\uDD24", label: "Langage" },
-  { id: "cp-timing", emoji: "\u23F0", label: "Timing" },
-  { id: "cp-patterns", emoji: "\uD83D\uDD2E", label: "Patterns" },
-  { id: "cp-verdict", emoji: "\uD83C\uDFC6", label: "Verdict" },
+  { id: "cp-hero", emoji: "💬", label: "Vue" },
+  { id: "cp-ghost", emoji: "👻", label: "Ghosting" },
+  { id: "cp-questions", emoji: "❓", label: "Questions" },
+  { id: "cp-tempo", emoji: "⏱️", label: "Tempo" },
+  { id: "cp-openers", emoji: "✉️", label: "Openers" },
+  { id: "cp-escalation", emoji: "📅", label: "Escalade" },
+  { id: "cp-double-text", emoji: "📱", label: "Relance" },
+  { id: "cp-balance", emoji: "⚖️", label: "Equilibre" },
+  { id: "cp-fatigue", emoji: "🔋", label: "Fatigue" },
+  { id: "cp-signals", emoji: "📡", label: "Signaux" },
+  { id: "cp-mirroring", emoji: "🪞", label: "Miroir" },
+  { id: "cp-language", emoji: "🔤", label: "Langage" },
+  { id: "cp-timing", emoji: "⏰", label: "Timing" },
+  { id: "cp-patterns", emoji: "🔮", label: "Patterns" },
+  { id: "cp-verdict", emoji: "🏆", label: "Verdict" },
 ];
 
 // ── Conversation Pulse Screens ──────────────────────────────────
@@ -385,7 +385,7 @@ function CPSectionHero({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-hero" className="scroll-mt-28 space-y-6" ref={ref}>
-      <SectionTitle emoji="\uD83D\uDCAC" title="Conversation Pulse" />
+      <SectionTitle emoji="💬" title="Conversation Pulse" />
       <NarrativeIntro text={`Analyse de ${insights.conversationsAnalyzed} conversations sur ${insights.ghostBreakdown.total} matchs. Voici ce que tes messages revelent.`} />
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <SpotlightCard
@@ -393,20 +393,20 @@ function CPSectionHero({ insights, appColor }: CPScreenProps) {
           label="Ghost rate"
           sublabel="meurent avant le 2eme message"
           color="#ef4444"
-          icon="\uD83D\uDC7B"
+          icon="👻"
         />
         <SpotlightCard
           value={<AnimatedCounter target={insights.score} suffix="/100" className="text-4xl sm:text-5xl font-extrabold" />}
           label="Score CDS"
           sublabel={getConversationScoreLabel(insights.score)}
           color={scoreColor}
-          icon="\uD83C\uDFAF"
+          icon="🎯"
         />
         <SpotlightCard
           value={insights.archetype}
           label="Ton archetype"
           color={appColor.primary}
-          icon="\uD83E\uDDEC"
+          icon="🧬"
         />
       </div>
     </section>
@@ -428,7 +428,7 @@ function CPSectionGhost({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-ghost" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="\uD83D\uDC7B" title="Le Mur" subtitle="Ou meurent tes conversations — et pourquoi" />
+      <SectionTitle emoji="👻" title="Le Mur" subtitle="Ou meurent tes conversations — et pourquoi" />
       <NarrativeIntro text={`Sur ${gb.total} matchs, voici comment se repartissent tes conversations.`} />
 
       <Card>
@@ -536,7 +536,7 @@ function CPSectionQuestions({ insights, benchmarkGender }: CPScreenProps) {
 
   return (
     <section id="cp-questions" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="\u2753" title="Tes Questions" subtitle="La densite de questions predit la survie d'une conversation (H27)" />
+      <SectionTitle emoji="❓" title="Tes Questions" subtitle="La densite de questions predit la survie d'une conversation (H27)" />
       <NarrativeIntro text={`Quand tu poses 0 questions, ${insights.zeroQuestionGhostRate}% de tes convos meurent.`} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -545,7 +545,7 @@ function CPSectionQuestions({ insights, benchmarkGender }: CPScreenProps) {
           label="Ghost rate sans question"
           sublabel="0 question = conversation morte"
           color="#ef4444"
-          icon="\uD83D\uDC7B"
+          icon="👻"
         />
         <Card className="flex flex-col items-center justify-center gap-3 py-4">
           <ProgressRing value={qDensityPct} max={50} size={70} label="Densite de questions" color={qDensityPct >= 20 ? "#34d399" : "#fbbf24"} />
@@ -583,7 +583,7 @@ function CPSectionTempo({ insights, benchmarkGender }: CPScreenProps) {
 
   return (
     <section id="cp-tempo" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="\u23F1\uFE0F" title="Ton Tempo" subtitle="La vitesse de reponse multiplie tes chances (H34)" />
+      <SectionTitle emoji="⏱️" title="Ton Tempo" subtitle="La vitesse de reponse multiplie tes chances (H34)" />
       <NarrativeIntro text={`Ton temps de reponse median est de ${medianLabel}. ${median <= 60 ? "Tu es reactif — c'est un atout majeur." : "Les reponses rapides multiplient tes chances par 3."}`} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -591,7 +591,7 @@ function CPSectionTempo({ insights, benchmarkGender }: CPScreenProps) {
           value={medianLabel}
           label="Temps de reponse median"
           color={tempoColor}
-          icon="\u26A1"
+          icon="⚡"
         />
         <Card className="flex flex-col items-center justify-center gap-3 py-4">
           <BenchmarkBadge benchmark={bench} />
@@ -620,7 +620,7 @@ function CPSectionOpeners({ insights, appColor, benchmarkGender }: CPScreenProps
 
   return (
     <section id="cp-openers" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="\u2709\uFE0F" title="Tes Openers" subtitle="Le premier message decide de tout (H43, H50)" />
+      <SectionTitle emoji="✉️" title="Tes Openers" subtitle="Le premier message decide de tout (H43, H50)" />
       <NarrativeIntro text="La qualite de ton premier message determine si la conversation vivra ou mourra." />
 
       {/* 3 mini-stats */}
@@ -653,7 +653,7 @@ function CPSectionOpeners({ insights, appColor, benchmarkGender }: CPScreenProps
         label="Francais + Question + Personnalise"
         sublabel="La formule gagnante pour tes openers"
         color="#f59e0b"
-        icon="\uD83C\uDFAF"
+        icon="🎯"
       />
 
       <ExpandToggle title="Impact des openers generiques (H50)">
@@ -684,7 +684,7 @@ function CPSectionEscalation({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-escalation" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="\uD83D\uDCC5" title="L'Escalade" subtitle="Quand proposer un rendez-vous — le timing change tout (H29)" />
+      <SectionTitle emoji="📅" title="L'Escalade" subtitle="Quand proposer un rendez-vous — le timing change tout (H29)" />
       <NarrativeIntro text={`Tu proposes un rendez-vous en moyenne au message #${es.avgMessageNumber}. ${inRange ? "C'est dans la fenetre optimale !" : "C'est en dehors de la fenetre optimale."}`} />
 
       <SpotlightCard
@@ -692,7 +692,7 @@ function CPSectionEscalation({ insights, appColor }: CPScreenProps) {
         label="Premiere escalation en moyenne"
         sublabel={`${es.inOptimalRange}% dans la fenetre optimale`}
         color={escColor}
-        icon="\uD83D\uDCC5"
+        icon="📅"
       />
 
       {/* Visual range bar */}
@@ -735,7 +735,7 @@ function CPSectionDoubleText({ insights }: CPScreenProps) {
 
   return (
     <section id="cp-double-text" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="\uD83D\uDCF1" title="Le Double-Text" subtitle="Relancer apres un silence — ca marche ? (H20)" />
+      <SectionTitle emoji="📱" title="Le Double-Text" subtitle="Relancer apres un silence — ca marche ? (H20)" />
       <NarrativeIntro text="Le double-text, c'est quand tu envoies un 2eme message sans avoir recu de reponse. Parfois ca relance, parfois ca tue." />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -743,13 +743,13 @@ function CPSectionDoubleText({ insights }: CPScreenProps) {
           value={<>{insights.doubleTextRate}%</>}
           label="de tes convos ont un double-text"
           color="#818cf8"
-          icon="\uD83D\uDCF1"
+          icon="📱"
         />
         <SpotlightCard
           value={<>{insights.doubleTextSurvival}%</>}
           label="survivent apres la relance"
           color={insights.doubleTextSurvival >= 40 ? "#34d399" : "#ef4444"}
-          icon={insights.doubleTextSurvival >= 40 ? "\u2705" : "\u274C"}
+          icon={insights.doubleTextSurvival >= 40 ? "✅" : "❌"}
         />
       </div>
 
@@ -779,7 +779,7 @@ function CPSectionBalance({ insights }: CPScreenProps) {
 
   return (
     <section id="cp-balance" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="\u2696\uFE0F" title="L'Equilibre" subtitle="L'investissement asymetrique tue les conversations" />
+      <SectionTitle emoji="⚖️" title="L'Equilibre" subtitle="L'investissement asymetrique tue les conversations" />
       <NarrativeIntro text={`Sur ${total} conversations avec echanges, voici la repartition de ton investissement.`} />
 
       <Card>
@@ -813,7 +813,7 @@ function CPSectionFatigue({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-fatigue" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="\uD83D\uDD0B" title="La Fatigue" subtitle="Quand l'energie baisse, les conversations s'en ressentent (H31)" />
+      <SectionTitle emoji="🔋" title="La Fatigue" subtitle="Quand l'energie baisse, les conversations s'en ressentent (H31)" />
       <NarrativeIntro text="L'effort que tu mets dans tes premiers messages evolue-t-il avec le temps ?" />
 
       {hasTrend ? (
@@ -896,7 +896,7 @@ function CPSectionSignals({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-signals" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji={"\uD83D\uDCE1"} title="Les Signaux" subtitle="Les indicateurs caches qui predisent la mort d'une conversation (H51-H70)" />
+      <SectionTitle emoji={"📡"} title="Les Signaux" subtitle="Les indicateurs caches qui predisent la mort d'une conversation (H51-H70)" />
       <NarrativeIntro text={`Sur ${adv.criticalGap.totalAnalyzed} conversations analysees, voici les signaux invisibles qui determinent la survie de tes echanges.`} />
 
       {/* H51 — Critical Gap */}
@@ -905,7 +905,7 @@ function CPSectionSignals({ insights, appColor }: CPScreenProps) {
         label="survivent apres un silence de 6h+"
         sublabel={`${adv.criticalGap.convosWithGap} convos touchees sur ${adv.criticalGap.totalAnalyzed}`}
         color={gapSurvivalColor}
-        icon={"\u23F3"}
+        icon={"⏳"}
       />
 
       {/* H52 — Rhythm Acceleration */}
@@ -950,7 +950,7 @@ function CPSectionSignals({ insights, appColor }: CPScreenProps) {
         label="ghost rate quand le tempo diverge (ratio 3:1+)"
         sublabel={`${adv.responseTimeAsymmetry.asymmetricConvos} convos avec asymetrie · ratio moyen ${adv.responseTimeAsymmetry.avgAsymmetryRatio.toFixed(1)}x`}
         color={asymDiff > 10 ? "#ef4444" : "#fbbf24"}
-        icon={"\u26A0\uFE0F"}
+        icon={"⚠️"}
       />
       {adv.responseTimeAsymmetry.symmetricGhostRate > 0 && (
         <Card>
@@ -980,7 +980,7 @@ function CPSectionMirroring({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-mirroring" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji={"\uD83E\uDE9E"} title="L'Effet Miroir" subtitle="La symetrie conversationnelle predit la qualite du lien (H55-H57)" />
+      <SectionTitle emoji={"🪞"} title="L'Effet Miroir" subtitle="La symetrie conversationnelle predit la qualite du lien (H55-H57)" />
       <NarrativeIntro text="Quand les deux personnes s'adaptent l'une a l'autre — en longueur, en questions, en initiative — la conversation vit plus longtemps." />
 
       {/* H55 — Length Mirroring */}
@@ -1017,7 +1017,7 @@ function CPSectionMirroring({ insights, appColor }: CPScreenProps) {
         label="Toi vs l'autre — qui brise le silence"
         sublabel={`${adv.initiativeRatio.overInitiatingPct}% de tes convos : tu inities 80%+ des reprises`}
         color={adv.initiativeRatio.overInitiatingPct > 50 ? "#ef4444" : appColor.primary}
-        icon={"\uD83C\uDFD3"}
+        icon={"🏓"}
       />
       {adv.initiativeRatio.overInitiatingGhostRate > 0 && (
         <Card>
@@ -1043,7 +1043,7 @@ function CPSectionLanguage({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-language" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji={"\uD83D\uDD24"} title="Le Langage" subtitle="Ce que tes mots revelent sur la qualite de tes conversations (H53-H60)" />
+      <SectionTitle emoji={"🔤"} title="Le Langage" subtitle="Ce que tes mots revelent sur la qualite de tes conversations (H53-H60)" />
       <NarrativeIntro text="Le choix des mots, la diversite du vocabulaire et le registre emotionnel predisent la survie de tes conversations." />
 
       {/* H53 — Formality Shift */}
@@ -1053,7 +1053,7 @@ function CPSectionLanguage({ insights, appColor }: CPScreenProps) {
           label={`convos passees du "vous" au "tu" (sur ${adv.formalityShift.convosWithVous} en vous)`}
           sublabel={`Transition en moyenne au message #${adv.formalityShift.avgShiftMsgNumber} · Survie ${adv.formalityShift.shiftSurvivalRate}% vs ${adv.formalityShift.noShiftSurvivalRate}%`}
           color={adv.formalityShift.shiftSurvivalRate > adv.formalityShift.noShiftSurvivalRate ? "#34d399" : "#fbbf24"}
-          icon={"\uD83C\uDDE8\uD83C\uDDED"}
+          icon={"🇨🇭"}
         />
       )}
 
@@ -1097,7 +1097,7 @@ function CPSectionLanguage({ insights, appColor }: CPScreenProps) {
         label="survie quand un rire arrive dans les 3 premiers echanges"
         sublabel={`${adv.earlyHumor.convosWithEarlyLaugh} convos avec humour precoce · Sans humour : ${adv.earlyHumor.noEarlyLaughSurvival}%`}
         color={humorDiff > 0 ? "#34d399" : "#fbbf24"}
-        icon={"\uD83D\uDE02"}
+        icon={"😂"}
       />
     </section>
   );
@@ -1121,7 +1121,7 @@ function CPSectionTimingAdv({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-timing" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji={"\u23F0"} title="Le Timing" subtitle="Le moment exact ou une conversation se joue (H61-H65)" />
+      <SectionTitle emoji={"⏰"} title="Le Timing" subtitle="Le moment exact ou une conversation se joue (H61-H65)" />
       <NarrativeIntro text="Le message #3, la forme de tes conversations et ta capacite a gerer plusieurs convos en parallele — tout se mesure." />
 
       {/* H61 — Message #3 Quality */}
@@ -1130,7 +1130,7 @@ function CPSectionTimingAdv({ insights, appColor }: CPScreenProps) {
         label="longueur moyenne de ton message #3"
         sublabel={`${adv.message3Quality.withQuestionPct}% contiennent une question`}
         color={appColor.primary}
-        icon={"\u2709\uFE0F"}
+        icon={"✉️"}
       />
       <Card>
         <p className="text-xs text-center" style={{ color: msg3QDiff > 0 ? "#34d399" : "#ef4444" }}>
@@ -1246,7 +1246,7 @@ function CPSectionPatterns({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-patterns" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji={"\uD83D\uDD2E"} title="Les Patterns" subtitle="Les habitudes invisibles qui separent les conversations qui vivent de celles qui meurent (H63-H69)" />
+      <SectionTitle emoji={"🔮"} title="Les Patterns" subtitle="Les habitudes invisibles qui separent les conversations qui vivent de celles qui meurent (H63-H69)" />
       <NarrativeIntro text="Pronoms, jours de la semaine, GIFs, temps de reaction — chaque pattern raconte une histoire." />
 
       {/* H63 — Inclusive Pronouns */}
@@ -1296,7 +1296,7 @@ function CPSectionPatterns({ insights, appColor }: CPScreenProps) {
         label="ghost rate quand les GIFs augmentent en fin de convo"
         sublabel={`${adv.gifDisengagement.convosWithGifIncrease} convos detectees · sans augmentation : ${adv.gifDisengagement.noGifChangeGhostRate}%`}
         color={gifDiff > 10 ? "#ef4444" : "#fbbf24"}
-        icon={"\uD83C\uDFA5"}
+        icon={"🎥"}
       />
 
       {/* H68 — Match-to-Message Window */}
@@ -1323,7 +1323,7 @@ function CPSectionPatterns({ insights, appColor }: CPScreenProps) {
         label="ghost rate avec messages ultra-courts (positions 2-5)"
         sublabel={`${adv.shortMessageKill.convosWithShortEarly} convos detectees · taux normal : ${adv.shortMessageKill.normalGhostRate}%`}
         color={shortDiff > 10 ? "#ef4444" : "#fbbf24"}
-        icon={"\u2702\uFE0F"}
+        icon={"✂️"}
       />
       {shortDiff > 10 && (
         <Card>
@@ -1352,7 +1352,7 @@ function CPSectionVerdict({ insights, appColor, onShareClick }: CPScreenProps) {
 
   return (
     <section id="cp-verdict" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="\uD83C\uDFC6" title="Le Verdict" subtitle="Ton score conversationnel global, base sur 5 dimensions" />
+      <SectionTitle emoji="🏆" title="Le Verdict" subtitle="Ton score conversationnel global, base sur 5 dimensions" />
       <NarrativeIntro text={`${insights.conversationsAnalyzed} conversations analysees, 5 axes evalues. Voici ton bilan.`} />
 
       <Card className="border-brand-200 bg-brand-50">
@@ -1433,12 +1433,12 @@ function CPSectionVerdict({ insights, appColor, onShareClick }: CPScreenProps) {
 // ── Main report nav items ────────────────────────────────────
 
 const WRAPPED_NAV_ITEMS = [
-  { id: "wr-overview", emoji: "\uD83D\uDCCA", label: "Vue" },
-  { id: "wr-timing", emoji: "\u23F0", label: "Timing" },
-  { id: "wr-conversion", emoji: "\uD83C\uDFAF", label: "Conversion" },
-  { id: "wr-conversations", emoji: "\uD83D\uDCAC", label: "Conversations" },
-  { id: "wr-dna", emoji: "\uD83E\uDDEC", label: "ADN" },
-  { id: "wr-verdict", emoji: "\uD83C\uDFC6", label: "Verdict" },
+  { id: "wr-overview", emoji: "📊", label: "Vue" },
+  { id: "wr-timing", emoji: "⏰", label: "Timing" },
+  { id: "wr-conversion", emoji: "🎯", label: "Conversion" },
+  { id: "wr-conversations", emoji: "💬", label: "Conversations" },
+  { id: "wr-dna", emoji: "🧬", label: "ADN" },
+  { id: "wr-verdict", emoji: "🏆", label: "Verdict" },
 ];
 
 // ══════════════════════════════════════════════════════════════
@@ -1446,11 +1446,11 @@ const WRAPPED_NAV_ITEMS = [
 // ══════════════════════════════════════════════════════════════
 
 const SP_NAV_ITEMS = [
-  { id: "sp-algo", emoji: "\uD83D\uDC7B", label: "Algo" },
-  { id: "sp-psycho", emoji: "\uD83E\uDDE0", label: "Psycho" },
-  { id: "sp-rhythms", emoji: "\uD83D\uDD50", label: "Rythmes" },
-  { id: "sp-conversion", emoji: "\uD83C\uDFAF", label: "Conversion" },
-  { id: "sp-archetype", emoji: "\uD83E\uDDEC", label: "ADN Swipe" },
+  { id: "sp-algo", emoji: "👻", label: "Algo" },
+  { id: "sp-psycho", emoji: "🧠", label: "Psycho" },
+  { id: "sp-rhythms", emoji: "🕐", label: "Rythmes" },
+  { id: "sp-conversion", emoji: "🎯", label: "Conversion" },
+  { id: "sp-archetype", emoji: "🧬", label: "ADN Swipe" },
 ];
 
 
@@ -1460,12 +1460,12 @@ type SPScreenProps = {
 };
 
 const ARCHETYPE_LABELS: Record<SwipeArchetype, { emoji: string; name: string; description: string }> = {
-  stratege: { emoji: "\u265F\uFE0F", name: "Le Stratege", description: "Selectif, regulier, et strategique. Tu optimises chaque swipe." },
-  boulimique: { emoji: "\uD83C\uDF2A\uFE0F", name: "Le Boulimique", description: "Volume massif, fatigue rapide. L'algo te penalise." },
-  fantome: { emoji: "\uD83D\uDC7B", name: "Le Fantome", description: "Longues absences suivies de retours — l'algo te re-booste a chaque fois." },
-  nocturne: { emoji: "\uD83C\uDF19", name: "Le Nocturne", description: "Actif quand les autres dorment. Ton pool est reduit mais captif." },
-  methodique: { emoji: "\u2699\uFE0F", name: "Le Methodique", description: "Rythme stable, horaires fixes. L'algo adore ta previsibilite." },
-  rebelle: { emoji: "\u26A1", name: "Le Rebelle", description: "Imprevisible dans tes patterns. Ca perturbe les signaux algorithmiques." },
+  stratege: { emoji: "♟️", name: "Le Stratege", description: "Selectif, regulier, et strategique. Tu optimises chaque swipe." },
+  boulimique: { emoji: "🌪️", name: "Le Boulimique", description: "Volume massif, fatigue rapide. L'algo te penalise." },
+  fantome: { emoji: "👻", name: "Le Fantome", description: "Longues absences suivies de retours — l'algo te re-booste a chaque fois." },
+  nocturne: { emoji: "🌙", name: "Le Nocturne", description: "Actif quand les autres dorment. Ton pool est reduit mais captif." },
+  methodique: { emoji: "⚙️", name: "Le Methodique", description: "Rythme stable, horaires fixes. L'algo adore ta previsibilite." },
+  rebelle: { emoji: "⚡", name: "Le Rebelle", description: "Imprevisible dans tes patterns. Ca perturbe les signaux algorithmiques." },
 };
 
 /** SP Section 1 — L'Algorithme Fantome: H71-H74 */
@@ -1478,7 +1478,7 @@ function SPSectionAlgorithm({ insights, appColor }: SPScreenProps) {
 
   return (
     <section id="sp-algo" className="scroll-mt-28 space-y-5">
-      <SectionTitle emoji={"\uD83D\uDC7B"} title="L'Algorithme Fantome" subtitle="Comment l'algo controle secretement tes matchs (H71-H74)" />
+      <SectionTitle emoji={"👻"} title="L'Algorithme Fantome" subtitle="Comment l'algo controle secretement tes matchs (H71-H74)" />
       <NarrativeIntro text="Derriere chaque match se cache un algorithme. Tes patterns de swipe lui envoient des signaux — et il reagit." />
 
       {h71 && (
@@ -1487,7 +1487,7 @@ function SPSectionAlgorithm({ insights, appColor }: SPScreenProps) {
           label="de tes sessions montrent un ralentissement"
           sublabel={`Gap moyen x${h71.decayRatio} entre debut et fin de session (${h71.sessionsAnalyzed} sessions)`}
           color={h71.decayPct > 50 ? "#ef4444" : "#fbbf24"}
-          icon={"\u23F3"}
+          icon={"⏳"}
         />
       )}
 
@@ -1522,7 +1522,7 @@ function SPSectionAlgorithm({ insights, appColor }: SPScreenProps) {
               <p className="text-lg font-bold text-emerald-400">{h73.earlyAvgHours}h</p>
               <p className="text-[10px] text-slate-400">debut</p>
             </div>
-            <span className="text-slate-400 text-xl">{h73.driftDirection === "slower" ? "\u2192" : h73.driftDirection === "faster" ? "\u2190" : "\u2194"}</span>
+            <span className="text-slate-400 text-xl">{h73.driftDirection === "slower" ? "→" : h73.driftDirection === "faster" ? "←" : "↔"}</span>
             <div className="text-center">
               <p className="text-lg font-bold" style={{ color: h73.driftDirection === "slower" ? "#ef4444" : "#34d399" }}>{h73.lateAvgHours}h</p>
               <p className="text-[10px] text-slate-400">fin</p>
@@ -1542,7 +1542,7 @@ function SPSectionAlgorithm({ insights, appColor }: SPScreenProps) {
           label="match rate apres une pause de 3+ jours"
           sublabel={`${h74.inactivityGaps} pauses detectees · ${h74.surgeMatchRate}% vs ${h74.normalMatchRate}% normal`}
           color={h74.surgeMultiplier > 1.2 ? "#34d399" : "#9ca3af"}
-          icon={"\uD83D\uDD04"}
+          icon={"🔄"}
         />
       )}
     </section>
@@ -1559,7 +1559,7 @@ function SPSectionPsychology({ insights, appColor }: SPScreenProps) {
 
   return (
     <section id="sp-psycho" className="scroll-mt-28 space-y-5">
-      <SectionTitle emoji={"\uD83E\uDDE0"} title="Psychologie du Swipe" subtitle="Tes biais comportementaux trahis par tes donnees (H75-H78)" />
+      <SectionTitle emoji={"🧠"} title="Psychologie du Swipe" subtitle="Tes biais comportementaux trahis par tes donnees (H75-H78)" />
       <NarrativeIntro text="Chaque session de swipe revele ta psychologie. L'algo le sait — et l'exploite." />
 
       {h75 && (
@@ -1604,7 +1604,7 @@ function SPSectionPsychology({ insights, appColor }: SPScreenProps) {
           label="de tes swipes entre 1h et 5h du matin"
           sublabel={`Match rate nuit: ${h77.lateNightMatchRate}% vs jour: ${h77.dayMatchRate}%`}
           color={h77.matchRateDiff > 0.5 ? "#ef4444" : "#fbbf24"}
-          icon={"\uD83C\uDF19"}
+          icon={"🌙"}
         />
       )}
 
@@ -1636,7 +1636,7 @@ function SPSectionRhythms({ insights, appColor }: SPScreenProps) {
 
   return (
     <section id="sp-rhythms" className="scroll-mt-28 space-y-5">
-      <SectionTitle emoji={"\uD83D\uDD50"} title="Rythmes Caches" subtitle="Les cycles invisibles qui gouvernent tes resultats (H79-H82)" />
+      <SectionTitle emoji={"🕐"} title="Rythmes Caches" subtitle="Les cycles invisibles qui gouvernent tes resultats (H79-H82)" />
       <NarrativeIntro text="Ton corps a un rythme circadien. Ton profil dating aussi. L'algo le detecte." />
 
       {h79 && (
@@ -1701,7 +1701,7 @@ function SPSectionRhythms({ insights, appColor }: SPScreenProps) {
           label="de penalite quand tu binge-swipes apres une secheresse"
           sublabel={`${h82.droughts} secheresses detectees · ${h82.bingesAfterDrought} binges · ${h82.bingeMatchRate}% vs ${h82.normalMatchRate}%`}
           color={h82.reboundPenalty > 30 ? "#ef4444" : "#fbbf24"}
-          icon={"\uD83C\uDF35"}
+          icon={"🌵"}
         />
       )}
     </section>
@@ -1718,7 +1718,7 @@ function SPSectionConversion({ insights, appColor }: SPScreenProps) {
 
   return (
     <section id="sp-conversion" className="scroll-mt-28 space-y-5">
-      <SectionTitle emoji={"\uD83C\uDFAF"} title="Conversion Secrete" subtitle="Les mecaniques cachees de la conversion swipe → match (H83-H86)" />
+      <SectionTitle emoji={"🎯"} title="Conversion Secrete" subtitle="Les mecaniques cachees de la conversion swipe → match (H83-H86)" />
       <NarrativeIntro text="Tous les likes ne se valent pas. Le timing, le contexte, et le volume changent radicalement la conversion." />
 
       {h83 && (
@@ -1781,7 +1781,7 @@ function SPSectionConversion({ insights, appColor }: SPScreenProps) {
           label="likes/jour = sweet spot optimal"
           sublabel={`Taux a l'optimal: ${h86.matchRateAtOptimal}% · Au-dessus: ${h86.matchRateAboveOptimal}% (${h86.decayFactor > 0 ? `-${h86.decayFactor}%` : "stable"})`}
           color={h86.decayFactor > 30 ? "#ef4444" : "#fbbf24"}
-          icon={"\uD83D\uDCC9"}
+          icon={"📉"}
         />
       )}
     </section>
@@ -1798,7 +1798,7 @@ function SPSectionArchetype({ insights, appColor }: SPScreenProps) {
 
   return (
     <section id="sp-archetype" className="scroll-mt-28 space-y-5">
-      <SectionTitle emoji={"\uD83E\uDDEC"} title="ADN Swipe" subtitle="Ton profil comportemental complet — de H71 a H90" />
+      <SectionTitle emoji={"🧬"} title="ADN Swipe" subtitle="Ton profil comportemental complet — de H71 a H90" />
       <NarrativeIntro text="Tes patterns de swipe racontent une histoire. Voici ton archetype." />
 
       {h90 && (
@@ -1878,7 +1878,7 @@ function SPSectionArchetype({ insights, appColor }: SPScreenProps) {
               <p className="text-2xl font-bold text-emerald-400">{h89.first7dMatchRate}</p>
               <p className="text-[10px] text-slate-500 mt-1">matchs/jour (7 premiers j)</p>
             </div>
-            <span className="text-slate-400 text-xl">\u2192</span>
+            <span className="text-slate-400 text-xl">→</span>
             <div>
               <p className="text-2xl font-bold text-red-500">{h89.last7dMatchRate}</p>
               <p className="text-[10px] text-slate-500 mt-1">matchs/jour (7 derniers j)</p>
@@ -2002,7 +2002,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       {/* ═══ VUE D'ENSEMBLE ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
       <section id="wr-overview" className="scroll-mt-28 space-y-6">
-        <SectionTitle emoji={"\uD83D\uDCCA"} title="Vue d'ensemble" subtitle={`${metrics.totalDays} jours d'activite sur ${sourceName}`} />
+        <SectionTitle emoji={"📊"} title="Vue d'ensemble" subtitle={`${metrics.totalDays} jours d'activite sur ${sourceName}`} />
         <NarrativeIntro text={`${metrics.totalSwipes.toLocaleString("fr-FR")} swipes, ${totalMatches} matchs, ${metrics.estimatedTotalHours}h investies. Voici ce que tes donnees revelent.`} />
 
         {/* 3 SpotlightCards — key stats */}
@@ -2012,21 +2012,21 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
             label="swipes au total"
             sublabel={metrics.source === "hinge" ? `${metrics.avgSwipesPerDay}/jour en moy.` : `${metrics.rightSwipeRate}% de likes`}
             color={appColor.primary}
-            icon={"\uD83D\uDC9C"}
+            icon={"💜"}
           />
           <SpotlightCard
             value={<AnimatedCounter target={totalMatches} className="text-4xl sm:text-5xl font-extrabold" />}
             label="matchs obtenus"
             sublabel={`${metrics.swipeToMatchRate}% de conversion`}
             color="#8b5cf6"
-            icon={"\uD83D\uDD25"}
+            icon={"🔥"}
           />
           <SpotlightCard
             value={<>{metrics.hoursPerMatch > 0 ? `${metrics.hoursPerMatch}h` : `${metrics.estimatedTotalHours}h`}</>}
             label={metrics.hoursPerMatch > 0 ? "par match obtenu" : "temps total estime"}
             sublabel={metrics.hoursPerMatch > 0 ? `${metrics.estimatedTotalHours}h au total` : `${metrics.totalDays > 0 ? Math.round((metrics.estimatedTotalHours / metrics.totalDays) * 10) / 10 : 0}h/jour en moy.`}
             color="#ec4899"
-            icon={"\u23F3"}
+            icon={"⏳"}
           />
         </div>
 
@@ -2071,7 +2071,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       {/* ═══ TIMING ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
       <section id="wr-timing" className="scroll-mt-28 space-y-6">
-        <SectionTitle emoji={"\u23F0"} title="Timing" subtitle="Tes jours, tes heures, ton evolution" />
+        <SectionTitle emoji={"⏰"} title="Timing" subtitle="Tes jours, tes heures, ton evolution" />
         <NarrativeIntro text="Quand swipes-tu le plus ? Quand tes matchs arrivent-ils ? L'analyse temporelle de ton activite." />
 
       {/* Tes meilleurs jours (day-of-week) */}
@@ -2138,7 +2138,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       {/* ═══ CONVERSION ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
       <section id="wr-conversion" className="scroll-mt-28 space-y-6">
-        <SectionTitle emoji={"\uD83C\uDFAF"} title="Conversion" subtitle="De like a match — ton entonnoir de conversion" />
+        <SectionTitle emoji={"🎯"} title="Conversion" subtitle="De like a match — ton entonnoir de conversion" />
 
       {/* Impact du commentaire (Hinge only) */}
       {metrics.commentImpact && (
@@ -2281,7 +2281,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       {/* ═══ CONVERSATIONS ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
       <section id="wr-conversations" className="scroll-mt-28 space-y-6">
-        <SectionTitle emoji={"\uD83D\uDCAC"} title="Conversations" subtitle="Ghost rate, tempo de reponse, et equilibre" />
+        <SectionTitle emoji={"💬"} title="Conversations" subtitle="Ghost rate, tempo de reponse, et equilibre" />
 
       {/* Conversations (enriched with ghost empathy + sent/received) */}
       <Card delay={0.25}>
@@ -2442,7 +2442,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
           />
           <div className="mt-4 space-y-2">
             {[
-              { label: "< 1h", count: metrics.responseTime.under1h, badge: "\u26A1" },
+              { label: "< 1h", count: metrics.responseTime.under1h, badge: "⚡" },
               { label: "1-6h", count: metrics.responseTime.under6h, badge: undefined },
               { label: "6-24h", count: metrics.responseTime.under24h, badge: undefined },
               { label: "> 24h", count: metrics.responseTime.over24h, badge: "\u{1F422}" },
@@ -2639,7 +2639,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       {/* ═══ ADN DATING ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
       <section id="wr-dna" className="scroll-mt-28 space-y-6">
-        <SectionTitle emoji={"\uD83E\uDDEC"} title="Ton ADN Dating" subtitle="Ou tu te situes par rapport aux autres" />
+        <SectionTitle emoji={"🧬"} title="Ton ADN Dating" subtitle="Ou tu te situes par rapport aux autres" />
 
       {/* Benchmarks: Ou tu te situes */}
       {metrics.source === "tinder" && (
@@ -2765,7 +2765,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       {/* ═══ VERDICT ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
       <section id="wr-verdict" className="scroll-mt-28 space-y-6">
-        <SectionTitle emoji={"\uD83C\uDFC6"} title="Verdict" subtitle="Le bilan final de ton activite dating" />
+        <SectionTitle emoji={"🏆"} title="Verdict" subtitle="Le bilan final de ton activite dating" />
 
       {/* Verdict */}
       <Card delay={0.4} className="border-brand-200 bg-brand-50">

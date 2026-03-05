@@ -161,10 +161,10 @@ export default function Insights() {
     <div className="min-h-screen bg-[#f8f9fc] text-slate-900">
       <NavBar />
 
-      {/* n=1 disclaimer banner */}
+      {/* Example disclaimer banner */}
       <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center">
         <p className="text-xs sm:text-sm text-amber-700">
-          <span className="font-semibold">Etude de cas n=1</span> — Ces insights sont issus de l'analyse de mes propres donnees RGPD (552 jours, 4 apps). Ils illustrent ce que DatePulse peut reveler, pas des verites universelles.
+          <span className="font-semibold">Exemple d'Insights</span> — Donnees issues d'une etude de cas reelle (552 jours, 4 apps). Tes insights personnalises seront bientot disponibles apres ton Wrapped.
         </p>
       </div>
 

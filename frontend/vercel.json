@@ -3,6 +3,8 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
+    { "source": "/score", "destination": "/index.html" },
+    { "source": "/score/(.*)", "destination": "/index.html" },
     { "source": "/methodology", "destination": "/index.html" },
     { "source": "/methodology/(.*)", "destination": "/index.html" },
     { "source": "/tracker", "destination": "/index.html" },

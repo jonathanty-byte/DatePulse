@@ -1,6 +1,6 @@
 // ── Types ───────────────────────────────────────────────────────
 
-export type WrappedAppSource = "tinder" | "bumble" | "hinge";
+export type WrappedAppSource = "tinder" | "bumble" | "hinge" | "happn";
 
 export interface RawSwipe {
   timestamp: Date;
@@ -160,6 +160,8 @@ function parseJsonData(json: unknown): ParsedData {
       return parseBumbleJson(obj);
     case "hinge":
       return parseHingeExport([], undefined, obj);
+    case "happn":
+      return parseHappnJson(obj);
   }
 }
 
@@ -173,6 +175,11 @@ function detectSource(json: Record<string, unknown>): WrappedAppSource {
     json["Usage"]
   ) {
     return "tinder";
+  }
+  // Happn: merged export has __happn flag, or relationships array with status_a_b
+  if (json["__happn"] || (Array.isArray(json["relationships"]) &&
+    (json["relationships"] as Record<string, unknown>[]).some(r => "status_a_b" in r))) {
+    return "happn";
   }
   // Bumble has different structure
   if (json["user"] && json["conversations"]) {
@@ -842,6 +849,246 @@ function parseHingeExport(
     weMet: weMetData.length > 0 ? weMetData : undefined,
     subscriptionPeriods,
     commentStats,
+    conversations: conversations.length > 0 ? conversations : undefined,
+  };
+}
+
+// ── Happn parser (validated against real RGPD export) ───────────
+//
+// Happn RGPD export is a directory with separate subfolders (relationships, chats, charms, etc.)
+// merged into a single JSON by scripts/merge_happn.js with a "__happn" flag.
+//
+// relationships: { user_id_a, user_id_b, modification_date, status_a_b }
+//   status_a_b: 1 = like, 2 = pass, 3 = match
+// chats: { "contactId": [{ date, body, user_id, contact_id }] }
+// charms: [{ receiver_id, sender_id, charmed_date, message? }] — super-likes
+// orders: { orders: [{ total_amount, currency, creation_date }], subscriptions: [...] }
+// boost: { finished_boost: [{ boost_start_date, like_counter, action_counter }] }
+// users: { profile: { user_id, about_me, registration_date, ... } }
+
+function parseHappnJson(json: Record<string, unknown>): ParsedData {
+  const swipes: RawSwipe[] = [];
+  const matches: RawMatch[] = [];
+  const conversations: ConversationRecord[] = [];
+  const messageTimestamps: Date[] = [];
+  let bio: string | undefined;
+  let createDate: Date | undefined;
+  let purchases: ParsedData["purchases"] | undefined;
+  let boostTracking: ParsedData["boostTracking"] | undefined;
+  let superLikeTracking: ParsedData["superLikeTracking"] | undefined;
+
+  // Extract user ID from profile for sent/received detection in chats
+  let myUserId: string | undefined;
+
+  try {
+    // ── Users / Profile ──
+    const users = json["users"] as Record<string, unknown> | undefined;
+    const profile = users?.["profile"] as Record<string, unknown> | undefined;
+    if (profile) {
+      myUserId = typeof profile["user_id"] === "string" ? profile["user_id"] as string : undefined;
+      bio = typeof profile["about_me"] === "string" ? profile["about_me"] as string : undefined;
+      const regDate = parseDate(profile["registration_date"]);
+      if (regDate) createDate = regDate;
+    }
+
+    // ── Relationships → swipes + matches ──
+    const relationships = json["relationships"] as Record<string, unknown>[] | undefined;
+    if (Array.isArray(relationships)) {
+      // Track matched user IDs for linking conversations
+      const matchedUserIds = new Set<string>();
+
+      for (const rel of relationships) {
+        const status = rel["status_a_b"] as number;
+        const ts = parseDate(rel["modification_date"]);
+        if (!ts) continue;
+
+        const otherUserId = (rel["user_id_a"] === myUserId
+          ? rel["user_id_b"]
+          : rel["user_id_a"]) as string | undefined;
+
+        if (status === 1) {
+          // Like (right swipe)
+          swipes.push({ timestamp: ts, direction: "like" });
+        } else if (status === 2) {
+          // Pass (left swipe)
+          swipes.push({ timestamp: ts, direction: "pass" });
+        } else if (status === 3) {
+          // Match
+          if (otherUserId) matchedUserIds.add(otherUserId);
+          matches.push({
+            timestamp: ts,
+            messagesCount: 0,
+            userInitiated: false,
+          });
+        }
+      }
+
+      // ── Chats → conversations + enrich matches ──
+      const chats = json["chats"] as Record<string, unknown[]> | undefined;
+      if (chats && typeof chats === "object") {
+        for (const [contactId, msgs] of Object.entries(chats)) {
+          if (!Array.isArray(msgs) || msgs.length === 0) continue;
+
+          const rawMessages: RawMessage[] = [];
+          for (const msg of msgs) {
+            const m = msg as Record<string, unknown>;
+            const msgTs = parseDate(m["date"]);
+            const body = typeof m["body"] === "string" ? m["body"] as string : "";
+            if (!msgTs) continue;
+
+            messageTimestamps.push(msgTs);
+
+            // Determine direction using user_id
+            const msgUserId = m["user_id"] as string | undefined;
+            const direction: "sent" | "received" =
+              (myUserId && msgUserId === myUserId) ? "sent" : "received";
+
+            rawMessages.push({ timestamp: msgTs, direction, body, type: "message" });
+          }
+
+          if (rawMessages.length > 0) {
+            rawMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+            // Find the matching RawMatch by contactId presence in matchedUserIds
+            const isMatch = matchedUserIds.has(contactId);
+            const matchTs = isMatch
+              ? matches.find((m2) => m2.messagesCount === 0)?.timestamp
+              : rawMessages[0].timestamp;
+
+            conversations.push({
+              matchTimestamp: matchTs ?? rawMessages[0].timestamp,
+              messages: rawMessages,
+              firstMessageDate: rawMessages[0].timestamp,
+              lastMessageDate: rawMessages[rawMessages.length - 1].timestamp,
+            });
+          }
+
+          // Enrich match message counts: find match closest to first message date
+          if (rawMessages.length > 0) {
+            const closestMatch = findClosestMatch(matches, rawMessages[0].timestamp);
+            if (closestMatch) {
+              closestMatch.messagesCount = rawMessages.length;
+              // Check if user sent first message
+              closestMatch.userInitiated = rawMessages[0].direction === "sent";
+              closestMatch.firstMessageDate = rawMessages[0].timestamp;
+              closestMatch.lastMessageDate = rawMessages[rawMessages.length - 1].timestamp;
+            }
+          }
+        }
+      }
+    }
+
+    // ── Charms → super-like tracking ──
+    const charms = json["charms"] as Record<string, unknown>[] | undefined;
+    if (Array.isArray(charms) && charms.length > 0) {
+      superLikeTracking = [];
+      for (const charm of charms) {
+        const ts = parseDate(charm["charmed_date"]);
+        if (ts) {
+          superLikeTracking.push({ date: ts });
+          // Also add as superlike swipe
+          swipes.push({ timestamp: ts, direction: "superlike" });
+        }
+      }
+      if (superLikeTracking.length === 0) superLikeTracking = undefined;
+    }
+
+    // ── Orders → purchases ──
+    const ordersObj = json["orders"] as Record<string, unknown> | undefined;
+    if (ordersObj) {
+      const orders = ordersObj["orders"] as Record<string, unknown>[] | undefined;
+      const subscriptions = ordersObj["subscriptions"] as Record<string, unknown>[] | undefined;
+
+      if ((Array.isArray(orders) && orders.length > 0) ||
+          (Array.isArray(subscriptions) && subscriptions.length > 0)) {
+        purchases = {};
+
+        if (Array.isArray(orders) && orders.length > 0) {
+          const first = orders[0];
+          const totalAmount = first["total_amount"] as number | undefined;
+          const currency = (first["currency"] as string) ?? "EUR";
+          // Use order info for consumable-like tracking
+          if (totalAmount) {
+            purchases._hingeTotalEur = orders.reduce(
+              (sum, o) => sum + (typeof o["total_amount"] === "number" ? o["total_amount"] as number : 0),
+              0
+            );
+          }
+          // Extract product type from order_lines
+          const orderLines = first["order_lines"] as Record<string, unknown>[] | undefined;
+          const productId = orderLines?.[0]?.["store_product_id"] as string | undefined;
+          if (productId) {
+            const cd = parseDate(first["creation_date"]);
+            if (cd) {
+              purchases.subscription = {
+                productType: productId.includes("sup") ? "Supreme" : productId,
+                createDate: cd,
+              };
+            }
+          }
+        }
+
+        if (Array.isArray(subscriptions) && subscriptions.length > 0) {
+          const sub = subscriptions[0];
+          const cd = parseDate(sub["creation_date"]);
+          const expDate = parseDate(sub["expiration_date"]);
+          const plan = sub["plan"] as Record<string, unknown> | undefined;
+          const subLevel = (sub["subscription_level"] as string) ?? "";
+          if (cd && !purchases.subscription) {
+            purchases.subscription = {
+              productType: subLevel.includes("DELUXE") ? "Supreme" : subLevel,
+              createDate: cd,
+              expireDate: expDate ?? undefined,
+            };
+          } else if (cd && purchases.subscription && expDate) {
+            purchases.subscription.expireDate = expDate;
+          }
+        }
+      }
+    }
+
+    // ── Boost tracking ──
+    const boostObj = json["boost"] as Record<string, unknown> | undefined;
+    if (boostObj) {
+      const finishedBoosts = boostObj["finished_boost"] as Record<string, unknown>[] | undefined;
+      if (Array.isArray(finishedBoosts) && finishedBoosts.length > 0) {
+        boostTracking = [];
+        for (const b of finishedBoosts) {
+          const ts = parseDate(b["boost_start_date"]);
+          const likesGained = typeof b["like_counter"] === "number" ? b["like_counter"] as number : undefined;
+          if (ts) {
+            boostTracking.push({ date: ts, matchesDuringBoost: likesGained });
+          }
+        }
+        if (boostTracking.length === 0) boostTracking = undefined;
+      }
+    }
+  } catch {
+    /* defensive */
+  }
+
+  // Sort
+  swipes.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  matches.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+  const allDates = [
+    ...swipes.map((s) => s.timestamp),
+    ...matches.map((m) => m.timestamp),
+  ];
+  const period = computePeriod(allDates);
+
+  return {
+    source: "happn",
+    period,
+    swipes,
+    matches,
+    dailyOnly: false,
+    messageTimestamps: messageTimestamps.length > 0 ? messageTimestamps : undefined,
+    profile: bio ? { bio } : undefined,
+    purchases,
+    createDate,
+    boostTracking,
+    superLikeTracking,
     conversations: conversations.length > 0 ? conversations : undefined,
   };
 }
