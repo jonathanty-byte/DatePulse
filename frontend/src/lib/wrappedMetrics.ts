@@ -511,10 +511,26 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
     const superLikeMatches = data.superLikeTracking.filter(s => s.matched).length;
     superLikeMatchRate = Math.round((superLikeMatches / superLikesSent) * 100);
   } else {
-    // Fallback: count super likes from swipes
-    const superLikesFromSwipes = swipes.filter(s => s.direction === "superlike").length;
-    if (superLikesFromSwipes > 0) {
-      superLikesSent = superLikesFromSwipes;
+    // Fallback: count super likes from swipes, approximate matches via same-day matching
+    const superLikesFromSwipes = swipes.filter(s => s.direction === "superlike");
+    if (superLikesFromSwipes.length > 0) {
+      superLikesSent = superLikesFromSwipes.length;
+      // Approximate: count matches on same day as a super like
+      const slDays = new Map<string, number>();
+      for (const sl of superLikesFromSwipes) {
+        const dk = sl.timestamp.toISOString().slice(0, 10);
+        slDays.set(dk, (slDays.get(dk) || 0) + 1);
+      }
+      let slMatches = 0;
+      for (const m of matches) {
+        const dk = m.timestamp.toISOString().slice(0, 10);
+        const count = slDays.get(dk);
+        if (count && count > 0) {
+          slMatches++;
+          slDays.set(dk, count - 1);
+        }
+      }
+      superLikeMatchRate = Math.round((slMatches / superLikesSent) * 100);
     }
   }
 

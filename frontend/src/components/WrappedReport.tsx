@@ -154,40 +154,88 @@ function BigStat({
 
 function FunnelChart({ funnel, color, weMet }: { funnel: FunnelData; color: string; weMet: boolean }) {
   const steps = [
-    { label: "Likes", value: funnel.likes, pct: 100 },
-    { label: "Matches", value: funnel.matches, pct: funnel.likeToMatchPct },
-    { label: "Convos", value: funnel.conversations, pct: funnel.matchToConvoPct },
-    ...(weMet ? [{ label: "Dates", value: funnel.dates, pct: funnel.convoToDatePct }] : []),
+    { label: "Likes envoyes", value: funnel.likes, pctLabel: "" },
+    { label: "Matches", value: funnel.matches, pctLabel: `${funnel.likeToMatchPct}%` },
+    { label: "Conversations", value: funnel.conversations, pctLabel: `${funnel.matchToConvoPct}%` },
+    ...(weMet ? [{ label: "Dates IRL", value: funnel.dates, pctLabel: `${funnel.convoToDatePct}%` }] : []),
   ];
-  const maxVal = Math.max(funnel.likes, 1);
+
+  const likesPerConvo = funnel.conversations > 0
+    ? Math.round(funnel.likes / funnel.conversations)
+    : 0;
+
+  const maxVal = Math.max(...steps.map((s) => s.value), 1);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {steps.map((step, i) => {
-        const widthPct = Math.max(4, (step.value / maxVal) * 100);
+        const widthPct = Math.max(8, (step.value / maxVal) * 100);
+        const lost = i > 0 ? steps[i - 1].value - step.value : 0;
+        const lostPct = i > 0 && steps[i - 1].value > 0
+          ? ((lost / steps[i - 1].value) * 100).toFixed(0)
+          : "0";
+        const opacity = 1 - i * 0.12;
+
         return (
-          <div key={step.label} className="flex items-center gap-3">
-            <span className="w-14 text-xs text-slate-500 text-right font-medium">{step.label}</span>
-            <div className="flex-1 h-7 rounded-md bg-gray-50 overflow-hidden relative">
-              <motion.div
-                className="h-full rounded-md flex items-center px-2"
-                style={{ backgroundColor: color, opacity: 1 - i * 0.15 }}
-                initial={{ width: 0 }}
-                whileInView={{ width: `${widthPct}%` }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: i * 0.1 }}
-              >
-                <span className="text-[11px] font-bold text-white whitespace-nowrap">
-                  {step.value.toLocaleString("fr-FR")}
+          <motion.div
+            key={step.label}
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.12, duration: 0.5, ease: "easeOut" }}
+          >
+            {/* Drop-off indicator */}
+            {i > 0 && (
+              <div className="flex items-center gap-2 mb-1.5 ml-1">
+                <svg className="w-3 h-3 text-red-400/70" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 2v8M3 7l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="text-[10px] text-red-400/80 font-medium">
+                  -{lost.toLocaleString("fr-FR")} ({lostPct}%)
                 </span>
-              </motion.div>
+              </div>
+            )}
+
+            {/* Bar row */}
+            <div className="flex items-center gap-3">
+              <span className="w-24 shrink-0 text-[11px] text-slate-500 text-right">{step.label}</span>
+              <div className="relative flex-1 h-8 rounded-lg bg-gray-100 overflow-hidden">
+                <motion.div
+                  className="absolute inset-y-0 left-0 rounded-lg flex items-center justify-end px-3"
+                  style={{ backgroundColor: color, opacity }}
+                  initial={{ width: 0 }}
+                  whileInView={{ width: `${widthPct}%` }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.7, ease: "easeOut", delay: i * 0.12 }}
+                >
+                  <span className="text-xs font-bold text-white whitespace-nowrap">
+                    {step.value.toLocaleString("fr-FR")}
+                  </span>
+                </motion.div>
+              </div>
+              {step.pctLabel && (
+                <span className="w-10 shrink-0 text-[10px] font-semibold text-slate-400">{step.pctLabel}</span>
+              )}
             </div>
-            <span className="w-12 text-[11px] text-slate-400 text-right">
-              {i === 0 ? "" : `${step.pct}%`}
-            </span>
-          </div>
+          </motion.div>
         );
       })}
+
+      {likesPerConvo > 0 && (
+        <motion.div
+          className="mt-4 text-center"
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: steps.length * 0.12 + 0.1 }}
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 border border-slate-200">
+            <span className="text-xs text-slate-500">
+              <span className="font-bold text-slate-700">1</span> conversation pour <span className="font-bold text-slate-700">{likesPerConvo}</span> likes
+            </span>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
@@ -392,7 +440,7 @@ function CPSectionHero({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-hero" className="scroll-mt-28 space-y-6" ref={ref}>
-      <SectionTitle emoji="💬" title="Conversation Pulse" />
+      <SectionTitle title="Conversation Pulse" />
       <NarrativeIntro text={`Analyse de ${insights.conversationsAnalyzed} conversations sur ${insights.ghostBreakdown.total} matchs. Voici ce que tes messages revelent.`} />
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <SpotlightCard
@@ -400,20 +448,17 @@ function CPSectionHero({ insights, appColor }: CPScreenProps) {
           label="Ghost rate"
           sublabel="meurent avant le 2eme message"
           color="#ef4444"
-          icon="👻"
         />
         <SpotlightCard
           value={<AnimatedCounter target={insights.score} suffix="/100" className="text-4xl sm:text-5xl font-extrabold" />}
-          label="Score CDS"
+          label="Score Conversation"
           sublabel={getConversationScoreLabel(insights.score)}
           color={scoreColor}
-          icon="🎯"
         />
         <SpotlightCard
-          value={insights.archetype}
+          value={<span className="text-xl sm:text-2xl font-extrabold leading-tight">{insights.archetype}</span>}
           label="Ton archetype"
           color={appColor.primary}
-          icon="🧬"
         />
       </div>
     </section>
@@ -435,7 +480,7 @@ function CPSectionGhost({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-ghost" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="👻" title="Le Mur" subtitle="Ou meurent tes conversations — et pourquoi" />
+      <SectionTitle title="Le Mur" subtitle="Ou meurent tes conversations — et pourquoi" />
       <NarrativeIntro text={`Sur ${gb.total} matchs, voici comment se repartissent tes conversations.`} />
 
       <Card>
@@ -543,7 +588,7 @@ function CPSectionQuestions({ insights, benchmarkGender }: CPScreenProps) {
 
   return (
     <section id="cp-questions" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="❓" title="Tes Questions" subtitle="La densite de questions predit la survie d'une conversation (H27)" />
+      <SectionTitle title="Tes Questions" subtitle="La densite de questions predit la survie d'une conversation" />
       <NarrativeIntro text={`Quand tu poses 0 questions, ${insights.zeroQuestionGhostRate}% de tes convos meurent.`} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -552,7 +597,6 @@ function CPSectionQuestions({ insights, benchmarkGender }: CPScreenProps) {
           label="Ghost rate sans question"
           sublabel="0 question = conversation morte"
           color="#ef4444"
-          icon="👻"
         />
         <Card className="flex flex-col items-center justify-center gap-3 py-4">
           <ProgressRing value={qDensityPct} max={50} size={70} label="Densite de questions" color={qDensityPct >= 20 ? "#34d399" : "#fbbf24"} />
@@ -561,7 +605,8 @@ function CPSectionQuestions({ insights, benchmarkGender }: CPScreenProps) {
       </div>
 
       <Card>
-        <p className="text-xs font-medium text-slate-800 mb-3">Distribution des questions par conversation</p>
+        <p className="text-xs font-medium text-slate-800 mb-2">Distribution des questions par conversation</p>
+        <p className="text-[10px] text-slate-400 mb-3">Combien de questions tu poses en moyenne dans chaque conversation. Plus tu en poses, plus la conversation survit.</p>
         <MiniBar bars={buckets} />
       </Card>
     </section>
@@ -578,8 +623,8 @@ function CPSectionTempo({ insights, benchmarkGender }: CPScreenProps) {
 
   const tempoColor = median <= 60 ? "#34d399" : median <= 360 ? "#fbbf24" : "#ef4444";
 
-  // Format median nicely
-  const medianLabel = median < 60 ? `${median}min` : median < 1440 ? `${Math.round(median / 60)}h` : `${Math.round(median / 1440)}j`;
+  // Format median nicely — 0 means no data available
+  const medianLabel = median === 0 ? "N/A" : median < 60 ? `${median}min` : median < 1440 ? `${Math.round(median / 60)}h` : `${Math.round(median / 1440)}j`;
 
   const tempoBars = [
     { label: "< 1 heure", value: buckets.under1h, color: "#34d399" },
@@ -590,15 +635,14 @@ function CPSectionTempo({ insights, benchmarkGender }: CPScreenProps) {
 
   return (
     <section id="cp-tempo" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="⏱️" title="Ton Tempo" subtitle="La vitesse de reponse multiplie tes chances (H34)" />
-      <NarrativeIntro text={`Ton temps de reponse median est de ${medianLabel}. ${median <= 60 ? "Tu es reactif — c'est un atout majeur." : "Les reponses rapides multiplient tes chances par 3."}`} />
+      <SectionTitle title="Ton Tempo" subtitle="La vitesse de reponse multiplie tes chances" />
+      <NarrativeIntro text={median === 0 ? "Pas assez de donnees pour calculer ton temps de reponse. L'export ne contient pas de timestamps exploitables." : `Ton temps de reponse median est de ${medianLabel}. ${median <= 60 ? "Tu es reactif — c'est un atout majeur." : "Les reponses rapides multiplient tes chances par 3."}`} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <SpotlightCard
           value={medianLabel}
           label="Temps de reponse median"
           color={tempoColor}
-          icon="⚡"
         />
         <Card className="flex flex-col items-center justify-center gap-3 py-4">
           <BenchmarkBadge benchmark={bench} />
@@ -627,14 +671,14 @@ function CPSectionOpeners({ insights, appColor, benchmarkGender }: CPScreenProps
 
   return (
     <section id="cp-openers" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="✉️" title="Tes Openers" subtitle="Le premier message decide de tout (H43, H50)" />
+      <SectionTitle title="Tes Openers" subtitle="Le premier message decide de tout" />
       <NarrativeIntro text="La qualite de ton premier message determine si la conversation vivra ou mourra." />
 
       {/* 3 mini-stats */}
       <div className="grid grid-cols-3 gap-3">
         <Card className="text-center py-3">
           <p className="text-2xl font-bold" style={{ color: appColor.primary }}>{insights.openerStats.avgLength}</p>
-          <p className="text-[10px] text-slate-500 mt-1">car. en moyenne</p>
+          <p className="text-[10px] text-slate-500 mt-1">caracteres en moy.</p>
           <div className="mt-2"><BenchmarkBadge benchmark={bench} /></div>
         </Card>
         <Card className="text-center py-3">
@@ -660,10 +704,9 @@ function CPSectionOpeners({ insights, appColor, benchmarkGender }: CPScreenProps
         label="Francais + Question + Personnalise"
         sublabel="La formule gagnante pour tes openers"
         color="#f59e0b"
-        icon="🎯"
       />
 
-      <ExpandToggle title="Impact des openers generiques (H50)">
+      <ExpandToggle title="Impact des openers generiques">
         <p className="text-xs text-slate-400 leading-relaxed">
           Les openers generiques ("Salut", "Hey", "Coucou") ont un taux de reponse 3 a 5x inferieur
           aux messages personnalises. Un opener ideal combine : langue naturelle (francais),
@@ -691,7 +734,7 @@ function CPSectionEscalation({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-escalation" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="📅" title="L'Escalade" subtitle="Quand proposer un rendez-vous — le timing change tout (H29)" />
+      <SectionTitle title="L'Escalade" subtitle="Quand proposer un rendez-vous — le timing change tout" />
       <NarrativeIntro text={`Tu proposes un rendez-vous en moyenne au message #${es.avgMessageNumber}. ${inRange ? "C'est dans la fenetre optimale !" : "C'est en dehors de la fenetre optimale."}`} />
 
       <SpotlightCard
@@ -699,7 +742,6 @@ function CPSectionEscalation({ insights, appColor }: CPScreenProps) {
         label="Premiere escalation en moyenne"
         sublabel={`${es.inOptimalRange}% dans la fenetre optimale`}
         color={escColor}
-        icon="📅"
       />
 
       {/* Visual range bar */}
@@ -742,29 +784,32 @@ function CPSectionDoubleText({ insights }: CPScreenProps) {
 
   return (
     <section id="cp-double-text" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="📱" title="Le Double-Text" subtitle="Relancer apres un silence — ca marche ? (H20)" />
-      <NarrativeIntro text="Le double-text, c'est quand tu envoies un 2eme message sans avoir recu de reponse. Parfois ca relance, parfois ca tue." />
+      <SectionTitle title="La Relance" subtitle="Renvoyer un message quand l'autre n'a pas repondu" />
+      <NarrativeIntro text={'Tu envoies un message, pas de reponse. Tu en renvoies un autre : "T\'es toujours la ?" ou "Bon week-end sinon !". C\'est ce qu\'on appelle le double-text — une relance apres un silence.'} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <SpotlightCard
           value={<>{insights.doubleTextRate}%</>}
-          label="de tes convos ont un double-text"
+          label="de tes convos ont une relance"
+          sublabel="tu as renvoye un message sans reponse"
           color="#818cf8"
-          icon="📱"
         />
         <SpotlightCard
           value={<>{insights.doubleTextSurvival}%</>}
-          label="survivent apres la relance"
+          label="ont repris apres ta relance"
+          sublabel="l'autre a fini par repondre"
           color={insights.doubleTextSurvival >= 40 ? "#34d399" : "#ef4444"}
-          icon={insights.doubleTextSurvival >= 40 ? "✅" : "❌"}
         />
       </div>
 
       <Card>
-        <p className="text-xs text-center" style={{ color: insights.doubleTextSurvival >= 40 ? "#34d399" : "#ef4444" }}>
+        <p className="text-[11px] text-slate-400 text-center mb-2">
+          Exemple : Toi → "On se voit quand ?" · <span className="italic text-slate-300">silence 2 jours</span> · Toi → "Bon week-end sinon !"
+        </p>
+        <p className="text-xs text-center font-medium" style={{ color: insights.doubleTextSurvival >= 40 ? "#34d399" : "#ef4444" }}>
           {insights.doubleTextSurvival >= 40
-            ? "Le double-text t'aide — tes relances ont un bon taux de survie."
-            : "Peu efficace dans ton cas — tes relances ne sauvent pas les conversations."}
+            ? "Tes relances fonctionnent — elles remettent la conversation en route."
+            : "Tes relances marchent rarement — la conversation etait probablement deja finie."}
         </p>
       </Card>
     </section>
@@ -786,7 +831,7 @@ function CPSectionBalance({ insights }: CPScreenProps) {
 
   return (
     <section id="cp-balance" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="⚖️" title="L'Equilibre" subtitle="L'investissement asymetrique tue les conversations" />
+      <SectionTitle title="L'Equilibre" subtitle="L'investissement asymetrique tue les conversations" />
       <NarrativeIntro text={`Sur ${total} conversations avec echanges, voici la repartition de ton investissement.`} />
 
       <Card>
@@ -820,7 +865,7 @@ function CPSectionFatigue({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-fatigue" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="🔋" title="La Fatigue" subtitle="Quand l'energie baisse, les conversations s'en ressentent (H31)" />
+      <SectionTitle title="La Fatigue" subtitle="Quand l'energie baisse, les conversations s'en ressentent" />
       <NarrativeIntro text="L'effort que tu mets dans tes premiers messages evolue-t-il avec le temps ?" />
 
       {hasTrend ? (
@@ -903,7 +948,7 @@ function CPSectionSignals({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-signals" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji={"📡"} title="Les Signaux" subtitle="Les indicateurs caches qui predisent la mort d'une conversation (H51-H70)" />
+      <SectionTitle title="Les Signaux" subtitle="Les indicateurs caches qui predisent la mort d'une conversation" />
       <NarrativeIntro text={`Sur ${adv.criticalGap.totalAnalyzed} conversations analysees, voici les signaux invisibles qui determinent la survie de tes echanges.`} />
 
       {/* H51 — Critical Gap */}
@@ -912,12 +957,13 @@ function CPSectionSignals({ insights, appColor }: CPScreenProps) {
         label="survivent apres un silence de 6h+"
         sublabel={`${adv.criticalGap.convosWithGap} convos touchees sur ${adv.criticalGap.totalAnalyzed}`}
         color={gapSurvivalColor}
-        icon={"⏳"}
       />
 
       {/* H52 — Rhythm Acceleration */}
+      {(adv.rhythmAcceleration.accelerating + adv.rhythmAcceleration.decelerating + adv.rhythmAcceleration.stable) > 0 && (
       <Card>
-        <p className="text-xs font-medium text-slate-800 mb-3">Rythme de tes conversations (H52)</p>
+        <p className="text-xs font-medium text-slate-800 mb-1">Rythme de tes conversations</p>
+        <p className="text-[10px] text-slate-400 mb-3">Sur les {adv.rhythmAcceleration.accelerating + adv.rhythmAcceleration.decelerating + adv.rhythmAcceleration.stable} conversations avec assez de messages pour analyser le rythme</p>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
             <p className="text-2xl font-bold text-emerald-400">{adv.rhythmAcceleration.accelerating}</p>
@@ -935,10 +981,12 @@ function CPSectionSignals({ insights, appColor }: CPScreenProps) {
           </div>
         </div>
       </Card>
+      )}
 
       {/* H54 — Temporal Sync */}
+      {(adv.temporalSync.synced + adv.temporalSync.unsynced) > 0 && (
       <Card>
-        <p className="text-xs font-medium text-slate-800 mb-3">Synchronisation temporelle (H54)</p>
+        <p className="text-xs font-medium text-slate-800 mb-3">Synchronisation temporelle</p>
         <MiniBar bars={[
           { label: "Synchronises", value: adv.temporalSync.synced, color: "#34d399" },
           { label: "Desynchronises", value: adv.temporalSync.unsynced, color: "#ef4444" },
@@ -950,14 +998,16 @@ function CPSectionSignals({ insights, appColor }: CPScreenProps) {
           <span className="text-slate-400"> ({adv.temporalSync.syncSurvivalRate}% vs {adv.temporalSync.unsyncSurvivalRate}%)</span>
         </p>
       </Card>
+      )}
 
       {/* H70 — Response Time Asymmetry */}
+      {adv.responseTimeAsymmetry.asymmetricConvos > 0 && (
+      <>
       <SpotlightCard
         value={<>{adv.responseTimeAsymmetry.asymmetricGhostRate}%</>}
         label="ghost rate quand le tempo diverge (ratio 3:1+)"
         sublabel={`${adv.responseTimeAsymmetry.asymmetricConvos} convos avec asymetrie · ratio moyen ${adv.responseTimeAsymmetry.avgAsymmetryRatio.toFixed(1)}x`}
         color={asymDiff > 10 ? "#ef4444" : "#fbbf24"}
-        icon={"⚠️"}
       />
       {adv.responseTimeAsymmetry.symmetricGhostRate > 0 && (
         <Card>
@@ -967,6 +1017,8 @@ function CPSectionSignals({ insights, appColor }: CPScreenProps) {
               : `Le tempo asymetrique a peu d'impact : ${adv.responseTimeAsymmetry.asymmetricGhostRate}% vs ${adv.responseTimeAsymmetry.symmetricGhostRate}% quand aligne.`}
           </p>
         </Card>
+      )}
+      </>
       )}
     </section>
   );
@@ -987,27 +1039,31 @@ function CPSectionMirroring({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-mirroring" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji={"🪞"} title="L'Effet Miroir" subtitle="La symetrie conversationnelle predit la qualite du lien (H55-H57)" />
+      <SectionTitle title="L'Effet Miroir" subtitle="La symetrie conversationnelle predit la qualite du lien" />
       <NarrativeIntro text="Quand les deux personnes s'adaptent l'une a l'autre — en longueur, en questions, en initiative — la conversation vit plus longtemps." />
 
       {/* H55 — Length Mirroring */}
+      {mirrorScore > 0 && (
       <Card className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 py-4">
         <ProgressRing value={mirrorScore} max={100} size={80} label="Score miroir" color={mirrorColor} />
         <div className="text-center sm:text-left flex-1">
-          <p className="text-sm text-slate-800 font-medium">Convergence de longueur (H55)</p>
+          <p className="text-sm text-slate-800 font-medium">Convergence de longueur</p>
           <p className="text-xs text-slate-400 mt-1">
-            Survie haute convergence : <span className="font-medium text-emerald-400">{adv.lengthMirroring.highMirrorSurvival}%</span>
-            {" "}vs basse : <span className="font-medium text-red-500">{adv.lengthMirroring.lowMirrorSurvival}%</span>
+            {adv.lengthMirroring.highMirrorSurvival > 0 || adv.lengthMirroring.lowMirrorSurvival > 0 ? (
+              <>Quand tes messages font la meme longueur que les siens : <span className="font-medium text-emerald-400">{adv.lengthMirroring.highMirrorSurvival}% de survie</span>
+              {" "}vs <span className="font-medium text-red-500">{adv.lengthMirroring.lowMirrorSurvival}%</span> sinon</>
+            ) : "Pas assez de donnees pour comparer"}
           </p>
           <p className="text-[10px] mt-1" style={{ color: mirrorDiff > 0 ? "#34d399" : "#ef4444" }}>
             {mirrorDiff > 0 ? `+${mirrorDiff}pts quand tu miroires la longueur` : "Le mirroring n'a pas d'impact significatif"}
           </p>
         </div>
       </Card>
+      )}
 
       {/* H56 — Question Reciprocity */}
       <Card>
-        <p className="text-xs font-medium text-slate-800 mb-3">Reciprocite des questions (H56)</p>
+        <p className="text-xs font-medium text-slate-800 mb-3">Reciprocite des questions</p>
         <MiniBar bars={[
           { label: "Basse reciprocite", value: adv.questionReciprocity.lowReciprocityGhostRate, color: "#ef4444" },
           { label: "Haute reciprocite", value: adv.questionReciprocity.highReciprocityGhostRate, color: "#34d399" },
@@ -1019,19 +1075,33 @@ function CPSectionMirroring({ insights, appColor }: CPScreenProps) {
       </Card>
 
       {/* H57 — Initiative Ratio */}
-      <SpotlightCard
-        value={<>{userInitPct}% / {100 - userInitPct}%</>}
-        label="Toi vs l'autre — qui brise le silence"
-        sublabel={`${adv.initiativeRatio.overInitiatingPct}% de tes convos : tu inities 80%+ des reprises`}
-        color={adv.initiativeRatio.overInitiatingPct > 50 ? "#ef4444" : appColor.primary}
-        icon={"🏓"}
-      />
-      {adv.initiativeRatio.overInitiatingGhostRate > 0 && (
+      {totalBreaks > 0 && (
+      <>
+      <Card>
+        <p className="text-xs font-medium text-slate-800 mb-3">Qui relance apres un silence ?</p>
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div>
+            <p className="text-2xl font-bold" style={{ color: appColor.primary }}>{adv.initiativeRatio.userBreaks}</p>
+            <p className="text-[10px] text-slate-500 mt-1">fois ou tu relances</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-slate-500">{adv.initiativeRatio.matchBreaks}</p>
+            <p className="text-[10px] text-slate-500 mt-1">fois ou l'autre relance</p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-slate-400 text-center">
+          Tu prends l'initiative dans {userInitPct}% des reprises de conversation
+        </p>
+      </Card>
+      {adv.initiativeRatio.overInitiatingPct > 0 && adv.initiativeRatio.overInitiatingGhostRate > 0 && (
         <Card>
           <p className="text-xs text-center" style={{ color: adv.initiativeRatio.overInitiatingGhostRate > 60 ? "#ef4444" : "#fbbf24" }}>
-            Quand tu inities trop : <span className="font-medium">{adv.initiativeRatio.overInitiatingGhostRate}%</span> de ghost rate
+            Dans {adv.initiativeRatio.overInitiatingPct}% de tes convos, tu relances quasi tout le temps (80%+).
+            Ghost rate dans ces cas : <span className="font-medium">{adv.initiativeRatio.overInitiatingGhostRate}%</span>
           </p>
         </Card>
+      )}
+      </>
       )}
     </section>
   );
@@ -1050,7 +1120,7 @@ function CPSectionLanguage({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-language" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji={"🔤"} title="Le Langage" subtitle="Ce que tes mots revelent sur la qualite de tes conversations (H53-H60)" />
+      <SectionTitle title="Le Langage" subtitle="Ce que tes mots revelent sur la qualite de tes conversations" />
       <NarrativeIntro text="Le choix des mots, la diversite du vocabulaire et le registre emotionnel predisent la survie de tes conversations." />
 
       {/* H53 — Formality Shift */}
@@ -1060,33 +1130,35 @@ function CPSectionLanguage({ insights, appColor }: CPScreenProps) {
           label={`convos passees du "vous" au "tu" (sur ${adv.formalityShift.convosWithVous} en vous)`}
           sublabel={`Transition en moyenne au message #${adv.formalityShift.avgShiftMsgNumber} · Survie ${adv.formalityShift.shiftSurvivalRate}% vs ${adv.formalityShift.noShiftSurvivalRate}%`}
           color={adv.formalityShift.shiftSurvivalRate > adv.formalityShift.noShiftSurvivalRate ? "#34d399" : "#fbbf24"}
-          icon={"🇨🇭"}
         />
       )}
 
       {/* H58 — Lexical Richness */}
       <Card className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 py-4">
-        <ProgressRing value={ttrScore} max={100} size={80} label="Richesse lexicale" color={ttrColor} />
+        <ProgressRing value={ttrScore} max={100} size={80} label="Vocabulaire" color={ttrColor} />
         <div className="text-center sm:text-left flex-1">
-          <p className="text-sm text-slate-800 font-medium">Diversite du vocabulaire (H58)</p>
+          <p className="text-sm text-slate-800 font-medium">Diversite du vocabulaire</p>
           <p className="text-xs text-slate-400 mt-1">
-            TTR eleve : survie <span className="font-medium text-emerald-400">{adv.lexicalRichness.highTTRsurvival}%</span>
-            {" "}vs faible : <span className="font-medium text-red-500">{adv.lexicalRichness.lowTTRsurvival}%</span>
+            {adv.lexicalRichness.highTTRsurvival > 0 || adv.lexicalRichness.lowTTRsurvival > 0 ? (
+              <>Vocabulaire varie : <span className="font-medium text-emerald-400">{adv.lexicalRichness.highTTRsurvival}% de survie</span>
+              {" "}vs vocabulaire repetitif : <span className="font-medium text-red-500">{adv.lexicalRichness.lowTTRsurvival}%</span></>
+            ) : "Pas assez de donnees pour comparer"}
           </p>
         </div>
       </Card>
 
       {/* H59 — Emoji Dynamics */}
       <Card>
-        <p className="text-xs font-medium text-slate-800 mb-3">Dynamique des emojis (H59)</p>
+        <p className="text-xs font-medium text-slate-800 mb-1">Dynamique des emojis</p>
+        <p className="text-[10px] text-slate-400 mb-3">Pourcentage de tes messages qui contiennent au moins un emoji</p>
         <div className="grid grid-cols-2 gap-4 text-center">
           <div>
-            <p className="text-2xl font-bold" style={{ color: appColor.primary }}>{adv.emojiDynamics.avgDensityFirst3.toFixed(2)}</p>
-            <p className="text-[10px] text-slate-500 mt-1">densite 3 premiers msgs</p>
+            <p className="text-2xl font-bold" style={{ color: appColor.primary }}>{Math.round(adv.emojiDynamics.avgDensityFirst3 * 100)}%</p>
+            <p className="text-[10px] text-slate-500 mt-1">dans tes 3 premiers msgs</p>
           </div>
           <div>
-            <p className="text-2xl font-bold" style={{ color: emojiDrop > 0.05 ? "#ef4444" : "#34d399" }}>{adv.emojiDynamics.avgDensityLast3.toFixed(2)}</p>
-            <p className="text-[10px] text-slate-500 mt-1">densite 3 derniers msgs</p>
+            <p className="text-2xl font-bold" style={{ color: emojiDrop > 0.05 ? "#ef4444" : "#34d399" }}>{Math.round(adv.emojiDynamics.avgDensityLast3 * 100)}%</p>
+            <p className="text-[10px] text-slate-500 mt-1">dans tes 3 derniers msgs</p>
           </div>
         </div>
         <div className="mt-3 text-center">
@@ -1099,13 +1171,20 @@ function CPSectionLanguage({ insights, appColor }: CPScreenProps) {
       </Card>
 
       {/* H60 — Early Humor */}
+      {adv.earlyHumor.convosWithEarlyLaugh > 0 ? (
       <SpotlightCard
         value={<>{adv.earlyHumor.earlyLaughSurvival}%</>}
         label="survie quand un rire arrive dans les 3 premiers echanges"
         sublabel={`${adv.earlyHumor.convosWithEarlyLaugh} convos avec humour precoce · Sans humour : ${adv.earlyHumor.noEarlyLaughSurvival}%`}
         color={humorDiff > 0 ? "#34d399" : "#fbbf24"}
-        icon={"😂"}
       />
+      ) : (
+      <Card>
+        <p className="text-xs text-slate-400 text-center">
+          Pas d'humour detecte dans tes 3 premiers messages — essaie un emoji 😄 ou un trait d'humour pour briser la glace.
+        </p>
+      </Card>
+      )}
     </section>
   );
 }
@@ -1117,27 +1196,20 @@ function CPSectionTimingAdv({ insights, appColor }: CPScreenProps) {
   const adv = insights.advancedInsights;
 
   const msg3QDiff = adv.message3Quality.questionSurvival - adv.message3Quality.noQuestionSurvival;
-  const shapes = [
-    { label: "Diamant", value: adv.conversationShapes.diamond, color: "#34d399", survival: adv.conversationShapes.diamondSurvival },
-    { label: "Plateau", value: adv.conversationShapes.plateau, color: "#818cf8" },
-    { label: "Erratique", value: adv.conversationShapes.erratic, color: "#fbbf24" },
-    { label: "Falaise", value: adv.conversationShapes.cliff, color: "#ef4444", survival: adv.conversationShapes.cliffSurvival },
-  ];
   const trendLabel = adv.learningCurve.trend === "improving" ? "En progression" : adv.learningCurve.trend === "declining" ? "En declin" : "Stable";
   const trendColor = adv.learningCurve.trend === "improving" ? "#34d399" : adv.learningCurve.trend === "declining" ? "#ef4444" : "#818cf8";
 
   return (
     <section id="cp-timing" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji={"⏰"} title="Le Timing" subtitle="Le moment exact ou une conversation se joue (H61-H65)" />
-      <NarrativeIntro text="Le message #3, la forme de tes conversations et ta capacite a gerer plusieurs convos en parallele — tout se mesure." />
+      <SectionTitle title="Le Timing" subtitle="Le moment exact ou une conversation se joue" />
+      <NarrativeIntro text="Le message #3 et ta courbe d'apprentissage — chaque detail compte." />
 
       {/* H61 — Message #3 Quality */}
       <SpotlightCard
-        value={<>{adv.message3Quality.avgLength} car.</>}
+        value={<>{adv.message3Quality.avgLength} caracteres</>}
         label="longueur moyenne de ton message #3"
         sublabel={`${adv.message3Quality.withQuestionPct}% contiennent une question`}
         color={appColor.primary}
-        icon={"✉️"}
       />
       <Card>
         <p className="text-xs text-center" style={{ color: msg3QDiff > 0 ? "#34d399" : "#ef4444" }}>
@@ -1147,20 +1219,11 @@ function CPSectionTimingAdv({ insights, appColor }: CPScreenProps) {
         </p>
       </Card>
 
-      {/* H62 — Conversation Shapes */}
-      <Card>
-        <p className="text-xs font-medium text-slate-800 mb-3">Forme de tes conversations (H62)</p>
-        <MiniBar bars={shapes.map((s) => ({ label: s.label, value: s.value, color: s.color }))} />
-        <div className="mt-3 flex flex-wrap gap-3 justify-center text-[10px]">
-          <span className="text-emerald-400">Diamant : {adv.conversationShapes.diamondSurvival}% survie</span>
-          <span className="text-slate-400">|</span>
-          <span className="text-red-500">Falaise : {adv.conversationShapes.cliffSurvival}% survie</span>
-        </div>
-      </Card>
+      {/* H62 — Conversation Shapes: removed per feedback (not comprehensible) */}
 
       {/* H64 — Learning Curve */}
       <Card>
-        <p className="text-xs font-medium text-slate-800 mb-3">Courbe d'apprentissage (H64)</p>
+        <p className="text-xs font-medium text-slate-800 mb-3">Courbe d'apprentissage</p>
         <div className="flex items-center gap-3 mb-3">
           <span className="text-sm font-bold" style={{ color: trendColor }}>{trendLabel}</span>
           <span className="text-[10px] text-slate-400">
@@ -1193,44 +1256,7 @@ function CPSectionTimingAdv({ insights, appColor }: CPScreenProps) {
         )}
       </Card>
 
-      {/* H65 — Simultaneity */}
-      <Card>
-        <p className="text-xs font-medium text-slate-800 mb-3">Conversations simultanees (H65)</p>
-        <div className="grid grid-cols-2 gap-4 text-center mb-3">
-          <div>
-            <p className="text-2xl font-bold" style={{ color: appColor.primary }}>{adv.simultaneity.avgActiveConvos.toFixed(1)}</p>
-            <p className="text-[10px] text-slate-500 mt-1">convos actives en moyenne</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold" style={{ color: adv.simultaneity.overloadThreshold > 0 ? "#fbbf24" : "#34d399" }}>
-              {adv.simultaneity.overloadThreshold > 0 ? adv.simultaneity.overloadThreshold : "N/A"}
-            </p>
-            <p className="text-[10px] text-slate-500 mt-1">seuil de surcharge</p>
-          </div>
-        </div>
-        {adv.simultaneity.qualityByLoad.length > 0 && (
-          <ExpandToggle title="Detail par nombre de convos actives">
-            <div className="rounded-lg border border-gray-200 overflow-hidden">
-              <table className="w-full text-xs">
-                <thead><tr className="border-b border-gray-200 bg-white">
-                  <th className="px-3 py-2 text-left text-slate-500">Actives</th>
-                  <th className="px-3 py-2 text-right text-slate-500">Reponse moy.</th>
-                  <th className="px-3 py-2 text-right text-slate-500">Long. msg moy.</th>
-                </tr></thead>
-                <tbody>
-                  {adv.simultaneity.qualityByLoad.map((row) => (
-                    <tr key={row.active} className="border-b border-gray-200 last:border-0">
-                      <td className="px-3 py-1.5 text-slate-800">{row.active} convos</td>
-                      <td className="px-3 py-1.5 text-right text-slate-800">{row.avgResponseMin}min</td>
-                      <td className="px-3 py-1.5 text-right text-slate-800">{row.avgMsgLength} car.</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </ExpandToggle>
-        )}
-      </Card>
+      {/* H65 — Simultaneity: removed per feedback (not comprehensible) */}
     </section>
   );
 }
@@ -1242,7 +1268,6 @@ function CPSectionPatterns({ insights, appColor }: CPScreenProps) {
   const adv = insights.advancedInsights;
 
   const inclDiff = adv.inclusivePronouns.inclusiveEscalationRate - adv.inclusivePronouns.noInclusiveEscalationRate;
-  const gifDiff = adv.gifDisengagement.gifIncreaseGhostRate - adv.gifDisengagement.noGifChangeGhostRate;
   const shortDiff = adv.shortMessageKill.shortEarlyGhostRate - adv.shortMessageKill.normalGhostRate;
 
   // Find best and worst day from dayOfWeekConvos
@@ -1253,12 +1278,12 @@ function CPSectionPatterns({ insights, appColor }: CPScreenProps) {
 
   return (
     <section id="cp-patterns" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji={"🔮"} title="Les Patterns" subtitle="Les habitudes invisibles qui separent les conversations qui vivent de celles qui meurent (H63-H69)" />
+      <SectionTitle title="Les Patterns" subtitle="Les habitudes invisibles qui separent les conversations qui vivent de celles qui meurent" />
       <NarrativeIntro text="Pronoms, jours de la semaine, GIFs, temps de reaction — chaque pattern raconte une histoire." />
 
       {/* H63 — Inclusive Pronouns */}
       <Card>
-        <p className="text-xs font-medium text-slate-800 mb-3">Pronoms inclusifs : "on", "nous", "ensemble" (H63)</p>
+        <p className="text-xs font-medium text-slate-800 mb-3">Pronoms inclusifs : "on", "nous", "ensemble"</p>
         <div className="grid grid-cols-2 gap-4 text-center">
           <div>
             <p className="text-2xl font-bold text-emerald-400">{adv.inclusivePronouns.inclusiveEscalationRate}%</p>
@@ -1278,66 +1303,67 @@ function CPSectionPatterns({ insights, appColor }: CPScreenProps) {
       </Card>
 
       {/* H66 — Day-of-Week */}
-      {adv.dayOfWeekConvos.length > 0 && (
+      {adv.dayOfWeekConvos.some((d) => d.count > 0) && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Escalation par jour de la semaine (H66)</p>
+          <p className="text-xs font-medium text-slate-800 mb-1">Propositions de date par jour</p>
+          <p className="text-[10px] text-slate-400 mb-3">Nombre de conversations ou tu as propose un rendez-vous, par jour de la semaine</p>
           <MiniBar
             bars={adv.dayOfWeekConvos.map((d) => ({
-              label: d.day,
-              value: d.escalationRate,
+              label: `${d.day} (${d.count})`,
+              value: Math.round(d.escalationRate * d.count / 100),
               color: d === bestDay ? "#34d399" : "#818cf8",
             }))}
-            maxOverride={maxEsc}
           />
           {bestDay && (
             <p className="mt-2 text-[10px] text-slate-400 text-center">
-              Meilleur jour : <span className="text-emerald-400 font-medium">{bestDay.day}</span> ({bestDay.escalationRate}% escalation)
+              Meilleur jour : <span className="text-emerald-400 font-medium">{bestDay.day}</span> — {Math.round(bestDay.escalationRate * bestDay.count / 100)} proposition{Math.round(bestDay.escalationRate * bestDay.count / 100) > 1 ? "s" : ""} sur {bestDay.count} convos
             </p>
           )}
         </Card>
       )}
 
-      {/* H67 — GIF Disengagement */}
-      <SpotlightCard
-        value={<>{adv.gifDisengagement.gifIncreaseGhostRate}%</>}
-        label="ghost rate quand les GIFs augmentent en fin de convo"
-        sublabel={`${adv.gifDisengagement.convosWithGifIncrease} convos detectees · sans augmentation : ${adv.gifDisengagement.noGifChangeGhostRate}%`}
-        color={gifDiff > 10 ? "#ef4444" : "#fbbf24"}
-        icon={"🎥"}
-      />
+      {/* H67 — GIF Disengagement: removed per feedback (not pertinent) */}
 
       {/* H68 — Match-to-Message Window */}
-      {adv.matchToMessageWindow.buckets.length > 0 && (
-        <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Delai avant le 1er message (H68)</p>
-          <MiniBar
-            bars={adv.matchToMessageWindow.buckets.map((b) => ({
-              label: b.label,
-              value: b.survivalRate,
-              color: b.survivalRate >= 50 ? "#34d399" : b.survivalRate >= 30 ? "#fbbf24" : "#ef4444",
-            }))}
-            maxOverride={100}
-          />
-          <p className="mt-2 text-[10px] text-slate-400 text-center">
-            % = taux de survie par fenetre de temps
-          </p>
-        </Card>
-      )}
+      {adv.matchToMessageWindow.buckets.some((b) => b.count > 0) && (() => {
+        const totalH68 = adv.matchToMessageWindow.buckets.reduce((s, b) => s + b.count, 0);
+        return (
+          <Card>
+            <p className="text-xs font-medium text-slate-800 mb-1">Combien de temps avant ton 1er message ?</p>
+            <p className="text-[10px] text-slate-400 mb-3">Sur {totalH68} conversations ou tu as envoye le 1er message, voici le taux de survie selon le delai</p>
+            <MiniBar
+              bars={adv.matchToMessageWindow.buckets.filter((b) => b.count > 0).map((b) => ({
+                label: `${b.label} (${b.count})`,
+                value: b.survivalRate,
+                color: b.survivalRate >= 50 ? "#34d399" : b.survivalRate >= 30 ? "#fbbf24" : "#ef4444",
+                suffix: "%",
+              }))}
+              maxOverride={100}
+            />
+            <p className="mt-2 text-[10px] text-slate-400 text-center">
+              Barre = % de conversations qui ont survecu (reponse obtenue) par tranche de delai
+            </p>
+          </Card>
+        );
+      })()}
 
       {/* H69 — Short Message Kill */}
-      <SpotlightCard
-        value={<>{adv.shortMessageKill.shortEarlyGhostRate}%</>}
-        label="ghost rate avec messages ultra-courts (positions 2-5)"
-        sublabel={`${adv.shortMessageKill.convosWithShortEarly} convos detectees · taux normal : ${adv.shortMessageKill.normalGhostRate}%`}
-        color={shortDiff > 10 ? "#ef4444" : "#fbbf24"}
-        icon={"✂️"}
-      />
-      {shortDiff > 10 && (
-        <Card>
-          <p className="text-xs text-center text-red-500">
-            Les messages ultra-courts en debut de conversation augmentent le ghosting de +{shortDiff}pts. Investis un peu plus tot.
-          </p>
-        </Card>
+      {adv.shortMessageKill.convosWithShortEarly > 0 && (
+        <>
+          <SpotlightCard
+            value={<>{adv.shortMessageKill.shortEarlyGhostRate}%</>}
+            label="de ghosting quand tes premiers messages sont tres courts"
+            sublabel={`${adv.shortMessageKill.convosWithShortEarly} conversations concernees · sans messages courts : ${adv.shortMessageKill.normalGhostRate}%`}
+            color={shortDiff > 10 ? "#ef4444" : "#fbbf24"}
+          />
+          {shortDiff > 10 && (
+            <Card>
+              <p className="text-xs text-center text-red-500">
+                Quand tes 2e-5e messages font moins de 20 caracteres, tu te fais ghoster {shortDiff}% de plus. Ecris des reponses un peu plus developpees en debut de conversation.
+              </p>
+            </Card>
+          )}
+        </>
       )}
     </section>
   );
@@ -1359,7 +1385,7 @@ function CPSectionVerdict({ insights, appColor, onShareClick }: CPScreenProps) {
 
   return (
     <section id="cp-verdict" className="scroll-mt-28 space-y-5" ref={ref}>
-      <SectionTitle emoji="🏆" title="Le Verdict" subtitle="Ton score conversationnel global, base sur 5 dimensions" />
+      <SectionTitle title="Le Verdict" subtitle="Ton score conversationnel global, base sur 5 dimensions" />
       <NarrativeIntro text={`${insights.conversationsAnalyzed} conversations analysees, 5 axes evalues. Voici ton bilan.`} />
 
       <Card className="border-brand-200 bg-brand-50">
@@ -1378,11 +1404,11 @@ function CPSectionVerdict({ insights, appColor, onShareClick }: CPScreenProps) {
 
         {/* 5 ProgressRings */}
         <div className="flex flex-wrap justify-center gap-4 sm:gap-6 mt-2">
-          <ProgressRing value={insights.scoreBreakdown.questionDensity} label="Questions" color={ringColor(insights.scoreBreakdown.questionDensity)} />
-          <ProgressRing value={insights.scoreBreakdown.responseSpeed} label="Reactivite" color={ringColor(insights.scoreBreakdown.responseSpeed)} />
-          <ProgressRing value={insights.scoreBreakdown.openerQuality} label="Openers" color={ringColor(insights.scoreBreakdown.openerQuality)} />
-          <ProgressRing value={insights.scoreBreakdown.escalationTiming} label="Escalation" color={ringColor(insights.scoreBreakdown.escalationTiming)} />
-          <ProgressRing value={insights.scoreBreakdown.conversationBalance} label="Equilibre" color={ringColor(insights.scoreBreakdown.conversationBalance)} />
+          <ProgressRing value={insights.scoreBreakdown.questionDensity} max={20} label="Questions" color={ringColor(insights.scoreBreakdown.questionDensity)} />
+          <ProgressRing value={insights.scoreBreakdown.responseSpeed} max={20} label="Reactivite" color={ringColor(insights.scoreBreakdown.responseSpeed)} />
+          <ProgressRing value={insights.scoreBreakdown.openerQuality} max={20} label="Openers" color={ringColor(insights.scoreBreakdown.openerQuality)} />
+          <ProgressRing value={insights.scoreBreakdown.escalationTiming} max={20} label="Escalation" color={ringColor(insights.scoreBreakdown.escalationTiming)} />
+          <ProgressRing value={insights.scoreBreakdown.conversationBalance} max={20} label="Equilibre" color={ringColor(insights.scoreBreakdown.conversationBalance)} />
         </div>
 
         {/* Archetype */}
@@ -1420,12 +1446,12 @@ function CPSectionVerdict({ insights, appColor, onShareClick }: CPScreenProps) {
 
       <ExpandToggle title="Comment le score est calcule">
         <div className="space-y-2 text-xs text-slate-400">
-          <p>Le score CDS (Conversation Dating Score) est base sur 5 axes, chacun note sur 20 :</p>
+          <p>Le Score Conversation est base sur 5 axes, chacun note sur 20 :</p>
           <ul className="space-y-1 pl-4">
-            <li><span className="text-slate-800 font-medium">Questions (0-20)</span> — densite de "?" dans tes messages envoyes (H27)</li>
-            <li><span className="text-slate-800 font-medium">Reactivite (0-20)</span> — temps de reponse median (H34)</li>
+            <li><span className="text-slate-800 font-medium">Questions (0-20)</span> — densite de "?" dans tes messages envoyes</li>
+            <li><span className="text-slate-800 font-medium">Reactivite (0-20)</span> — temps de reponse median{insights.responseTimeMedian === 0 ? " (pas de donnees exploitables → score neutre 10/20)" : ` (${insights.responseTimeMedian}min)`}</li>
             <li><span className="text-slate-800 font-medium">Openers (0-20)</span> — longueur + question + personnalisation (H43, H50)</li>
-            <li><span className="text-slate-800 font-medium">Escalation (0-20)</span> — timing de proposition de rendez-vous (H29)</li>
+            <li><span className="text-slate-800 font-medium">Escalation (0-20)</span> — timing de proposition de rendez-vous</li>
             <li><span className="text-slate-800 font-medium">Equilibre (0-20)</span> — ratio messages envoyes vs recus</li>
           </ul>
           <p className="text-[10px] text-slate-400 mt-2">
@@ -1485,7 +1511,7 @@ function SPSectionAlgorithm({ insights, appColor }: SPScreenProps) {
 
   return (
     <section id="sp-algo" className="scroll-mt-28 space-y-5">
-      <SectionTitle emoji={"👻"} title="L'Algorithme Fantome" subtitle="Comment l'algo controle secretement tes matchs (H71-H74)" />
+      <SectionTitle title="L'Algorithme Fantome" subtitle="Comment l'algo controle secretement tes matchs" />
       <NarrativeIntro text="Derriere chaque match se cache un algorithme. Tes patterns de swipe lui envoient des signaux — et il reagit." />
 
       {h71 && (
@@ -1494,36 +1520,36 @@ function SPSectionAlgorithm({ insights, appColor }: SPScreenProps) {
           label="de tes sessions montrent un ralentissement"
           sublabel={`Gap moyen x${h71.decayRatio} entre debut et fin de session (${h71.sessionsAnalyzed} sessions)`}
           color={h71.decayPct > 50 ? "#ef4444" : "#fbbf24"}
-          icon={"⏳"}
         />
       )}
 
       {h72 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Periodisation des matchs (H72)</p>
+          <p className="text-xs font-medium text-slate-800 mb-1">Tes matchs arrivent-ils par vagues ?</p>
+          <p className="text-[10px] text-slate-400 mb-3">L'algorithme distribue souvent les matchs en groupes plutot que regulierement</p>
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
               <p className="text-2xl font-bold" style={{ color: appColor.primary }}>{h72.clusters}</p>
-              <p className="text-[10px] text-slate-500 mt-1">clusters detectes</p>
+              <p className="text-[10px] text-slate-500 mt-1">vagues de matchs</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-800">{h72.avgClusterSize}</p>
-              <p className="text-[10px] text-slate-500 mt-1">matchs/cluster moy.</p>
+              <p className="text-[10px] text-slate-500 mt-1">matchs/vague en moy.</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-amber-600">{h72.maxGapDays}j</p>
-              <p className="text-[10px] text-slate-500 mt-1">plus long drought</p>
+              <p className="text-[10px] text-slate-500 mt-1">plus longue pause</p>
             </div>
           </div>
           {h72.periodicityDetected && (
-            <p className="mt-3 text-xs text-center text-emerald-400">Periodicite detectee — l'algo distribue tes matchs en batch</p>
+            <p className="mt-3 text-xs text-center text-emerald-400">Pattern detecte : l'algo semble distribuer tes matchs par vagues regulieres</p>
           )}
         </Card>
       )}
 
       {h73 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Derive du delai like → match (H73)</p>
+          <p className="text-xs font-medium text-slate-800 mb-3">Derive du delai like → match</p>
           <div className="flex items-center justify-around">
             <div className="text-center">
               <p className="text-lg font-bold text-emerald-400">{h73.earlyAvgHours}h</p>
@@ -1549,7 +1575,6 @@ function SPSectionAlgorithm({ insights, appColor }: SPScreenProps) {
           label="match rate apres une pause de 3+ jours"
           sublabel={`${h74.inactivityGaps} pauses detectees · ${h74.surgeMatchRate}% vs ${h74.normalMatchRate}% normal`}
           color={h74.surgeMultiplier > 1.2 ? "#34d399" : "#9ca3af"}
-          icon={"🔄"}
         />
       )}
     </section>
@@ -1566,12 +1591,12 @@ function SPSectionPsychology({ insights, appColor }: SPScreenProps) {
 
   return (
     <section id="sp-psycho" className="scroll-mt-28 space-y-5">
-      <SectionTitle emoji={"🧠"} title="Psychologie du Swipe" subtitle="Tes biais comportementaux trahis par tes donnees (H75-H78)" />
+      <SectionTitle title="Psychologie du Swipe" subtitle="Tes biais comportementaux trahis par tes donnees" />
       <NarrativeIntro text="Chaque session de swipe revele ta psychologie. L'algo le sait — et l'exploite." />
 
       {h75 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Oscillation de selectivite (H75)</p>
+          <p className="text-xs font-medium text-slate-800 mb-3">Oscillation de selectivite</p>
           <div className="flex items-center justify-around text-center">
             <div>
               <p className="text-2xl font-bold text-amber-600">{h75.oscillationScore}</p>
@@ -1594,7 +1619,7 @@ function SPSectionPsychology({ insights, appColor }: SPScreenProps) {
 
       {h76 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Momentum apres passes (H76)</p>
+          <p className="text-xs font-medium text-slate-800 mb-3">Momentum apres passes</p>
           <MiniBar bars={[
             { label: "Apres 5+ passes", value: h76.postStreakMatchRate, color: "#34d399" },
             { label: "Match rate normal", value: h76.normalMatchRate, color: "#6366f1" },
@@ -1611,21 +1636,24 @@ function SPSectionPsychology({ insights, appColor }: SPScreenProps) {
           label="de tes swipes entre 1h et 5h du matin"
           sublabel={`Match rate nuit: ${h77.lateNightMatchRate}% vs jour: ${h77.dayMatchRate}%`}
           color={h77.matchRateDiff > 0.5 ? "#ef4444" : "#fbbf24"}
-          icon={"🌙"}
         />
       )}
 
       {h78 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Efficacite des Superlikes (H78)</p>
+          <p className="text-xs font-medium text-slate-800 mb-1">Tes Superlikes sont-ils rentables ?</p>
+          <p className="text-[10px] text-slate-400 mb-3">{h78.superlikesSent} Super Likes envoyes — comparaison du taux de match</p>
           <MiniBar bars={[
-            { label: "Super Likes", value: h78.superlikeMatchRate, color: "#3b82f6" },
-            { label: "Likes normaux", value: h78.normalMatchRate, color: "#6366f1" },
-          ]} />
+            { label: `Super Likes (${h78.superlikeMatchRate}%)`, value: h78.superlikeMatchRate, color: "#3b82f6" },
+            { label: `Likes normaux (${h78.normalMatchRate}%)`, value: h78.normalMatchRate, color: "#6366f1" },
+          ]} maxOverride={Math.max(h78.superlikeMatchRate, h78.normalMatchRate, 1)} />
           <p className="mt-2 text-xs text-center" style={{ color: h78.paradoxDetected ? "#ef4444" : "#34d399" }}>
             {h78.paradoxDetected
-              ? `Paradoxe detecte : tes superlikes convertissent MOINS que tes likes normaux (${h78.superlikesSent} envoyes)`
-              : `Superlikes ${h78.efficiencyRatio > 1 ? "plus" : "aussi"} efficaces que les likes normaux`}
+              ? `Paradoxe : tes Super Likes convertissent moins bien (${h78.superlikeMatchRate}%) que tes likes normaux (${h78.normalMatchRate}%)`
+              : `Tes Super Likes convertissent a ${h78.superlikeMatchRate}% vs ${h78.normalMatchRate}% pour les likes normaux (x${h78.efficiencyRatio})`}
+          </p>
+          <p className="mt-1 text-[10px] text-slate-300 text-center">
+            Estimation basee sur les matchs du meme jour qu'un Super Like — taux approximatif
           </p>
         </Card>
       )}
@@ -1643,12 +1671,12 @@ function SPSectionRhythms({ insights, appColor }: SPScreenProps) {
 
   return (
     <section id="sp-rhythms" className="scroll-mt-28 space-y-5">
-      <SectionTitle emoji={"🕐"} title="Rythmes Caches" subtitle="Les cycles invisibles qui gouvernent tes resultats (H79-H82)" />
+      <SectionTitle title="Rythmes Caches" subtitle="Les cycles invisibles qui gouvernent tes resultats" />
       <NarrativeIntro text="Ton corps a un rythme circadien. Ton profil dating aussi. L'algo le detecte." />
 
       {h79 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Empreinte circadienne (H79)</p>
+          <p className="text-xs font-medium text-slate-800 mb-3">Empreinte circadienne</p>
           <div className="flex items-center justify-around text-center">
             <div>
               <p className="text-lg font-bold" style={{ color: appColor.primary }}>
@@ -1670,7 +1698,7 @@ function SPSectionRhythms({ insights, appColor }: SPScreenProps) {
 
       {h80 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Micro-cycles hebdo (H80)</p>
+          <p className="text-xs font-medium text-slate-800 mb-3">Micro-cycles hebdo</p>
           <MiniBar bars={[
             { label: "Semaines normales", value: h80.normalWeekMatchRate, color: "#34d399" },
             { label: "Semaines cassees", value: h80.brokenWeekMatchRate, color: "#ef4444" },
@@ -1684,7 +1712,7 @@ function SPSectionRhythms({ insights, appColor }: SPScreenProps) {
 
       {h81 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Effet debut de mois (H81)</p>
+          <p className="text-xs font-medium text-slate-800 mb-3">Effet debut de mois</p>
           <div className="flex items-center justify-around text-center">
             <div>
               <p className="text-2xl font-bold text-emerald-400">{h81.monthStartMatchRate}%</p>
@@ -1705,10 +1733,9 @@ function SPSectionRhythms({ insights, appColor }: SPScreenProps) {
       {h82 && h82.droughts > 0 && (
         <SpotlightCard
           value={<>{h82.reboundPenalty}%</>}
-          label="de penalite quand tu binge-swipes apres une secheresse"
-          sublabel={`${h82.droughts} secheresses detectees · ${h82.bingesAfterDrought} binges · ${h82.bingeMatchRate}% vs ${h82.normalMatchRate}%`}
+          label="de penalite quand tu swipes massivement apres une longue pause"
+          sublabel={`${h82.droughts} pauses de 5+ jours detectees · ${h82.bingesAfterDrought} reprises intensives · match rate ${h82.bingeMatchRate}% vs ${h82.normalMatchRate}% normal`}
           color={h82.reboundPenalty > 30 ? "#ef4444" : "#fbbf24"}
-          icon={"🌵"}
         />
       )}
     </section>
@@ -1725,12 +1752,12 @@ function SPSectionConversion({ insights, appColor }: SPScreenProps) {
 
   return (
     <section id="sp-conversion" className="scroll-mt-28 space-y-5">
-      <SectionTitle emoji={"🎯"} title="Conversion Secrete" subtitle="Les mecaniques cachees de la conversion swipe → match (H83-H86)" />
+      <SectionTitle title="Conversion Secrete" subtitle="Les mecaniques cachees de la conversion swipe → match" />
       <NarrativeIntro text="Tous les likes ne se valent pas. Le timing, le contexte, et le volume changent radicalement la conversion." />
 
       {h83 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Bonus 1er swipe de session (H83)</p>
+          <p className="text-xs font-medium text-slate-800 mb-3">Bonus 1er swipe de session</p>
           <div className="flex items-center justify-around text-center">
             <div>
               <p className="text-2xl font-bold text-emerald-400">{h83.firstSwipeMatchRate}%</p>
@@ -1751,7 +1778,7 @@ function SPSectionConversion({ insights, appColor }: SPScreenProps) {
 
       {h84 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Momentum hebdo (H84)</p>
+          <p className="text-xs font-medium text-slate-800 mb-3">Momentum hebdo</p>
           <div className="text-center">
             <p className="text-3xl font-bold" style={{ color: h84.momentumCorrelation > 0.3 ? "#34d399" : h84.momentumCorrelation > 0 ? "#fbbf24" : "#ef4444" }}>
               {h84.momentumCorrelation > 0 ? "+" : ""}{Math.round(h84.momentumCorrelation * 100)}%
@@ -1769,15 +1796,18 @@ function SPSectionConversion({ insights, appColor }: SPScreenProps) {
 
       {h85 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Qualite par selectivite (H85)</p>
+          <p className="text-xs font-medium text-slate-800 mb-1">Qualite des matchs selon ta selectivite</p>
+          <p className="text-[10px] text-slate-400 mb-3">Pourcentage de matchs qui menent a une conversation, selon ton taux de like du jour</p>
           <MiniBar bars={[
-            { label: `Selectif (<${h85.selectivityThreshold}%)`, value: h85.selectiveMatchConvoRate, color: "#34d399" },
-            { label: "Mass-like (>60%)", value: h85.massLikeMatchConvoRate, color: "#ef4444" },
+            { label: `Jours selectifs (<${h85.selectivityThreshold}%)`, value: h85.selectiveMatchConvoRate, color: "#34d399", suffix: "%" },
+            { label: "Jours mass-like (>60%)", value: h85.massLikeMatchConvoRate, color: "#ef4444", suffix: "%" },
           ]} maxOverride={100} />
-          <p className="mt-2 text-xs text-center text-slate-400">
-            {h85.qualityMultiplier > 1.3
-              ? `x${h85.qualityMultiplier} — les matchs en phase selective menent ${h85.qualityMultiplier}x plus a une conversation`
-              : "La selectivite n'a pas d'impact significatif sur la qualite des matchs"}
+          <p className="mt-2 text-xs text-center" style={{ color: h85.selectiveMatchConvoRate > h85.massLikeMatchConvoRate ? "#34d399" : h85.selectiveMatchConvoRate < h85.massLikeMatchConvoRate ? "#ef4444" : "#9ca3af" }}>
+            {h85.selectiveMatchConvoRate > h85.massLikeMatchConvoRate
+              ? `Quand tu es selectif, ${h85.selectiveMatchConvoRate}% de tes matchs deviennent des conversations vs ${h85.massLikeMatchConvoRate}% en mass-like`
+              : h85.selectiveMatchConvoRate < h85.massLikeMatchConvoRate
+              ? `Paradoxe : le mass-like donne plus de conversations (${h85.massLikeMatchConvoRate}% vs ${h85.selectiveMatchConvoRate}%)`
+              : `Pas de difference significative (${h85.selectiveMatchConvoRate}% vs ${h85.massLikeMatchConvoRate}%)`}
           </p>
         </Card>
       )}
@@ -1788,7 +1818,6 @@ function SPSectionConversion({ insights, appColor }: SPScreenProps) {
           label="likes/jour = sweet spot optimal"
           sublabel={`Taux a l'optimal: ${h86.matchRateAtOptimal}% · Au-dessus: ${h86.matchRateAboveOptimal}% (${h86.decayFactor > 0 ? `-${h86.decayFactor}%` : "stable"})`}
           color={h86.decayFactor > 30 ? "#ef4444" : "#fbbf24"}
-          icon={"📉"}
         />
       )}
     </section>
@@ -1805,7 +1834,7 @@ function SPSectionArchetype({ insights, appColor }: SPScreenProps) {
 
   return (
     <section id="sp-archetype" className="scroll-mt-28 space-y-5">
-      <SectionTitle emoji={"🧬"} title="ADN Swipe" subtitle="Ton profil comportemental complet — de H71 a H90" />
+      <SectionTitle title="ADN Swipe" subtitle="Ton profil comportemental complet — archetype, habitudes et meta-strategie" />
       <NarrativeIntro text="Tes patterns de swipe racontent une histoire. Voici ton archetype." />
 
       {h90 && (
@@ -1833,45 +1862,60 @@ function SPSectionArchetype({ insights, appColor }: SPScreenProps) {
             ))}
           </div>
           <p className="mt-3 text-[10px] text-slate-400">
-            Base sur {h90.hypothesesUsed} hypotheses analysees
+            Base sur {h90.hypothesesUsed} analyses approfondies
           </p>
         </motion.div>
       )}
 
       {h87 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Jours actifs vs passifs (H87)</p>
+          <p className="text-xs font-medium text-slate-800 mb-1">Qu'est-ce qui differencie tes bons jours ?</p>
+          <p className="text-[10px] text-slate-400 mb-3">Comparaison des jours ou tu as eu au moins 1 match vs les jours sans match</p>
           <div className="grid grid-cols-2 gap-4 text-center">
             <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/10 p-3">
               <p className="text-2xl font-bold text-emerald-400">{h87.activeDays}</p>
               <p className="text-[10px] text-slate-500 mt-1">jours avec match</p>
-              <p className="text-[10px] text-slate-400">{h87.activeAvgSwipes} swipes/j · {h87.activeAvgLikeRate}% like rate</p>
+              <p className="text-[10px] text-slate-400">{h87.activeAvgSwipes} swipes/jour en moy.</p>
+              <p className="text-[10px] text-slate-400">{h87.activeAvgLikeRate}% de likes</p>
             </div>
             <div className="rounded-xl bg-red-500/5 border border-red-500/10 p-3">
               <p className="text-2xl font-bold text-red-500">{h87.passiveDays}</p>
               <p className="text-[10px] text-slate-500 mt-1">jours sans match</p>
-              <p className="text-[10px] text-slate-400">{h87.passiveAvgSwipes} swipes/j · {h87.passiveAvgLikeRate}% like rate</p>
+              <p className="text-[10px] text-slate-400">{h87.passiveAvgSwipes} swipes/jour en moy.</p>
+              <p className="text-[10px] text-slate-400">{h87.passiveAvgLikeRate}% de likes</p>
             </div>
           </div>
+          <p className="mt-3 text-[10px] text-center text-slate-400">
+            {Math.abs(h87.activeAvgLikeRate - h87.passiveAvgLikeRate) <= 5
+              ? `Like rate quasi identique (${h87.activeAvgLikeRate}% vs ${h87.passiveAvgLikeRate}%) : la difference vient du volume de swipes, pas de ta selectivite. Les jours avec match, tu swipes ${h87.activeAvgSwipes > h87.passiveAvgSwipes ? "plus" : "moins"} (${h87.activeAvgSwipes} vs ${h87.passiveAvgSwipes}).`
+              : h87.activeAvgLikeRate > h87.passiveAvgLikeRate
+              ? `Les jours avec match, tu likes plus (${h87.activeAvgLikeRate}% vs ${h87.passiveAvgLikeRate}%) — tu es peut-etre plus motive(e) quand l'app te recompense.`
+              : `Les jours sans match, tu likes plus (${h87.passiveAvgLikeRate}% vs ${h87.activeAvgLikeRate}%) — le mass-like ne semble pas aider.`}
+          </p>
         </Card>
       )}
 
       {h88 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Decisivite d'utilisation (H88)</p>
+          <p className="text-xs font-medium text-slate-800 mb-1">Comment tu utilises l'app au quotidien</p>
+          <p className="text-[10px] text-slate-400 mb-3">Tu ouvres l'app {h88.avgOpensPerDay} fois par jour et tu swipes {h88.avgSwipesPerOpen} profils a chaque fois</p>
           <div className="flex items-center justify-around text-center">
             <div>
               <p className="text-lg font-bold text-slate-800">{h88.avgOpensPerDay}</p>
-              <p className="text-[10px] text-slate-500">ouvertures/jour</p>
+              <p className="text-[10px] text-slate-500">ouvertures par jour</p>
             </div>
             <div>
               <p className="text-lg font-bold" style={{ color: appColor.primary }}>{h88.avgSwipesPerOpen}</p>
-              <p className="text-[10px] text-slate-500">swipes/ouverture</p>
+              <p className="text-[10px] text-slate-500">swipes par ouverture</p>
             </div>
           </div>
-          {h88.decisivenessPenalty > 20 && (
-            <p className="mt-2 text-xs text-center text-amber-600">
-              Beaucoup d'ouvertures, peu de swipes = "browsing" — penalite de {h88.decisivenessPenalty}%
+          {h88.decisivenessPenalty > 20 ? (
+            <p className="mt-3 text-xs text-center text-amber-600">
+              Tu ouvres souvent l'app sans vraiment swiper. L'algorithme pourrait interpreter ca comme de l'indecision. Essaie de faire des sessions de swipe plus courtes mais plus engagees.
+            </p>
+          ) : (
+            <p className="mt-3 text-[10px] text-center text-slate-400">
+              Bon ratio : tu utilises l'app de maniere decisive, chaque ouverture compte.
             </p>
           )}
         </Card>
@@ -1879,7 +1923,7 @@ function SPSectionArchetype({ insights, appColor }: SPScreenProps) {
 
       {h89 && (
         <Card>
-          <p className="text-xs font-medium text-slate-800 mb-3">Impact timing abonnement (H89)</p>
+          <p className="text-xs font-medium text-slate-800 mb-3">Impact timing abonnement</p>
           <div className="flex items-center justify-around text-center">
             <div>
               <p className="text-2xl font-bold text-emerald-400">{h89.first7dMatchRate}</p>
@@ -1902,24 +1946,27 @@ function SPSectionArchetype({ insights, appColor }: SPScreenProps) {
 
       {h90 && (
         <ExpandToggle title="Scores detailles par archetype">
-          <div className="space-y-1.5">
+          <div className="space-y-3">
             {(Object.entries(h90.scores) as [SwipeArchetype, number][])
               .sort(([, a], [, b]) => b - a)
               .map(([arch, score]) => (
-                <div key={arch} className="flex items-center gap-2">
-                  <span className="w-6 text-center">{ARCHETYPE_LABELS[arch].emoji}</span>
-                  <span className="w-24 text-[11px] text-slate-500">{ARCHETYPE_LABELS[arch].name}</span>
-                  <div className="relative h-3 flex-1 overflow-hidden rounded-full bg-white">
-                    <motion.div
-                      className="absolute inset-y-0 left-0 rounded-full"
-                      style={{ backgroundColor: arch === h90.archetype ? appColor.primary : "#4b5563" }}
-                      initial={{ width: 0 }}
-                      whileInView={{ width: `${(score / Math.max(...Object.values(h90.scores), 1)) * 100}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.6 }}
-                    />
+                <div key={arch}>
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 text-center">{ARCHETYPE_LABELS[arch].emoji}</span>
+                    <span className="w-24 text-[11px] text-slate-500 font-medium">{ARCHETYPE_LABELS[arch].name}</span>
+                    <div className="relative h-3 flex-1 overflow-hidden rounded-full bg-white">
+                      <motion.div
+                        className="absolute inset-y-0 left-0 rounded-full"
+                        style={{ backgroundColor: arch === h90.archetype ? appColor.primary : "#4b5563" }}
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${(score / Math.max(...Object.values(h90.scores), 1)) * 100}%` }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6 }}
+                      />
+                    </div>
+                    <span className="w-6 text-right text-[11px] font-medium text-slate-800">{score}</span>
                   </div>
-                  <span className="w-6 text-right text-[11px] font-medium text-slate-800">{score}</span>
+                  <p className="ml-8 text-[10px] text-slate-400 mt-0.5">{ARCHETYPE_LABELS[arch].description}</p>
                 </div>
               ))}
           </div>
@@ -2009,7 +2056,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       {/* ═══ VUE D'ENSEMBLE ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
       <section id="wr-overview" className="scroll-mt-28 space-y-6">
-        <SectionTitle emoji={"📊"} title="Vue d'ensemble" subtitle={`${metrics.totalDays} jours d'activite sur ${sourceName}`} />
+        <SectionTitle title="Vue d'ensemble" subtitle={`${metrics.totalDays} jours d'activite sur ${sourceName}`} />
         <NarrativeIntro text={`${metrics.totalSwipes.toLocaleString("fr-FR")} swipes, ${totalMatches} matchs, ${metrics.estimatedTotalHours}h investies. Voici ce que tes donnees revelent.`} />
 
         {/* 3 SpotlightCards — key stats */}
@@ -2019,21 +2066,20 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
             label="swipes au total"
             sublabel={metrics.source === "hinge" ? `${metrics.avgSwipesPerDay}/jour en moy.` : `${metrics.rightSwipeRate}% de likes`}
             color={appColor.primary}
-            icon={"💜"}
           />
           <SpotlightCard
             value={<AnimatedCounter target={totalMatches} className="text-4xl sm:text-5xl font-extrabold" />}
             label="matchs obtenus"
             sublabel={`${metrics.swipeToMatchRate}% de conversion`}
             color="#8b5cf6"
-            icon={"🔥"}
           />
           <SpotlightCard
-            value={<>{metrics.hoursPerMatch > 0 ? `${metrics.hoursPerMatch}h` : `${metrics.estimatedTotalHours}h`}</>}
+            value={<>{metrics.hoursPerMatch > 0
+              ? (metrics.hoursPerMatch < 1 ? `${Math.round(metrics.hoursPerMatch * 60)}min` : `${metrics.hoursPerMatch}h`)
+              : `${metrics.estimatedTotalHours}h`}</>}
             label={metrics.hoursPerMatch > 0 ? "par match obtenu" : "temps total estime"}
             sublabel={metrics.hoursPerMatch > 0 ? `${metrics.estimatedTotalHours}h au total` : `${metrics.totalDays > 0 ? Math.round((metrics.estimatedTotalHours / metrics.totalDays) * 10) / 10 : 0}h/jour en moy.`}
             color="#ec4899"
-            icon={"⏳"}
           />
         </div>
 
@@ -2078,7 +2124,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       {/* ═══ TIMING ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
       <section id="wr-timing" className="scroll-mt-28 space-y-6">
-        <SectionTitle emoji={"⏰"} title="Timing" subtitle="Tes jours, tes heures, ton evolution" />
+        <SectionTitle title="Timing" subtitle="Tes jours, tes heures, ton evolution" />
         <NarrativeIntro text="Quand swipes-tu le plus ? Quand tes matchs arrivent-ils ? L'analyse temporelle de ton activite." />
 
       {/* Tes meilleurs jours (day-of-week) */}
@@ -2145,7 +2191,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       {/* ═══ CONVERSION ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
       <section id="wr-conversion" className="scroll-mt-28 space-y-6">
-        <SectionTitle emoji={"🎯"} title="Conversion" subtitle="De like a match — ton entonnoir de conversion" />
+        <SectionTitle title="Conversion" subtitle="De like a match — ton entonnoir de conversion" />
 
       {/* Impact du commentaire (Hinge only) */}
       {metrics.commentImpact && (
@@ -2179,27 +2225,20 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
               ? " Les profils qui commentent toujours matchent encore plus."
               : ""}
           </p>
-          <motion.a
-            href="/coach"
-            className="mt-3 block text-center text-[11px] font-medium transition"
-            style={{ color: appColor.primary }}
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            Le Coach DatePulse t'aide a ecrire le premier message parfait →
-          </motion.a>
+          {/* CTA Coach masque — sera active apres lancement du coach */}
         </Card>
       )}
 
       {/* ─── 7. Conversion + Purchases ─── */}
       <Card delay={0.2}>
         <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-          {metrics.purchasesTotal ? "Conversion & Depenses" : "Matches"}
+          {/* Only show "Depenses" label for Hinge (exact GDPR data) */}
+          {metrics.purchasesTotal && metrics.source === "hinge" ? "Conversion & Depenses" : "Matches"}
         </h3>
 
-        {/* Purchases block */}
-        {metrics.purchasesTotal != null && metrics.purchasesTotal > 0 && (
+        {/* Purchases block — only for Hinge (exact EUR from subscriptions.json) */}
+        {/* Tinder GDPR exports don't include purchase amounts — estimates are unreliable */}
+        {metrics.purchasesTotal != null && metrics.purchasesTotal > 0 && metrics.source === "hinge" && (
           <div className="mb-5 text-center">
             <p className="text-4xl sm:text-5xl font-extrabold text-red-500">
               {metrics.purchasesTotal}&euro;
@@ -2288,7 +2327,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       {/* ═══ CONVERSATIONS ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
       <section id="wr-conversations" className="scroll-mt-28 space-y-6">
-        <SectionTitle emoji={"💬"} title="Conversations" subtitle="Ghost rate, tempo de reponse, et equilibre" />
+        <SectionTitle title="Conversations" subtitle="Ghost rate, tempo de reponse, et equilibre" />
 
       {/* Conversations (enriched with ghost empathy + sent/received) */}
       <Card delay={0.25}>
@@ -2330,19 +2369,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
           </p>
         )}
 
-        {/* CTA coach */}
-        {metrics.ghostRate > 50 && (
-          <motion.a
-            href="/coach"
-            className="mt-4 block text-center text-xs font-medium underline transition"
-            style={{ color: appColor.primary }}
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            Le Coach DatePulse peut t'aider →
-          </motion.a>
-        )}
+        {/* CTA coach masque — sera active apres lancement du coach */}
       </Card>
 
       </section>
@@ -2418,17 +2445,17 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
             <div className="h-12 w-px bg-white/10" />
             <BigStat
               value={`${metrics.boostMatchRate ?? 0}%`}
-              label="match rate boost"
+              label="matchs pendant les boosts"
               size="sm"
             />
           </div>
-          {metrics.boostMatchRate != null && metrics.swipeToMatchRate > 0 && (
-            <p className="mt-3 text-xs text-slate-400 text-center">
-              {metrics.boostMatchRate > metrics.swipeToMatchRate
-                ? `Tes boosts performent ${Math.round(metrics.boostMatchRate / metrics.swipeToMatchRate)}x mieux que ton taux normal`
-                : "Tes boosts n'ameliorent pas significativement ton taux de match"}
-            </p>
-          )}
+          <p className="mt-3 text-xs text-slate-400 text-center">
+            {metrics.boostMatchRate === 0
+              ? `Aucun match obtenu pendant tes ${metrics.boostDates.length} boosts. Les boosts augmentent ta visibilite mais ne garantissent pas un match.`
+              : metrics.boostMatchRate != null && metrics.swipeToMatchRate > 0 && metrics.boostMatchRate > metrics.swipeToMatchRate
+              ? `Tes boosts performent ${Math.round(metrics.boostMatchRate / metrics.swipeToMatchRate)}x mieux que ton taux normal (${metrics.swipeToMatchRate}%)`
+              : `Taux de match boost (${metrics.boostMatchRate ?? 0}%) vs normal (${metrics.swipeToMatchRate}%) — pas de difference significative`}
+          </p>
         </Card>
       )}
 
@@ -2448,6 +2475,12 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
               <>
                 <div className="h-12 w-px bg-white/10" />
                 <BigStat
+                  value={Math.round(metrics.superLikesSent * metrics.superLikeMatchRate / 100)}
+                  label="matchs obtenus"
+                  size="sm"
+                />
+                <div className="h-12 w-px bg-white/10" />
+                <BigStat
                   value={`${metrics.superLikeMatchRate}%`}
                   label="taux de conversion"
                   size="sm"
@@ -2455,6 +2488,13 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
               </>
             )}
           </div>
+          {metrics.superLikeMatchRate != null && (
+            <p className="mt-3 text-xs text-slate-400 text-center">
+              {metrics.superLikeMatchRate === 0
+                ? "Aucun match via Super Like. Le Super Like ne garantit pas un match."
+                : `${Math.round(metrics.superLikesSent * metrics.superLikeMatchRate / 100)} match${Math.round(metrics.superLikesSent * metrics.superLikeMatchRate / 100) > 1 ? "s" : ""} pour ${metrics.superLikesSent} Super Likes envoyes (${metrics.superLikeMatchRate}% de conversion)`}
+            </p>
+          )}
         </Card>
       )}
 
@@ -2668,7 +2708,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       {/* ═══ ADN DATING ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
       <section id="wr-dna" className="scroll-mt-28 space-y-6">
-        <SectionTitle emoji={"🧬"} title="Ton ADN Dating" subtitle="Ou tu te situes par rapport aux autres" />
+        <SectionTitle title="Ton ADN Dating" subtitle="Ou tu te situes par rapport aux autres" />
 
       {/* Benchmarks: Ou tu te situes */}
       {metrics.source === "tinder" && (
@@ -2754,13 +2794,13 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          <div className="h-64 w-64 sm:h-80 sm:w-80">
+          <div className="h-72 w-full sm:h-80 sm:w-full max-w-sm mx-auto">
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={metrics.adnDating}>
-                <PolarGrid stroke="rgba(255,255,255,0.1)" />
+              <RadarChart cx="50%" cy="50%" outerRadius="65%" data={metrics.adnDating}>
+                <PolarGrid stroke="rgba(99,102,241,0.15)" gridType="polygon" />
                 <PolarAngleAxis
                   dataKey="axis"
-                  tick={{ fill: "#9ca3af", fontSize: 12 }}
+                  tick={{ fill: "#64748b", fontSize: 11 }}
                 />
                 <PolarRadiusAxis tick={false} axisLine={false} domain={[0, 100]} />
                 <Radar
@@ -2794,7 +2834,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       {/* ═══ VERDICT ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
       <section id="wr-verdict" className="scroll-mt-28 space-y-6">
-        <SectionTitle emoji={"🏆"} title="Verdict" subtitle="Le bilan final de ton activite dating" />
+        <SectionTitle title="Verdict" subtitle="Le bilan final de ton activite dating" />
 
       {/* Verdict */}
       <Card delay={0.4} className="border-brand-200 bg-brand-50">
@@ -2807,14 +2847,6 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
             {verdict.title}
           </p>
           <p className="mt-2 text-sm text-slate-500">{verdict.message}</p>
-          <motion.a
-            href={verdict.ctaHref}
-            className={`mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r ${appColor.gradient} px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]`}
-            whileTap={{ scale: 0.98 }}
-          >
-            {verdict.ctaLabel}
-            <span>&#x2192;</span>
-          </motion.a>
         </div>
       </Card>
 

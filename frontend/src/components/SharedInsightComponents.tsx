@@ -69,7 +69,7 @@ export function SpotlightCard({ value, label, sublabel, color, icon }: {
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
     >
-      {icon && <span className="absolute top-3 right-4 text-4xl opacity-[0.07]">{icon}</span>}
+      {icon && <span className="absolute top-3 right-4 text-4xl opacity-[0.15]">{icon}</span>}
       <div className="text-4xl sm:text-5xl font-extrabold tracking-tight" style={{ color }}>{value}</div>
       <div className="mt-2 text-sm font-medium text-slate-800">{label}</div>
       {sublabel && <div className="mt-1 text-xs text-slate-400">{sublabel}</div>}
@@ -93,13 +93,13 @@ export function NarrativeIntro({ text, delay = 0 }: { text: string; delay?: numb
 }
 
 /** Horizontal bar chart — simple animated bars */
-export function MiniBar({ bars, maxOverride }: { bars: { label: string; value: number; color?: string }[]; maxOverride?: number }) {
+export function MiniBar({ bars, maxOverride }: { bars: { label: string; value: number; color?: string; suffix?: string }[]; maxOverride?: number }) {
   const mx = maxOverride ?? Math.max(...bars.map((b) => b.value), 1);
   return (
     <div className="space-y-1.5">
       {bars.map((b) => (
         <div key={b.label} className="flex items-center gap-2">
-          <span className="w-28 shrink-0 text-[11px] text-slate-500 truncate">{b.label}</span>
+          <span className="w-40 shrink-0 text-[11px] text-slate-500 leading-tight">{b.label}</span>
           <div className="relative h-4 flex-1 overflow-hidden rounded-full bg-gray-100">
             <motion.div
               className="absolute inset-y-0 left-0 rounded-full"
@@ -110,7 +110,7 @@ export function MiniBar({ bars, maxOverride }: { bars: { label: string; value: n
               transition={{ duration: 0.6, ease: "easeOut" }}
             />
           </div>
-          <span className="w-10 text-right text-[11px] font-medium text-slate-800">{Number.isInteger(b.value) ? b.value : parseFloat(b.value.toFixed(2))}</span>
+          <span className="w-12 text-right text-[11px] font-medium text-slate-800">{Number.isInteger(b.value) ? b.value : parseFloat(b.value.toFixed(2))}{b.suffix || ""}</span>
         </div>
       ))}
     </div>
@@ -136,15 +136,14 @@ export function ExpandToggle({ title, children }: { title: string; children: Rea
   );
 }
 
-/** Section title with emoji + gradient text */
-export function SectionTitle({ emoji, title, subtitle, delay = 0 }: { emoji: string; title: string; subtitle?: string; delay?: number }) {
+/** Section title with gradient text */
+export function SectionTitle({ emoji, title, subtitle, delay = 0 }: { emoji?: string; title: string; subtitle?: string; delay?: number }) {
   return (
     <motion.div {...fadeIn(delay)} className="space-y-1">
-      <h2 className="flex items-center gap-3 text-2xl font-extrabold sm:text-3xl">
-        <span className="text-3xl">{emoji}</span>
+      <h2 className="text-2xl font-extrabold sm:text-3xl">
         <span className="bg-gradient-to-r from-slate-900 to-slate-500 bg-clip-text text-transparent">{title}</span>
       </h2>
-      {subtitle && <p className="text-xs text-slate-400 pl-12">{subtitle}</p>}
+      {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
     </motion.div>
   );
 }

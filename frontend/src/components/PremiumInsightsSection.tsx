@@ -138,16 +138,21 @@ export function PremiumInsightsTeaser({ data, appSource }: PremiumInsightsSectio
           </span>
         </h2>
         <p className="text-sm text-slate-500 max-w-md mx-auto">
-          {heroH.total} hypotheses testees contre tes donnees reelles.{" "}
+          {heroH.total} analyses approfondies realisees sur tes donnees reelles (90 possibles).{" "}
           {heroH.confirmed} confirmees, {heroH.debunked} infirmees, {heroH.mixed} nuancees.
         </p>
+        {heroH.total < 90 && (
+          <p className="text-[11px] text-slate-400 max-w-sm mx-auto mt-1">
+            {90 - heroH.total} analyses non realisables : certaines necessitent des donnees absentes de l'export (photos, profil de l'autre), d'autres sont deja integrees dans les sections Conversation Pulse et Swipe Pulse ci-dessus.
+          </p>
+        )}
       </motion.div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <SpotlightCard value={heroH.total} label="hypotheses testees" sublabel="contre tes donnees" color={color} icon="🔬" />
-        <SpotlightCard value={heroH.confirmed} label="confirmees" sublabel={`${heroH.total > 0 ? Math.round((heroH.confirmed / heroH.total) * 100) : 0}% des tests`} color="#22c55e" icon="✓" />
-        <SpotlightCard value={heroH.debunked} label="infirmees" sublabel="mythes casses" color="#ef4444" icon="✗" />
-        <SpotlightCard value={heroH.mixed} label="nuancees" sublabel="ca depend" color="#f59e0b" icon="~" />
+        <SpotlightCard value={heroH.total} label="analyses realisees" sublabel={`sur 90 possibles`} color={color} />
+        <SpotlightCard value={heroH.confirmed} label="confirmees" sublabel={`${heroH.total > 0 ? Math.round((heroH.confirmed / heroH.total) * 100) : 0}% des tests`} color="#22c55e" />
+        <SpotlightCard value={heroH.debunked} label="infirmees" sublabel="mythes casses" color="#ef4444" />
+        <SpotlightCard value={heroH.mixed} label="nuancees" sublabel="ca depend" color="#f59e0b" />
       </div>
     </div>
   );
@@ -222,7 +227,7 @@ export default function PremiumInsightsSection({ data, appSource }: PremiumInsig
     hasAlgorithm && { id: "pi-algorithm", emoji: "🎯", label: "Algorithme" },
     hasPremium && { id: "pi-premium", emoji: "💎", label: "Premium" },
     hasPhoto && { id: "pi-photo", emoji: "📷", label: "Photo" },
-    has.hypotheses && { id: "pi-hypotheses", emoji: "🔬", label: "Hypotheses" },
+    has.hypotheses && { id: "pi-hypotheses", emoji: "🔬", label: "Analyses" },
     has.clusters && { id: "pi-clusters", emoji: "🔗", label: "Clusters" },
     hasAction && { id: "pi-action", emoji: "🚀", label: "Plan" },
   ].filter(Boolean) as { id: string; emoji: string; label: string }[];
@@ -289,7 +294,7 @@ export default function PremiumInsightsSection({ data, appSource }: PremiumInsig
       {/* ═══════════ PROFILE ═══════════ */}
       {hasProfile && (
         <section id="pi-profile" className="scroll-mt-28 space-y-6">
-          <SectionTitle emoji="👤" title="Diagnostic Profil" />
+          <SectionTitle title="Diagnostic Profil" />
           {narratives.profile && <NarrativeIntro text={narratives.profile} />}
 
           {has.profileComparison && (
@@ -379,7 +384,7 @@ export default function PremiumInsightsSection({ data, appSource }: PremiumInsig
       {/* ═══════════ CONVERSATIONS ═══════════ */}
       {hasConversations && (
         <section id="pi-conversations" className="scroll-mt-28 space-y-6">
-          <SectionTitle emoji="💬" title="Conversations" />
+          <SectionTitle title="Conversations" />
           {narratives.conversations && <NarrativeIntro text={narratives.conversations} />}
 
           {has.openerPatterns && (
@@ -507,7 +512,7 @@ export default function PremiumInsightsSection({ data, appSource }: PremiumInsig
       {/* ═══════════ OPENER FORMULA ═══════════ */}
       {hasOpener && (
         <section id="pi-opener" className="scroll-mt-28 space-y-6">
-          <SectionTitle emoji="✉️" title="La Formule de l'Opener" />
+          <SectionTitle title="La Formule de l'Opener" />
           {narratives.opener && <NarrativeIntro text={narratives.opener} />}
 
           {(has.openerLengthBars || has.questionDensity) && (
@@ -557,7 +562,7 @@ export default function PremiumInsightsSection({ data, appSource }: PremiumInsig
       {/* ═══════════ TIMING ═══════════ */}
       {hasTiming && (
         <section id="pi-timing" className="scroll-mt-28 space-y-6">
-          <SectionTitle emoji="⏰" title="Timing & Strategie" />
+          <SectionTitle title="Timing & Strategie" />
           {narratives.timing && <NarrativeIntro text={narratives.timing} />}
 
           {/* Weekly grid — full table */}
@@ -757,7 +762,7 @@ export default function PremiumInsightsSection({ data, appSource }: PremiumInsig
       {/* ═══════════ ALGORITHM ═══════════ */}
       {hasAlgorithm && (
         <section id="pi-algorithm" className="scroll-mt-28 space-y-6">
-          <SectionTitle emoji="🎯" title="L'Algorithme" />
+          <SectionTitle title="L'Algorithme" />
           {narratives.algorithm && <NarrativeIntro text={narratives.algorithm} />}
 
           {/* ELO timeline */}
@@ -848,7 +853,7 @@ export default function PremiumInsightsSection({ data, appSource }: PremiumInsig
       {/* ═══════════ PREMIUM & BUDGET ═══════════ */}
       {hasPremium && (
         <section id="pi-premium" className="scroll-mt-28 space-y-6">
-          <SectionTitle emoji="💎" title="Premium & Budget" />
+          <SectionTitle title="Premium & Budget" />
           {narratives.premium && <NarrativeIntro text={narratives.premium} />}
 
           {/* Subscription ROI */}
@@ -1071,7 +1076,7 @@ export default function PremiumInsightsSection({ data, appSource }: PremiumInsig
       {/* ═══════════ PHOTO SCIENCE ═══════════ */}
       {hasPhoto && (
         <section id="pi-photo" className="scroll-mt-28 space-y-6">
-          <SectionTitle emoji="📷" title="Photo Science" />
+          <SectionTitle title="Photo Science" />
           {narratives.photo && <NarrativeIntro text={narratives.photo} />}
 
           {has.photoStats && (
@@ -1128,10 +1133,10 @@ export default function PremiumInsightsSection({ data, appSource }: PremiumInsig
         </section>
       )}
 
-      {/* ═══════════ HYPOTHESES ═══════════ */}
+      {/* ═══════════ ANALYSES APPROFONDIES ═══════════ */}
       {has.hypotheses && (
         <section id="pi-hypotheses" className="scroll-mt-28 space-y-6">
-          <SectionTitle emoji="🔬" title={`${heroH.total} Hypotheses`} subtitle="Testees contre tes donnees reelles" />
+          <SectionTitle title={`${heroH.total} Analyses approfondies`} subtitle="Testees contre tes donnees reelles" />
           {narratives.hypotheses && <NarrativeIntro text={narratives.hypotheses} />}
 
           {/* Filter pills */}
@@ -1227,7 +1232,7 @@ export default function PremiumInsightsSection({ data, appSource }: PremiumInsig
       {/* ═══════════ CLUSTERS ═══════════ */}
       {has.clusters && (
         <section id="pi-clusters" className="scroll-mt-28 space-y-6">
-          <SectionTitle emoji="🔗" title="Clusters de Renforcement" subtitle="Patterns ou les hypotheses convergent — et tensions qui les nuancent" />
+          <SectionTitle title="Clusters de Renforcement" subtitle="Patterns ou les analyses convergent — et tensions qui les nuancent" />
 
           <div className="grid gap-4 sm:grid-cols-2">
             {data.reinforcementClusters.map((cluster, ci) => (
@@ -1269,7 +1274,7 @@ export default function PremiumInsightsSection({ data, appSource }: PremiumInsig
                 <h3 className="text-sm font-semibold text-amber-600 mb-1 flex items-center gap-2">
                   <span>⚡</span> Tensions & Contradictions
                 </h3>
-                <p className="text-[11px] text-slate-400 mb-4">Des hypotheses qui semblent se contredire — mais chacune a une resolution nuancee</p>
+                <p className="text-[11px] text-slate-400 mb-4">Des analyses qui semblent se contredire — mais chacune a une resolution nuancee</p>
                 <div className="space-y-4">
                   {data.contradictionPairs.map((c, i) => (
                     <motion.div
@@ -1304,7 +1309,7 @@ export default function PremiumInsightsSection({ data, appSource }: PremiumInsig
       {/* ═══════════ ACTION PLAN ═══════════ */}
       {hasAction && (
         <section id="pi-action" className="scroll-mt-28 space-y-6">
-          <SectionTitle emoji="🚀" title="Plan d'Action" />
+          <SectionTitle title="Plan d'Action" />
           {narratives.action && <NarrativeIntro text={narratives.action} />}
 
           {/* Costly mistakes */}
@@ -1336,7 +1341,7 @@ export default function PremiumInsightsSection({ data, appSource }: PremiumInsig
             <motion.div {...fadeIn(0.15)}>
               <GlassCard>
                 <h3 className="text-sm font-semibold text-slate-600 mb-1">Metriques cibles</h3>
-                <p className="text-xs text-slate-400 mb-3">Basees sur les leviers identifies dans tes hypotheses</p>
+                <p className="text-xs text-slate-400 mb-3">Basees sur les leviers identifies dans tes analyses</p>
                 <div className="overflow-x-auto rounded-lg border border-gray-200">
                   <table className="w-full text-left text-xs">
                     <thead>

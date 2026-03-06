@@ -212,7 +212,7 @@ function generateNarratives(ctx: Ctx): Record<string, string> {
     algorithm: `L'algorithme n'est pas ton ennemi — mais les signaux que tu envoies comptent. Like ratio, rythme, pauses : tout est pris en compte.`,
     premium: m.purchasesTotal ? `~${m.purchasesTotal} EUR depenses en abonnements. Le resultat mesure est dans les chiffres.` : "Aucune depense premium detectee dans les donnees.",
     photo: "La photo decide de 80% des swipes en moins de 2 secondes. La qualite du profil est le levier #1.",
-    hypotheses: `Hypotheses testees contre tes donnees reelles. La science du dating, pas l'intuition.`,
+    hypotheses: `Analyses approfondies realisees sur tes donnees reelles. La science du dating, pas l'intuition.`,
     action: `Erreurs quantifiees. Regles ancrees dans tes donnees. Chaque levier a un impact mesure.`,
   };
 }
@@ -930,7 +930,7 @@ export function generateUserInsights(data: PersistedUserInsights): InsightsDataS
     .map(c => ({
       ...c,
       hypothesisIds: c.hypothesisIds.filter(id => hypothesisMap.has(id)),
-      insight: `${c.hypothesisIds.filter(id => hypothesisMap.has(id)).length} hypotheses convergent dans tes donnees.`,
+      insight: `${c.hypothesisIds.filter(id => hypothesisMap.has(id)).length} analyses convergent dans tes donnees.`,
     }))
     .filter(c => c.hypothesisIds.length >= 2);
 
