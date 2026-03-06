@@ -73,7 +73,7 @@ export default function WrappedUpload({ onDataParsed }: WrappedUploadProps) {
         const parsed = await parseUploadedFiles(files);
         const metrics = computeWrappedMetrics(parsed);
         track("wrapped_uploaded", { source: parsed.source, swipes: metrics.totalSwipes });
-        onDataParsed(metrics, parsed.conversations, parsed);
+        await onDataParsed(metrics, parsed.conversations, parsed);
       } catch (err) {
         setErrorMsg(
           err instanceof Error
@@ -152,7 +152,7 @@ export default function WrappedUpload({ onDataParsed }: WrappedUploadProps) {
                 <span role="img" aria-label="upload">&#x1F4E4;</span>
               </div>
               <p className="text-sm sm:text-base text-slate-800 font-medium">
-                Glisse ton fichier RGPD ici
+                Glisse ton fichier ici
               </p>
               <p className="mt-1.5 text-xs text-slate-400">
                 ou clique pour selectionner — .json ou .zip — max {MAX_SIZE_MB}MB
@@ -171,7 +171,7 @@ export default function WrappedUpload({ onDataParsed }: WrappedUploadProps) {
             >
               <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
                 <span>&#x2753;</span>
-                Comment obtenir tes donnees RGPD ?
+                Comment obtenir tes donnees ?
               </h3>
               <div className="space-y-4">
                 {/* Tinder */}

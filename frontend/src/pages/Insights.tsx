@@ -131,6 +131,23 @@ function ComparisonTable({ rows }: { rows: { metric: string; tinder: string; hin
   );
 }
 
+function InsightsCTA({ headline, ctaText }: { headline: string; ctaText: string }) {
+  return (
+    <div className="my-12 p-6 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 text-center">
+      <p className="text-lg font-semibold text-gray-800 mb-3">{headline}</p>
+      <a
+        href="/wrapped"
+        className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+      >
+        {ctaText}
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+        </svg>
+      </a>
+    </div>
+  );
+}
+
 const NAV_ITEMS = [
   { id: "hero", emoji: "📊", label: "Vue globale" },
   { id: "profile", emoji: "👤", label: "Profil" },
@@ -181,6 +198,7 @@ export default function Insights() {
               </span>
             </h1>
             <p className="text-lg sm:text-xl text-slate-600 font-medium">de dating decryptes, 90 hypotheses testees</p>
+            <p className="text-base sm:text-lg text-brand-600 font-bold mt-1">Hinge est 8x plus efficace que Tinder — 83% des conversations meurent en 3 messages</p>
             <p className="text-sm text-slate-400 max-w-xl mx-auto">{SECTION_NARRATIVES.hero}</p>
           </motion.div>
 
@@ -233,6 +251,7 @@ export default function Insights() {
               </div>
             </GlassCard>
           </motion.div>
+          <InsightsCTA headline="Decouvre ton propre ADN de dating" ctaText="Analyser mes donnees →" />
         </section>
 
         {/* ========== PROFILE ========== */}
@@ -320,6 +339,7 @@ export default function Insights() {
               <ComparisonTable rows={CROSS_APP_ROI} />
             </ExpandToggle>
           </motion.div>
+
         </section>
 
         {/* ========== CONVERSATIONS ========== */}
@@ -444,6 +464,7 @@ export default function Insights() {
               </GlassCard>
             </ExpandToggle>
           </motion.div>
+          <InsightsCTA headline="Tes conversations font pareil ?" ctaText="Demande tes donnees →" />
         </section>
 
         {/* ========== OPENER FORMULA ========== */}
@@ -518,6 +539,7 @@ export default function Insights() {
               </div>
             </GlassCard>
           </motion.div>
+
         </section>
 
         {/* ========== TIMING ========== */}
@@ -711,6 +733,7 @@ export default function Insights() {
               </div>
             </GlassCard>
           </motion.div>
+
         </section>
 
         {/* ========== ALGORITHM ========== */}
@@ -730,7 +753,7 @@ export default function Insights() {
           <motion.div {...fadeIn(0.1)}>
             <GlassCard>
               <h3 className="text-sm font-semibold text-slate-600 mb-3">ELO proxy — score de desirabilite estime</h3>
-              <div className="flex items-end gap-1 sm:gap-2 h-32">
+              <div className="flex gap-1 sm:gap-2 h-32">
                 {ELO_PROXY.map((e) => {
                   const h = Math.max(4, (e.score / 1.88) * 100);
                   return (
@@ -799,6 +822,7 @@ export default function Insights() {
               </GlassCard>
             </ExpandToggle>
           </motion.div>
+
         </section>
 
         {/* ========== PREMIUM ========== */}
@@ -1384,7 +1408,7 @@ export default function Insights() {
 
         {/* Footer */}
         <motion.footer {...fadeIn(0.1)} className="border-t border-gray-200 pt-8 text-center text-xs text-slate-400">
-          <p>Analyse basee sur {HERO_STATS.totalDays.tinder + HERO_STATS.totalDays.hinge} jours de donnees RGPD</p>
+          <p>Analyse basee sur {HERO_STATS.totalDays.tinder + HERO_STATS.totalDays.hinge} jours de donnees</p>
           <p className="mt-1">Tinder (300j, 91 matchs, 12 143 likes) · Hinge (252j, 38 matchs, 2 325 likes)</p>
           <p className="mt-1">90 hypotheses testees · 7 rapports analyses · Donnees 100% personnalisees</p>
         </motion.footer>

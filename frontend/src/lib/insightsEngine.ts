@@ -228,6 +228,10 @@ function genH1(ctx: Ctx): Hypothesis | null {
   return {
     id: "H1", title: "La majorite des matchs = jour meme du swipe", verdict: "confirmed", app: sourceApp(ctx.source), impact: 3,
     insight: `Avec ${ctx.m.avgSwipesPerDay} swipes/jour en moyenne, tes matchs arrivent le jour ou tu es actif. Pas d'activite = pas de matchs.`,
+    stats: [
+      { label: "Swipes/jour", value: `${ctx.m.avgSwipesPerDay}`, severity: (ctx.m.avgSwipesPerDay >= 10 ? "good" : "warning") as Severity },
+      { label: "Jours actifs", value: `${ctx.m.totalDays}`, severity: "good" as Severity },
+    ],
     recommendations: [
       { text: "Swipe chaque jour — tes matchs arrivent le jour ou tu es actif", type: "do" },
       { text: "Esperer des matchs les jours ou tu n'ouvres pas l'app", type: "dont" },
@@ -283,6 +287,14 @@ function genH9(ctx: Ctx): Hypothesis | null {
   return {
     id: "H9", title: "ELO proxy — pics apres repos", verdict: ps.surgeMultiplier > 1.3 ? "confirmed" : "mixed", app: sourceApp(ctx.source), impact: 2,
     insight: `Apres une pause de 3+ jours, ton match rate est x${ps.surgeMultiplier.toFixed(1)} vs la normale. ${ps.inactivityGaps} pauses detectees.`,
+    bars: [
+      { label: "Match rate normal", value: 100, color: "#6366f1" },
+      { label: "Match rate post-repos", value: Math.round(ps.surgeMultiplier * 100), color: "#22c55e" },
+    ],
+    stats: [
+      { label: "Pauses detectees", value: `${ps.inactivityGaps}`, severity: "good" as Severity },
+      { label: "Boost au retour", value: `x${ps.surgeMultiplier.toFixed(1)}`, severity: (ps.surgeMultiplier > 1.3 ? "good" : "warning") as Severity },
+    ],
     recommendations: [
       { text: "Alterne periodes actives (2 semaines) et repos (1 semaine) pour resetter l'algo", type: "do" },
       { text: "Les pauses strategiques boostent ton score ELO au retour", type: "tip" },
@@ -342,10 +354,17 @@ function genH17(ctx: Ctx): Hypothesis | null {
   if (!ctx.conv) return null;
   const gb = ctx.conv.ghostBreakdown;
   const msg2Rate = gb.total > 0 ? Math.round((gb.diedAtMsg2 / gb.total) * 100) : 0;
+  const earlyRate = gb.total > 0 ? Math.round((gb.diedEarly / gb.total) * 100) : 0;
+  const sustainedRate = gb.total > 0 ? Math.round((gb.sustained / gb.total) * 100) : 0;
   return {
     id: "H17", title: `Message #2 = LE MUR (${msg2Rate}% meurent)`, verdict: msg2Rate > 25 ? "confirmed" : "mixed",
     app: sourceApp(ctx.source), impact: 3,
     insight: `${msg2Rate}% de tes convos meurent au msg #2. C'est LE moment critique.`,
+    bars: [
+      { label: `Mort msg #2 (${msg2Rate}%)`, value: msg2Rate, color: "#ef4444" },
+      { label: `Mort msg #3-5 (${earlyRate}%)`, value: earlyRate, color: "#f59e0b" },
+      { label: `Survit 5+ (${sustainedRate}%)`, value: sustainedRate, color: "#22c55e" },
+    ],
     recommendations: [
       { text: "Ton 2eme message doit contenir une question ouverte et de l'interet sincere", type: "do" },
       { text: "Repondre 'merci' ou 'haha' sans relancer au msg #2", type: "dont" },
@@ -393,6 +412,10 @@ function genH25(ctx: Ctx): Hypothesis | null {
   return {
     id: "H25", title: "Sujets gagnants : trio animal-bouffe-humour", verdict: "confirmed", app: "both", impact: 3,
     insight: "Le trio animal-bouffe-humour genere les conversations les plus longues. Introduis l'un des trois des msg #2-3.",
+    stats: ctx.conv ? [
+      { label: "Convos analysees", value: `${ctx.conv.conversationsAnalyzed}`, severity: "good" as Severity },
+      { label: "Longueur opener moy.", value: `${ctx.conv.openerStats.avgLength} car.`, severity: (ctx.conv.openerStats.avgLength >= 20 ? "good" : "warning") as Severity },
+    ] : undefined,
     recommendations: [
       { text: "Introduis un des 3 sujets (animal, bouffe, humour) des le msg #2 ou #3", type: "do" },
       { text: "Parler de sujets impersonnels ou abstraits en debut de convo", type: "dont" },
@@ -421,10 +444,21 @@ function genH29(ctx: Ctx): Hypothesis | null {
   if (!ctx.conv) return null;
   const es = ctx.conv.escalationStats;
   if (es.convosWithEscalation === 0) return null;
+  const tooEarly = Math.max(0, 100 - es.inOptimalRange - Math.round(es.inOptimalRange * 0.3));
+  const tooLate = Math.max(0, 100 - es.inOptimalRange - tooEarly);
   return {
     id: "H29", title: "Escalade : tot ou tard ?", verdict: es.inOptimalRange > 40 ? "confirmed" : "mixed",
     app: sourceApp(ctx.source), impact: 2,
     insight: `Tu proposes un date au msg #${es.avgMessageNumber.toFixed(0)} en moyenne. ${es.inOptimalRange}% dans la fenetre optimale (msg #${es.optimalRange.min}-${es.optimalRange.max}).`,
+    bars: [
+      { label: `Optimal (${es.inOptimalRange}%)`, value: es.inOptimalRange, color: "#22c55e" },
+      { label: `Trop tot (${tooEarly}%)`, value: tooEarly, color: "#ef4444" },
+      { label: `Trop tard (${tooLate}%)`, value: tooLate, color: "#f59e0b" },
+    ],
+    stats: [
+      { label: "Msg moyen escalade", value: `#${es.avgMessageNumber.toFixed(0)}`, severity: (es.inOptimalRange > 40 ? "good" : "warning") as Severity },
+      { label: "Convos avec escalade", value: `${es.convosWithEscalation}`, severity: "good" as Severity },
+    ],
     recommendations: [
       { text: "Propose un rendez-vous autour du message #10-15", type: "do" },
       { text: "Proposer un date des les 3 premiers messages (trop brusque)", type: "dont" },
@@ -860,12 +894,18 @@ export function generateUserInsights(data: PersistedUserInsights): InsightsDataS
     source: data.source,
   };
 
-  // Generate all hypotheses
-  const allHypotheses: Hypothesis[] = [];
+  // Generate all hypotheses, filter out empty ones
+  const rawHypotheses: Hypothesis[] = [];
   for (const [, gen] of Object.entries(GENERATORS)) {
     const h = gen(ctx);
-    if (h) allHypotheses.push(h);
+    if (h) rawHypotheses.push(h);
   }
+  // Keep only hypotheses with meaningful content (insight text, stats, or bars)
+  const allHypotheses = rawHypotheses.filter(h =>
+    (h.insight && h.insight.length > 10) ||
+    (h.stats && h.stats.length > 0) ||
+    (h.bars && h.bars.length > 0)
+  );
 
   // Group into themes
   const hypothesisMap = new Map(allHypotheses.map(h => [h.id, h]));

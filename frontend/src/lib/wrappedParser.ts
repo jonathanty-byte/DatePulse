@@ -110,7 +110,7 @@ export async function parseUploadedFiles(files: File[]): Promise<ParsedData> {
       jsonByName[name] = JSON.parse(text);
     } else if (files.length === 1) {
       throw new Error(
-        "Format non supporte. Utilise le fichier .json ou .zip de ton export RGPD."
+        "Format non supporte. Utilise le fichier .json ou .zip fourni par ton app."
       );
     }
     // Skip unsupported files in multi-file mode
@@ -138,7 +138,7 @@ export async function parseUploadedFiles(files: File[]): Promise<ParsedData> {
   }
 
   throw new Error(
-    "Format non supporte. Utilise le fichier .json ou .zip de ton export RGPD."
+    "Format non supporte. Utilise le fichier .json ou .zip fourni par ton app."
   );
 }
 

@@ -17,7 +17,7 @@ const FEATURES = [
     tag: "Wrapped",
     tagColor: "#ec4899",
     title: "Dating Wrapped",
-    desc: "Upload ton export RGPD et decouvre tes vrais stats : swipes, matches, ghost rate, timing optimal...",
+    desc: "Upload tes donnees Tinder / Bumble / Hinge et decouvre tes vrais stats : swipes, matches, ghost rate, timing optimal...",
     cta: "Analyser mes donnees",
     highlight: true,
   },
@@ -41,7 +41,7 @@ const FEATURES = [
     href: "/insights",
     tag: "Insights",
     tagColor: "#6366f1",
-    title: "Insights RGPD",
+    title: "Insights Dating",
     desc: "90 hypotheses testees sur de vraies donnees. Decouvre ce qui marche vraiment.",
     cta: "Explorer les insights",
   },
@@ -51,7 +51,7 @@ const STEPS = [
   {
     num: "1",
     title: "Demande tes donnees",
-    desc: "Chaque app de dating doit te fournir tes donnees RGPD. Ca prend 2 jours.",
+    desc: "Chaque app de dating doit te fournir tes donnees. Ca prend 2 jours.",
     icon: "📩",
   },
   {
@@ -127,8 +127,8 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.4 }}
           >
-            Upload ton export RGPD. Decouvre tes vrais stats en 2 minutes.
-            Swipes, matches, ghost rate, timing optimal — tout ce que les apps ne te montrent pas.
+            Decouvre ce que tes apps ne te montrent pas.
+            Demande tes donnees (1-3 jours), l'analyse prend 2 minutes.
           </motion.p>
 
           <motion.div
@@ -142,6 +142,15 @@ export default function Home() {
               className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-brand-500/25 transition hover:bg-brand-600 hover:shadow-brand-500/40"
             >
               Analyser mes donnees
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </a>
+            <a
+              href="/insights"
+              className="inline-flex items-center gap-2 rounded-lg border-2 border-brand-300 bg-white px-6 py-3.5 text-sm font-semibold text-brand-600 shadow-sm transition hover:bg-brand-50 hover:border-brand-400"
+            >
+              Voir un exemple
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
@@ -323,13 +332,15 @@ export default function Home() {
             DatePulse — Swipe when it matters.
           </p>
           <p>
+            <a href="/" className="hover:text-slate-700 transition">Accueil</a>
+            <span className="mx-2 text-slate-300">|</span>
             <a href="/wrapped" className="hover:text-slate-700 transition">Wrapped</a>
             <span className="mx-2 text-slate-300">|</span>
             <a href="/score" className="hover:text-slate-700 transition">Score</a>
             <span className="mx-2 text-slate-300">|</span>
-            <a href="/coach" className="hover:text-slate-700 transition">Coach</a>
-            <span className="mx-2 text-slate-300">|</span>
             <a href="/insights" className="hover:text-slate-700 transition">Insights</a>
+            <span className="mx-2 text-slate-300">|</span>
+            <a href="/coach" className="hover:text-slate-700 transition">Coach</a>
           </p>
           <p className="text-slate-300">
             Aucune donnee personnelle stockee sur nos serveurs.

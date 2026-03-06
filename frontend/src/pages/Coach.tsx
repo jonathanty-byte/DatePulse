@@ -105,9 +105,11 @@ export default function Coach() {
             <span className="mx-2 text-slate-300">|</span>
             <a href="/wrapped" className="hover:text-slate-900 transition">Wrapped</a>
             <span className="mx-2 text-slate-300">|</span>
-            <a href="/coach?tab=tracker" className="hover:text-slate-900 transition">Tracker</a>
+            <a href="/score" className="hover:text-slate-900 transition">Score</a>
             <span className="mx-2 text-slate-300">|</span>
             <a href="/insights" className="hover:text-slate-900 transition">Insights</a>
+            <span className="mx-2 text-slate-300">|</span>
+            <a href="/coach" className="hover:text-slate-900 transition">Coach</a>
           </p>
           <p className="text-slate-300">
             L'analyse est effectuee par IA. Les resultats sont indicatifs.

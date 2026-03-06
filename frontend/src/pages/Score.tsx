@@ -463,7 +463,7 @@ export default function Score() {
                   <div className="text-[10px] font-bold tracking-[0.15em] text-pink-500 uppercase">Wrapped</div>
                   <h3 className="mt-2 text-lg font-bold text-slate-900">Dating Wrapped</h3>
                   <p className="mt-2 text-sm text-slate-500 leading-relaxed">
-                    Upload ton export RGPD et découvre tes vrais stats : swipes, matches, ghost rate...
+                    Upload tes donnees Tinder / Bumble / Hinge et decouvre tes vrais stats : swipes, matches, ghost rate...
                   </p>
                   <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 group-hover:text-brand-600 transition">
                     Analyser mes données →
@@ -503,15 +503,15 @@ export default function Score() {
             DatePulse — Swipe when it matters.
           </p>
           <p>
-            <a href="/coach" className="hover:text-slate-700 transition">Coach</a>
+            <a href="/" className="hover:text-slate-700 transition">Accueil</a>
             <span className="mx-2 text-slate-300">|</span>
             <a href="/wrapped" className="hover:text-slate-700 transition">Wrapped</a>
             <span className="mx-2 text-slate-300">|</span>
-            <a href="/coach?tab=tracker" className="hover:text-slate-700 transition">Tracker</a>
+            <a href="/score" className="hover:text-slate-700 transition">Score</a>
             <span className="mx-2 text-slate-300">|</span>
             <a href="/insights" className="hover:text-slate-700 transition">Insights</a>
             <span className="mx-2 text-slate-300">|</span>
-            <span>@EvolvedMonkey</span>
+            <a href="/coach" className="hover:text-slate-700 transition">Coach</a>
           </p>
           <p className="text-slate-300">
             Aucune donnée personnelle stockée sur nos serveurs.

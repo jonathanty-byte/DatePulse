@@ -243,7 +243,8 @@ export default function MessageCoach() {
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 placeholder={"Colle ta conversation ici...\n\nExemple :\nMoi : Salut, ton profil m'a fait sourire\nElle : Merci haha\nMoi : Tu fais quoi dans la vie ?\nElle : Infirmiere et toi ?"}
-                className="w-full h-48 sm:h-56  border border-gray-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none focus:border-brand-500/40 focus:bg-white transition"
+                rows={5}
+                className="w-full h-32  border border-gray-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none focus:border-brand-500/40 focus:bg-white transition"
               />
             )}
 

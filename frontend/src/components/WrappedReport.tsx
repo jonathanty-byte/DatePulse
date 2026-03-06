@@ -30,6 +30,9 @@ import type { ConversationInsights } from "../lib/conversationIntelligence";
 import { getConversationScoreLabel } from "../lib/conversationIntelligence";
 import { trackCPEngagement } from "../lib/featureFlags";
 import type { AdvancedSwipeInsights, SwipeArchetype } from "../lib/swipeAdvanced";
+import type { InsightsDataSet } from "../lib/insightsEngine";
+import PremiumInsightsSection, { PremiumInsightsTeaser } from "./PremiumInsightsSection";
+import PaywallGate from "./PaywallGate";
 import {
   AnimatedCounter,
   SpotlightCard,
@@ -48,6 +51,10 @@ interface WrappedReportProps {
   metrics: WrappedMetrics;
   conversationInsights?: ConversationInsights;
   advancedSwipeInsights?: AdvancedSwipeInsights;
+  premiumInsights?: InsightsDataSet | null;
+  isPremiumUnlocked?: boolean;
+  isEarlyAccess?: boolean;
+  onPaywallCtaClick?: () => void;
   onShareClick?: () => void;
 }
 
@@ -1922,7 +1929,7 @@ function SPSectionArchetype({ insights, appColor }: SPScreenProps) {
   );
 }
 
-export default function WrappedReport({ metrics, conversationInsights, advancedSwipeInsights, onShareClick }: WrappedReportProps) {
+export default function WrappedReport({ metrics, conversationInsights, advancedSwipeInsights, premiumInsights, isPremiumUnlocked = false, isEarlyAccess = false, onPaywallCtaClick, onShareClick }: WrappedReportProps) {
   const [benchmarkGender, setBenchmarkGender] = React.useState<Gender>("men");
   const appColor = APP_COLORS[metrics.source] ?? APP_COLORS.tinder;
 
@@ -2340,37 +2347,59 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
 
       </section>
 
-      {/* ═══ CONVERSATION PULSE — 10 premium sections ═══ */}
+      {/* ═══ CONVERSATION PULSE — 3 free teaser + 12 premium gated ═══ */}
       {conversationInsights && conversationInsights.conversationsAnalyzed >= 5 && (
         <div className="space-y-12">
           <SectionNav items={CP_NAV_ITEMS} badgeLabel="Conversation Pulse" />
+          {/* Free teaser: Hero + Ghost + Questions */}
           <CPSectionHero insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
           <CPSectionGhost insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
           <CPSectionQuestions insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionTempo insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionOpeners insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionEscalation insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionDoubleText insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionBalance insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionFatigue insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionSignals insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionMirroring insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionLanguage insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionTimingAdv insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionPatterns insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionVerdict insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} onShareClick={onShareClick} />
+          {/* Premium: 12 remaining sections behind paywall */}
+          <PaywallGate
+            isUnlocked={isPremiumUnlocked}
+            isEarlyAccess={isEarlyAccess}
+            onCtaClick={onPaywallCtaClick ?? (() => {})}
+            sectionId="conversation-pulse"
+          >
+            <div className="space-y-12">
+              <CPSectionTempo insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <CPSectionOpeners insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <CPSectionEscalation insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <CPSectionDoubleText insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <CPSectionBalance insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <CPSectionFatigue insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <CPSectionSignals insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <CPSectionMirroring insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <CPSectionLanguage insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <CPSectionTimingAdv insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <CPSectionPatterns insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <CPSectionVerdict insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} onShareClick={onShareClick} />
+            </div>
+          </PaywallGate>
         </div>
       )}
 
-      {/* ═══ SWIPE PULSE — 5 advanced sections (H71-H90) ═══ */}
+      {/* ═══ SWIPE PULSE — 1 free teaser + 4 premium gated ═══ */}
       {advancedSwipeInsights && (
         <div className="space-y-12">
           <SectionNav items={SP_NAV_ITEMS} badgeLabel="Swipe Pulse" />
+          {/* Free teaser: Algorithm section */}
           <SPSectionAlgorithm insights={advancedSwipeInsights} appColor={appColor} />
-          <SPSectionPsychology insights={advancedSwipeInsights} appColor={appColor} />
-          <SPSectionRhythms insights={advancedSwipeInsights} appColor={appColor} />
-          <SPSectionConversion insights={advancedSwipeInsights} appColor={appColor} />
-          <SPSectionArchetype insights={advancedSwipeInsights} appColor={appColor} />
+          {/* Premium: 4 remaining sections behind paywall */}
+          <PaywallGate
+            isUnlocked={isPremiumUnlocked}
+            isEarlyAccess={isEarlyAccess}
+            onCtaClick={onPaywallCtaClick ?? (() => {})}
+            sectionId="swipe-pulse"
+          >
+            <div className="space-y-12">
+              <SPSectionPsychology insights={advancedSwipeInsights} appColor={appColor} />
+              <SPSectionRhythms insights={advancedSwipeInsights} appColor={appColor} />
+              <SPSectionConversion insights={advancedSwipeInsights} appColor={appColor} />
+              <SPSectionArchetype insights={advancedSwipeInsights} appColor={appColor} />
+            </div>
+          </PaywallGate>
         </div>
       )}
 
@@ -2851,6 +2880,21 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       )}
 
       </section>
+
+      {/* ─── Premium Insights: Teaser (always visible) + Gated content ─── */}
+      {premiumInsights && (
+        <>
+          <PremiumInsightsTeaser data={premiumInsights} appSource={metrics.source} />
+          <PaywallGate
+            isUnlocked={isPremiumUnlocked}
+            isEarlyAccess={isEarlyAccess}
+            onCtaClick={onPaywallCtaClick ?? (() => {})}
+            sectionId="premium-insights"
+          >
+            <PremiumInsightsSection data={premiumInsights} appSource={metrics.source} />
+          </PaywallGate>
+        </>
+      )}
 
       {/* ─── Opt-in dormant checkbox ─── */}
       <div className="text-center py-2">
