@@ -268,24 +268,28 @@ function MonthlyPreview() {
   ];
   return (
     <div>
-      <div className="flex items-end gap-1.5 h-24">
+      <div className="flex items-end gap-1.5" style={{ height: 96 }}>
         {months.map((m, i) => {
           const color =
             m.h > 70 ? "#f43f5e" : m.h >= 50 ? "#fb923c" : "#e2e8f0";
           return (
-            <div key={m.label} className="flex-1 flex flex-col items-center gap-1">
+            <div key={m.label} className="flex-1 flex flex-col items-end justify-end h-full">
               <motion.div
                 className="w-full rounded-t-sm"
-                style={{ backgroundColor: color }}
-                initial={{ height: 0 }}
-                whileInView={{ height: `${m.h}%` }}
+                style={{ backgroundColor: color, height: `${m.h}%` }}
+                initial={{ scaleY: 0 }}
+                whileInView={{ scaleY: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: i * 0.04, ease: "easeOut" }}
               />
-              <span className="text-[8px] text-slate-400 leading-none">{m.label}</span>
             </div>
           );
         })}
+      </div>
+      <div className="flex gap-1.5 mt-1">
+        {months.map((m) => (
+          <span key={m.label} className="flex-1 text-[8px] text-slate-400 text-center leading-none">{m.label}</span>
+        ))}
       </div>
       <p className="text-[10px] font-semibold text-rose-500 mt-2.5 text-center">
         Meilleur mois: Janvier — 127 matchs
