@@ -135,6 +135,9 @@ export interface WrappedMetrics {
   bestDay: string;
   worstDay: string;
 
+  // Day × hour heatmap (7 days × 24 hours matrix)
+  swipesByDayAndHour: number[][];
+
   // Purchases
   purchasesTotal?: number;
   subscriptionType?: string;
@@ -306,6 +309,20 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
     (worst, curr) => (curr.matches < worst.matches ? curr : worst),
     swipesByDayOfWeek[0]
   )?.day ?? "";
+
+  // ── Day × hour heatmap ───────────────────────────────────
+  const swipesByDayAndHour: number[][] = DOW_ORDER.map(() => Array(24).fill(0));
+  if (!dailyOnly) {
+    for (const s of swipes) {
+      const dow = DOW_ORDER.indexOf(s.timestamp.getDay());
+      if (dow >= 0) swipesByDayAndHour[dow][s.timestamp.getHours()]++;
+    }
+  } else if (hourlyFromMessages && messageTimestamps && messageTimestamps.length > 0) {
+    for (const ts of messageTimestamps) {
+      const dow = DOW_ORDER.indexOf(ts.getDay());
+      if (dow >= 0) swipesByDayAndHour[dow][ts.getHours()]++;
+    }
+  }
 
   // ── Purchases ──────────────────────────────────────────────
   let purchasesTotal: number | undefined;
@@ -605,6 +622,7 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
     swipesByDayOfWeek,
     bestDay,
     worstDay,
+    swipesByDayAndHour,
     purchasesTotal,
     subscriptionType,
     boostCount,

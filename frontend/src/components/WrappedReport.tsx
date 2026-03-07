@@ -2210,6 +2210,87 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
         </p>
       </Card>
 
+      {/* ─── Day × Hour Heatmap ─── */}
+      {metrics.swipesByDayAndHour && metrics.swipesByDayAndHour.some(row => row.some(v => v > 0)) && (
+        <Card delay={0.18} variant="elevated">
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+            Activite jour × heure
+          </h3>
+          {(() => {
+            const matrix = metrics.swipesByDayAndHour;
+            const maxVal = Math.max(...matrix.flat(), 1);
+            const days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+            const hourBlocks = [0, 3, 6, 9, 12, 15, 18, 21];
+            // Aggregate into 3h blocks for readability
+            const blocked = matrix.map(row => {
+              const out: number[] = [];
+              for (let b = 0; b < 8; b++) {
+                out.push(row[b * 3] + row[b * 3 + 1] + row[b * 3 + 2]);
+              }
+              return out;
+            });
+            const blockMax = Math.max(...blocked.flat(), 1);
+            // Find best cell
+            let bestDay = 0, bestBlock = 0, bestVal = 0;
+            blocked.forEach((row, d) => row.forEach((v, b) => {
+              if (v > bestVal) { bestDay = d; bestBlock = b; bestVal = v; }
+            }));
+            return (
+              <div>
+                <div className="flex gap-[3px] mb-1 ml-10">
+                  {hourBlocks.map(h => (
+                    <span key={h} className="flex-1 text-[10px] text-slate-400 text-center font-medium">{h}h</span>
+                  ))}
+                </div>
+                <div className="space-y-[3px]">
+                  {blocked.map((row, d) => (
+                    <div key={d} className="flex items-center gap-[3px]">
+                      <span className="w-9 text-[10px] text-slate-500 text-right font-medium pr-1">{days[d]}</span>
+                      {row.map((v, b) => {
+                        const intensity = v / blockMax;
+                        const isBest = d === bestDay && b === bestBlock;
+                        return (
+                          <div
+                            key={b}
+                            className={`flex-1 h-7 sm:h-8 rounded-sm transition-all ${isBest ? "ring-2 ring-offset-1 ring-blue-400" : ""}`}
+                            style={{ backgroundColor: `rgba(59, 130, 246, ${Math.max(intensity * 0.9, 0.04)})` }}
+                            title={`${days[d]} ${hourBlocks[b]}h-${hourBlocks[b] + 3}h: ${v} ${metrics.hourlyFromMessages ? "messages" : "swipes"}`}
+                          />
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between mt-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-2.5 rounded-sm" style={{ backgroundColor: "rgba(59, 130, 246, 0.08)" }} />
+                      <span className="text-[10px] text-slate-400">Calme</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-2.5 rounded-sm" style={{ backgroundColor: "rgba(59, 130, 246, 0.45)" }} />
+                      <span className="text-[10px] text-slate-400">Actif</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-2.5 rounded-sm" style={{ backgroundColor: "rgba(59, 130, 246, 0.9)" }} />
+                      <span className="text-[10px] text-slate-400">Pic</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-blue-500 font-semibold">
+                    Pic : {days[bestDay]} {hourBlocks[bestBlock]}h-{hourBlocks[bestBlock] + 3}h
+                  </span>
+                </div>
+                {metrics.hourlyFromMessages && (
+                  <p className="mt-2 text-[10px] text-slate-400 text-center">
+                    Base sur tes messages — proxy d'activite horaire
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+        </Card>
+      )}
+
       {/* ─── Hourly activity ─── */}
       {(!metrics.dailyOnly || metrics.hourlyFromMessages) && (
         <Card delay={0.2} variant="elevated">

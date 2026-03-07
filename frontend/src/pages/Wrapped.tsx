@@ -253,7 +253,7 @@ export default function Wrapped() {
                 href="/insights"
                 className="text-indigo-600 font-semibold hover:underline"
               >
-                En attendant, regarde un exemple avec de vraies stats →
+                Voir un apercu du rapport que tu obtiendras →
               </a>
             </div>
             <WrappedUpload onDataParsed={handleDataParsed} />
@@ -269,8 +269,6 @@ export default function Wrapped() {
             <a href="/wrapped" className="hover:text-slate-900 transition">Wrapped</a>
             <span className="mx-2 text-slate-300">|</span>
             <a href="/score" className="hover:text-slate-900 transition">Score</a>
-            <span className="mx-2 text-slate-300">|</span>
-            <a href="/insights" className="hover:text-slate-900 transition">Insights</a>
           </p>
         </div>
       </footer>

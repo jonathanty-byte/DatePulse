@@ -47,6 +47,7 @@ function makeMetrics(overrides?: Partial<WrappedMetrics>): WrappedMetrics {
     ],
     bestDay: "Mercredi",
     worstDay: "Jeudi",
+    swipesByDayAndHour: Array.from({ length: 7 }, () => Array(24).fill(0)),
     totalMessagesSent: 500,
     totalMessagesReceived: 400,
     sentReceivedRatio: 1.25,
