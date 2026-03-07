@@ -251,6 +251,82 @@ function VerdictPreview() {
   );
 }
 
+function MonthlyPreview() {
+  const months = [
+    { label: "Jan", h: 95 },
+    { label: "Fev", h: 78 },
+    { label: "Mar", h: 65 },
+    { label: "Avr", h: 55 },
+    { label: "Mai", h: 48 },
+    { label: "Jun", h: 42 },
+    { label: "Jul", h: 38 },
+    { label: "Aou", h: 35 },
+    { label: "Sep", h: 60 },
+    { label: "Oct", h: 72 },
+    { label: "Nov", h: 58 },
+    { label: "Dec", h: 45 },
+  ];
+  return (
+    <div>
+      <div className="flex items-end gap-1.5 h-24">
+        {months.map((m, i) => {
+          const color =
+            m.h > 70 ? "#f43f5e" : m.h >= 50 ? "#fb923c" : "#e2e8f0";
+          return (
+            <div key={m.label} className="flex-1 flex flex-col items-center gap-1">
+              <motion.div
+                className="w-full rounded-t-sm"
+                style={{ backgroundColor: color }}
+                initial={{ height: 0 }}
+                whileInView={{ height: `${m.h}%` }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: i * 0.04, ease: "easeOut" }}
+              />
+              <span className="text-[8px] text-slate-400 leading-none">{m.label}</span>
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-[10px] font-semibold text-rose-500 mt-2.5 text-center">
+        Meilleur mois: Janvier — 127 matchs
+      </p>
+    </div>
+  );
+}
+
+function BoostPreview() {
+  const items = [
+    { label: "Sans boost", value: "4.2%", pct: 28, color: "#94a3b8" },
+    { label: "Avec boost", value: "11.8%", pct: 65, color: "#22c55e" },
+    { label: "Super likes", value: "15.3%", pct: 85, color: "#f59e0b" },
+  ];
+  return (
+    <div className="space-y-3">
+      {items.map((item, i) => (
+        <div key={item.label}>
+          <div className="flex justify-between text-xs mb-1">
+            <span className="text-slate-500">{item.label}</span>
+            <span className="font-bold" style={{ color: item.color }}>{item.value} match rate</span>
+          </div>
+          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ backgroundColor: item.color }}
+              initial={{ width: 0 }}
+              whileInView={{ width: `${item.pct}%` }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: i * 0.1 }}
+            />
+          </div>
+        </div>
+      ))}
+      <p className="text-[10px] font-semibold text-rose-500 pt-1 text-center">
+        ROI: 2.8x sur les boosts
+      </p>
+    </div>
+  );
+}
+
 const SHOWCASE = [
   {
     title: "Funnel complet",
@@ -270,6 +346,18 @@ const SHOWCASE = [
     subtitle: "Ghost rate, tempo, equilibre des messages",
     accent: "#f59e0b",
     Preview: ConversationPreview,
+  },
+  {
+    title: "Evolution mensuelle",
+    subtitle: "Tes performances mois par mois sur toute la periode",
+    accent: "#f43f5e",
+    Preview: MonthlyPreview,
+  },
+  {
+    title: "Impact des boosts",
+    subtitle: "Le vrai ROI de tes achats premium",
+    accent: "#f43f5e",
+    Preview: BoostPreview,
   },
   {
     title: "ADN Dating",
@@ -305,11 +393,11 @@ const REPORT_FEATURES = [
 
 // ── Hero Reveal Intro ───────────────────────────────────────────
 
-const REVEAL_SLIDES = [
+const REVEAL_SLIDES: { big: string; sub: string; tagline?: boolean }[] = [
   { big: "12,847", sub: "swipes analyses" },
   { big: "67%", sub: "de conversations fantomes" },
   { big: "", sub: "", tagline: true },
-] as const;
+];
 
 const SLIDE_DURATION = 1000; // ms per slide
 const FADE_OUT_DURATION = 600; // ms for final overlay fade
