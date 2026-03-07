@@ -1,10 +1,9 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import NavBar from "../components/NavBar";
 import { computeScore } from "../lib/scoring";
 import type { AppName } from "../lib/data";
-
-const TrailerPlayer = lazy(() => import("../components/TrailerPlayer"));
+import TrailerPlayer from "../components/TrailerPlayer";
 
 const SUPPORTED_APPS: { name: string; color: string }[] = [
   { name: "Tinder", color: "#ec4899" },
@@ -404,9 +403,7 @@ const REPORT_FEATURES = [
 export default function Home() {
   const [liveScore, setLiveScore] = useState<number>(0);
   const [liveApp] = useState<AppName>("tinder");
-  const [showTrailer, setShowTrailer] = useState(() => {
-    return !sessionStorage.getItem("dp_home_reveal_seen");
-  });
+  const [showTrailer, setShowTrailer] = useState(true);
 
   useEffect(() => {
     const update = () => setLiveScore(computeScore(new Date(), liveApp).score);
@@ -416,7 +413,6 @@ export default function Home() {
   }, [liveApp]);
 
   const handleTrailerEnd = () => {
-    sessionStorage.setItem("dp_home_reveal_seen", "1");
     setShowTrailer(false);
   };
 
@@ -424,9 +420,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#f8f9fc] text-slate-900">
       {showTrailer && (
         <div className="fixed inset-0 z-50 bg-[#f8f9fc]">
-          <Suspense fallback={null}>
-            <TrailerPlayer onEnd={handleTrailerEnd} />
-          </Suspense>
+          <TrailerPlayer onEnd={handleTrailerEnd} />
         </div>
       )}
       <NavBar />

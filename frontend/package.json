@@ -11,13 +11,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@remotion/player": "^4.0.434",
     "@vercel/analytics": "^1.6.1",
     "framer-motion": "^12.34.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "recharts": "^2.15.0",
-    "remotion": "^4.0.434"
+    "recharts": "^2.15.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
