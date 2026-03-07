@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import NavBar from "../components/NavBar";
 import { computeScore } from "../lib/scoring";
 import type { AppName } from "../lib/data";
-import TrailerPlayer from "../components/TrailerPlayer";
+
+const TrailerPlayer = lazy(() => import("../components/TrailerPlayer"));
 
 const SUPPORTED_APPS: { name: string; color: string }[] = [
   { name: "Tinder", color: "#ec4899" },
@@ -420,7 +421,13 @@ export default function Home() {
     <div className="min-h-screen bg-[#f8f9fc] text-slate-900">
       {showTrailer && (
         <div className="fixed inset-0 z-50 bg-[#f8f9fc]">
-          <TrailerPlayer onEnd={handleTrailerEnd} />
+          <Suspense fallback={
+            <div className="h-full w-full flex items-center justify-center">
+              <div className="text-slate-400 text-sm">Chargement...</div>
+            </div>
+          }>
+            <TrailerPlayer onEnd={handleTrailerEnd} />
+          </Suspense>
         </div>
       )}
       <NavBar />
