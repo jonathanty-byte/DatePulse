@@ -6,10 +6,11 @@
 
 **Live**: [frontend-sigma-gules-59.vercel.app](https://frontend-sigma-gules-59.vercel.app)
 
-DatePulse is a client-side SPA that helps dating app users optimize their timing and understand their data. Two core features:
+DatePulse is a client-side SPA that helps dating app users optimize their timing and understand their data. Three core features:
 
-1. **Live Score (0-100)** — Real-time activity prediction for Tinder, Bumble, Hinge, Happn based on published studies (Nielsen, Ogury, SwipeStats) and validated against Google Trends FR (r=0.995)
-2. **Dating Wrapped** — Upload your GDPR data export → full diagnostic: 90 data-driven hypotheses, conversation analysis, swipe patterns, benchmarks, personalized insights
+1. **Dating Wrapped** — Upload your GDPR data export → premium dashboard: 6 chapters + Conversation Pulse (15 sections) + Swipe Pulse (5 sections) + benchmarks + verdict
+2. **Live Score (0-100)** — Real-time activity prediction for Tinder, Bumble, Hinge, Happn based on published studies (Nielsen, Ogury, SwipeStats) and validated against Google Trends FR (r=0.995)
+3. **Insights Encyclopedia** — 90 data-driven hypotheses (personalized if Wrapped data uploaded, demo otherwise)
 
 **100% client-side** — no data leaves the browser.
 
@@ -19,8 +20,7 @@ DatePulse is a client-side SPA that helps dating app users optimize their timing
 Static lookup tables ──→ Scoring engine (client-side) ──→ React UI
 wttr.in weather ────────→ Weather modifier (localStorage cache)
 trends.json ────────────→ Google Trends modifier (Python cron)
-GDPR upload ────────────→ Parser → Wrapped report + 90 hypotheses
-/api/llm ───────────────→ Vercel Edge Function → OpenRouter (Coach AI)
+GDPR upload ────────────→ Parser → Wrapped report + Insights engine
 ```
 
 **Stack**: React 18 · TypeScript · Vite · Tailwind CSS 3 · Framer Motion · Recharts · vite-plugin-pwa
@@ -31,10 +31,8 @@ GDPR upload ────────────→ Parser → Wrapped report + 
 |-------|-------------|
 | `/` | Landing page — Wrapped CTA + live score ticker |
 | `/score` | Live score gauge + heatmap + best times + pool freshness |
-| `/coach` | Profile Audit AI + Message Coach (via Edge Function) |
-| `/wrapped` | GDPR upload → Wrapped report + personalized Insights inline |
+| `/wrapped` | GDPR upload → Wrapped report (7 chapters) + Conversation Pulse + Swipe Pulse |
 | `/insights` | 90 hypotheses encyclopedia (personal if data uploaded, demo otherwise) |
-| `/tracker` | Manual match tracker (localStorage) |
 
 ## Quick start
 
@@ -72,9 +70,9 @@ score(t) = hourly[h] × weekly[d] × monthly[m] / 10000
 
 Parses GDPR exports from Tinder (Format A + B), Bumble, and Hinge. 100% client-side.
 
-- **Wrapped Report**: 6 sections (overview, timing, conversion, conversations, DNA radar, verdict)
-- **Conversation Pulse** (H1-H70): ghost detection, opener analysis, question density, survival curves
-- **Swipe Pulse** (H71-H90): velocity decay, circadian patterns, selectivity analysis, archetypes
+- **Wrapped Report**: 7 color-coded chapter blocks (overview, timing, conversion, conversations, CP, SP, ADN & verdict) with premium dashboard visual hierarchy
+- **Conversation Pulse** (15 sections): ghost detection, opener analysis, question density, survival curves, tempo, escalation, balance, fatigue, signals, mirroring, language, timing, patterns, verdict
+- **Swipe Pulse** (5 sections): algorithm ghost, psychology, rhythms, conversion, archetype
 - **Personalized Insights**: `generateUserInsights()` maps metrics to 41-field `InsightsDataSet`, displayed inline after Wrapped and on `/insights`
 
 ## Project structure
@@ -82,11 +80,11 @@ Parses GDPR exports from Tinder (Format A + B), Bumble, and Hinge. 100% client-s
 ```
 frontend/
   src/
-    pages/          # 6 route-level components
-    components/     # 24 UI components (SharedInsightComponents, InsightsContent, etc.)
-    lib/            # 23 logic modules (scoring, parsing, insights engine, etc.)
-    lib/__tests__/  # 8 test suites (226+ tests)
-  api/llm.ts        # Vercel Edge Function (OpenRouter proxy)
+    pages/          # 4 active route components (Home, Score, Wrapped, Insights)
+    components/     # UI components (SharedInsightComponents, WrappedReport, etc.)
+    lib/            # Core logic (scoring, parsing, insights engine, etc.)
+    lib/__tests__/  # Test suites (226+ tests)
+  api/llm.ts        # Vercel Edge Function (OpenRouter proxy, currently unused)
   public/           # trends.json, weather fallback, rankings data
 scripts/            # Python automation (local): trends, auto-swiper, rankings scraper
 .github/workflows/  # CI (build on push) + daily rankings scraper

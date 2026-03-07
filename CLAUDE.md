@@ -46,7 +46,7 @@ python scripts/nudge_email.py --dry-run   # Preview email without sending
 Frontend (Vercel): Static lookup tables → Client-side scoring → React UI
                    + wttr.in weather (localStorage 30min TTL, static fallback)
                    + trends.json Google Trends modifier (localStorage 2h TTL)
-                   + Vercel Edge Function proxy → OpenRouter LLM (Profile Audit, Message Coach)
+                   + Vercel Edge Function proxy → OpenRouter LLM (currently unused, Coach hidden)
                    + @vercel/analytics (page views + custom events)
 
 Automation (local): Python scripts on Windows (Task Scheduler cron + HTTP server)
@@ -57,7 +57,9 @@ Bridge: Frontend button → POST localhost:5555/trigger → Python auto_trigger.
 
 **Stack**: React 18 + TypeScript + Vite + Tailwind CSS 3 + Framer Motion + Recharts + vite-plugin-pwa
 
-**Routes** (SPA, defined in `App.tsx`): `/`, `/methodology`, `/audit`, `/coach`, `/wrapped`, `/tracker`, `/insights`
+**Routes** (SPA, defined in `App.tsx`): `/`, `/score`, `/wrapped`, `/insights`
+
+**Hidden routes** (code exists but unreachable — Coach feature hidden): `/coach`, `/audit`, `/methodology`, `/tracker`
 
 **Custom SPA router** — no React Router. Uses `window.history.pushState` + `popstate` event listener + click delegation in `App.tsx`. Home page is a static import; all other pages use `React.lazy()`.
 
@@ -78,7 +80,7 @@ All scoring data lives in `lib/data.ts` as static lookup tables (per-app hourly,
 - **Trends**: `trends.json` written by Python cron → cached 2h → ships with neutral defaults
 - **Rankings**: `data/rankings-latest.json` + `data/rankings-history.json` written by GitHub Actions daily scraper (`scripts/scrape_rankings.py`) — Play Store FR data for all 4 apps. Fetched by `lib/rankings.ts`.
 
-**LLM path**: `lib/llmService.ts` calls `/api/llm` (Vercel Edge Function) in prod, or uses `VITE_OPENROUTER_KEY` env var in dev. Edge function reads `OPENROUTER_KEY` server-side.
+**LLM path** (currently unused — Coach hidden): `lib/llmService.ts` calls `/api/llm` (Vercel Edge Function) in prod, or uses `VITE_OPENROUTER_KEY` env var in dev. Edge function reads `OPENROUTER_KEY` server-side.
 
 **Persistence**: All user data in localStorage — matches (`datepulse_matches`), sessions (`datepulse_sessions`, `datepulse_active_session`), audit (`datepulse_last_audit`), caches (`dp_weather`, `dp_trends`).
 
@@ -144,6 +146,25 @@ The app is France/Paris-centric. `lib/franceTime.ts` provides `getParisHour()` a
 - **Parser** (`wrappedParser.ts`): Auto-detects app source. Supports Tinder Format A (pre-2024, arrays) and Format B (2024+, `Usage` dicts). Hinge multi-file support (matches.json, subscriptions.json, user.json). `dailyOnly` flag when no per-swipe timestamps — uses message timestamps as hourly proxy.
 - **Metrics** (`wrappedMetrics.ts`): `bestMonth`/`worstMonth` use match rate (matches/likes), not absolute count. Hinge-specific: funnel stats, comment analysis, response time, premium ROI, unmatch survival.
 - **Report** (`WrappedReport.tsx`): Monthly ComposedChart: swipes as bars + match rate line + match count labels. Hourly chart uses messages as proxy when `dailyOnly`. App-source theming (colors adapt per dating app).
+
+### Wrapped visual hierarchy (premium dashboard style)
+
+7 chapter blocks with colored `border-left-4` + tinted backgrounds:
+
+| Chapter | bg | accent | Content |
+|---------|-----|--------|---------|
+| CH.1 Vue d'ensemble | `bg-slate-50` | `#6366f1` | SpotlightCards, funnel |
+| CH.2 Timing | `bg-blue-50` | `#3b82f6` | Day/hour charts, monthly evolution |
+| CH.3 Conversion | `bg-rose-50` | `#f43f5e` | Comment impact, matches, premium ROI |
+| CH.4 Conversations | `bg-amber-50` | `#f59e0b` | Ghost rate, response time, unmatch |
+| CP Conversation Pulse | `bg-emerald-50` | `#10b981` | 15 sections (3 free + 12 premium behind PaywallGate) |
+| SP Swipe Pulse | `bg-cyan-50` | `#06b6d4` | 5 sections (1 free + 4 premium behind PaywallGate) |
+| CH.5 ADN & Verdict | `bg-violet-50` | `#8b5cf6` | Benchmarks, RadarChart, verdict, share button |
+
+- **ChapterInterstitial**: compact horizontal layout with SVG icon in gradient badge
+- **SectionTitle**: `level="chapter"` (3xl font-black gradient) vs `level="section"` (xl font-extrabold)
+- **Card variants**: `default` (shadow-sm), `elevated` (shadow-md + ring, used for chart cards), `flat`
+- **SectionDivider**: gradient `h-px` between thematic groups inside CP/SP
 
 ## Auto Swiper Integration
 
