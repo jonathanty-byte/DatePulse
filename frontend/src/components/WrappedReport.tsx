@@ -43,6 +43,9 @@ import {
   ProgressRing,
   SectionNav,
   ChartBadges,
+  ChapterBlock,
+  ChapterInterstitial,
+  SectionDivider,
 } from "./SharedInsightComponents";
 
 // ── Types ───────────────────────────────────────────────────────
@@ -64,6 +67,20 @@ const APP_COLORS: Record<string, { primary: string; gradient: string; bg: string
   tinder: { primary: "#ec4899", gradient: "from-pink-400 to-pink-600", bg: "rgba(236,72,153,0.06)" },
   bumble: { primary: "#f59e0b", gradient: "from-amber-400 to-amber-600", bg: "rgba(245,158,11,0.06)" },
   hinge: { primary: "#8b5cf6", gradient: "from-violet-400 to-violet-600", bg: "rgba(139,92,246,0.06)" },
+};
+
+// ── Chapter icons (SVG, premium look) ───────────────────────────
+
+const sz = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+
+const ChapterIcons = {
+  overview: <svg {...sz}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>,
+  timing: <svg {...sz}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></svg>,
+  conversion: <svg {...sz}><path d="M22 2L11 13" /><path d="M22 2l-7 20-4-9-9-4 20-7z" /></svg>,
+  conversations: <svg {...sz}><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>,
+  cp: <svg {...sz}><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5A8.48 8.48 0 0121 11.5z" /></svg>,
+  sp: <svg {...sz}><path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>,
+  dna: <svg {...sz}><path d="M2 15c6.667-6 13.333 0 20-6" /><path d="M9 22c1.798-1.998 2.573-3.995 2.572-5.993" /><path d="M15 2c-1.798 1.998-2.573 3.995-2.572 5.993" /><path d="M2 9c6.667 6 13.333 0 20 6" /></svg>,
 };
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -100,14 +117,21 @@ function Card({
   children,
   delay = 0,
   className = "",
+  variant = "default",
 }: {
   children: React.ReactNode;
   delay?: number;
   className?: string;
+  variant?: "default" | "elevated" | "flat";
 }) {
+  const styles = {
+    default: "rounded-2xl border border-gray-200/60 bg-white p-5 sm:p-6 shadow-sm",
+    elevated: "rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-md ring-1 ring-gray-100",
+    flat: "rounded-xl bg-gray-50/80 p-4 sm:p-5",
+  };
   return (
     <motion.div
-      className={`border border-gray-200 bg-white p-5 sm:p-6 shadow-sm ${className}`}
+      className={`${styles[variant]} ${className}`}
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -488,7 +512,7 @@ function CPSectionGhost({ insights, appColor }: CPScreenProps) {
       </Card>
 
       {curveData.length > 0 && (
-        <Card>
+        <Card variant="elevated">
           <p className="text-xs font-medium text-slate-800 mb-3">Courbe de survie</p>
           <div className="h-44 sm:h-52 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -870,7 +894,7 @@ function CPSectionFatigue({ insights, appColor }: CPScreenProps) {
 
       {hasTrend ? (
         <>
-          <Card>
+          <Card variant="elevated">
             <p className="text-xs font-medium text-slate-800 mb-3">Longueur moyenne des openers par mois</p>
             <div className="h-44 sm:h-52 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -891,7 +915,7 @@ function CPSectionFatigue({ insights, appColor }: CPScreenProps) {
             </div>
           </Card>
 
-          <Card>
+          <Card variant="elevated">
             <p className="text-xs font-medium text-slate-800 mb-3">Taux de ghosting par mois</p>
             <div className="h-44 sm:h-52 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -1470,8 +1494,9 @@ const WRAPPED_NAV_ITEMS = [
   { id: "wr-timing", emoji: "⏰", label: "Timing" },
   { id: "wr-conversion", emoji: "🎯", label: "Conversion" },
   { id: "wr-conversations", emoji: "💬", label: "Conversations" },
-  { id: "wr-dna", emoji: "🧬", label: "ADN" },
-  { id: "wr-verdict", emoji: "🏆", label: "Verdict" },
+  { id: "wr-cp", emoji: "💬", label: "Conv. Pulse" },
+  { id: "wr-sp", emoji: "📱", label: "Swipe Pulse" },
+  { id: "wr-dna", emoji: "🧬", label: "ADN & Verdict" },
 ];
 
 // ══════════════════════════════════════════════════════════════
@@ -2023,7 +2048,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
   const sourceName = metrics.source.charAt(0).toUpperCase() + metrics.source.slice(1);
 
   return (
-    <div className="space-y-16">
+    <div className="space-y-4">
       {/* ─── Hero section ─── */}
       <motion.div
         className="text-center py-6 sm:py-8 space-y-3"
@@ -2049,14 +2074,14 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
         </p>
       </motion.div>
 
-      {/* ─── Main Section Nav ─── */}
+      {/* ─── Unified Section Nav ─── */}
       <SectionNav items={WRAPPED_NAV_ITEMS} />
 
       {/* ═══════════════════════════════════════════════════════ */}
-      {/* ═══ VUE D'ENSEMBLE ═══ */}
+      {/* ═══ CH.1 — VUE D'ENSEMBLE ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
-      <section id="wr-overview" className="scroll-mt-28 space-y-6">
-        <SectionTitle title="Vue d'ensemble" subtitle={`${metrics.totalDays} jours d'activite sur ${sourceName}`} />
+      <ChapterBlock id="wr-overview" bg="bg-slate-50" accent="#6366f1">
+        <SectionTitle title="Vue d'ensemble" subtitle={`${metrics.totalDays} jours d'activite sur ${sourceName}`} level="chapter" />
         <NarrativeIntro text={`${metrics.totalSwipes.toLocaleString("fr-FR")} swipes, ${totalMatches} matchs, ${metrics.estimatedTotalHours}h investies. Voici ce que tes donnees revelent.`} />
 
         {/* 3 SpotlightCards — key stats */}
@@ -2106,7 +2131,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
 
         {/* Funnel */}
         {metrics.funnel && metrics.funnel.likes > 0 && (
-          <Card delay={0.12}>
+          <Card delay={0.12} variant="elevated">
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
               Ton funnel
             </h3>
@@ -2118,17 +2143,17 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
             </p>
           </Card>
         )}
-      </section>
+      </ChapterBlock>
 
       {/* ═══════════════════════════════════════════════════════ */}
-      {/* ═══ TIMING ═══ */}
+      {/* ═══ CH.2 — TIMING ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
-      <section id="wr-timing" className="scroll-mt-28 space-y-6">
-        <SectionTitle title="Timing" subtitle="Tes jours, tes heures, ton evolution" />
+      <ChapterInterstitial number={2} title="Timing" subtitle="Tes jours, tes heures, ton evolution" icon={ChapterIcons.timing} accent="#3b82f6" />
+      <ChapterBlock id="wr-timing" bg="bg-blue-50" accent="#3b82f6">
         <NarrativeIntro text="Quand swipes-tu le plus ? Quand tes matchs arrivent-ils ? L'analyse temporelle de ton activite." />
 
       {/* Tes meilleurs jours (day-of-week) */}
-      <Card delay={0.15}>
+      <Card delay={0.15} variant="elevated">
         <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
             Tes meilleurs jours
@@ -2185,13 +2210,200 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
         </p>
       </Card>
 
-      </section>
+      {/* ─── Hourly activity ─── */}
+      {(!metrics.dailyOnly || metrics.hourlyFromMessages) && (
+        <Card delay={0.2} variant="elevated">
+          <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Tes horaires d'activite
+            </h3>
+            <ChartBadges items={[
+              { label: "Pic", value: formatHour(metrics.peakSwipeHour), color: appColor.primary },
+              ...(!metrics.hourlyFromMessages ? [{ label: "Pic matchs", value: formatHour(metrics.peakMatchHour), color: "#F5A623" }] : []),
+            ]} />
+          </div>
+          <div className="flex items-center justify-around mb-4">
+            <BigStat
+              value={formatHour(metrics.peakSwipeHour)}
+              label="pic d'activite"
+              size="sm"
+            />
+            {!metrics.hourlyFromMessages && (
+              <>
+                <div className="h-12 w-px bg-gray-200" />
+                <BigStat
+                  value={formatHour(metrics.peakMatchHour)}
+                  label="pic de matches"
+                  size="sm"
+                />
+              </>
+            )}
+          </div>
+          <div className="h-40 sm:h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={hourData} barSize={8}>
+                <XAxis
+                  dataKey="hour"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#6b7280", fontSize: 10 }}
+                  interval={3}
+                />
+                <YAxis hide />
+                <Tooltip
+                  content={<DarkTooltip />}
+                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                />
+                <Bar
+                  dataKey="swipes"
+                  name={metrics.hourlyFromMessages ? "Messages" : "Swipes"}
+                  fill={appColor.primary}
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          {metrics.hourlyFromMessages && (
+            <p className="mt-2 text-[10px] text-slate-400 text-center">
+              Base sur tes messages envoyes — l'export Tinder ne fournit pas l'heure exacte des swipes
+            </p>
+          )}
+        </Card>
+      )}
+
+      {/* ─── Evolution mensuelle ─── */}
+      {monthlyData.length > 1 && (
+        <Card delay={0.3} variant="elevated">
+          <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Evolution mensuelle
+            </h3>
+            <ChartBadges items={[
+              { label: "Swipes", value: metrics.totalSwipes, color: "#6C7AE0" },
+              { label: "Matches", value: metrics.monthlyData.reduce((s, d) => s + d.matches, 0), color: "#F5A623" },
+              { label: "Moy.", value: `${avgRate}%`, color: "#34d399" },
+            ]} />
+          </div>
+          <div className="flex justify-end gap-5 text-[11px] mb-3 pr-1">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "#6C7AE0" }} />
+              <span className="text-slate-400">Swipes</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block w-3.5 rounded-sm" style={{ height: 2.5, background: "#34d399" }} />
+              <span className="text-slate-400">Taux de match</span>
+            </span>
+          </div>
+
+          <div className="h-56 sm:h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={monthlyData} barCategoryGap="20%">
+                <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#6b7085", fontSize: 11 }}
+                />
+                <YAxis
+                  yAxisId="swipes"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#6b7085", fontSize: 10 }}
+                  width={42}
+                  tickFormatter={(v: number) =>
+                    v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k` : `${v}`
+                  }
+                />
+                <YAxis
+                  yAxisId="rate"
+                  orientation="right"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#34d399", fontSize: 10 }}
+                  width={38}
+                  tickFormatter={(v: number) => `${v}%`}
+                />
+                <Tooltip
+                  content={<MonthlyTooltip bestMonth={bestMonthLabel} worstMonth={worstMonthLabel} />}
+                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                />
+                <ReferenceLine
+                  yAxisId="rate"
+                  y={avgRate}
+                  stroke="#6b7085"
+                  strokeDasharray="5 4"
+                  strokeWidth={1}
+                />
+                <Bar yAxisId="swipes" dataKey="swipes" radius={[3, 3, 0, 0]} maxBarSize={32}>
+                  {monthlyData.map((_, i) => (
+                    <Cell key={i} fill="rgba(108,122,224,0.5)" />
+                  ))}
+                  <LabelList
+                    dataKey="matches"
+                    position="top"
+                    fill="#F5A623"
+                    fontSize={10}
+                    fontWeight={600}
+                    offset={6}
+                  />
+                </Bar>
+                <Line
+                  yAxisId="rate"
+                  type="monotone"
+                  dataKey="rate"
+                  stroke="#34d399"
+                  strokeWidth={2.5}
+                  dot={(props: { cx: number; cy: number; payload: { month: string; rate: number }; key?: string }) => {
+                    const { cx, cy, payload } = props;
+                    const isBest = payload.month === bestMonthLabel;
+                    const isWorst = payload.month === worstMonthLabel;
+                    if (isBest || isWorst) {
+                      const c = isBest ? "#34d399" : "#ef4444";
+                      return (
+                        <g key={props.key}>
+                          <circle cx={cx} cy={cy} r={7} fill={c} opacity={0.15} />
+                          <circle cx={cx} cy={cy} r={4} fill={c} />
+                          <text x={cx} y={cy - 14} textAnchor="middle" fill={c} fontSize={11} fontWeight={700}>
+                            {payload.rate}%
+                          </text>
+                        </g>
+                      );
+                    }
+                    return <circle key={props.key} cx={cx} cy={cy} r={2.5} fill="#34d399" opacity={0.5} />;
+                  }}
+                  activeDot={{ r: 5, fill: "#34d399", stroke: "#181a20", strokeWidth: 2 }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+          {bestMonthLabel && (
+            <div className="flex justify-center gap-4 mt-2 text-xs">
+              <span>
+                Meilleur mois : <strong className="text-emerald-400">{bestMonthLabel}</strong>
+                <span className="text-slate-400"> ({monthlyData.find((d) => d.month === bestMonthLabel)?.rate ?? 0}%)</span>
+              </span>
+              {worstMonthLabel && worstMonthLabel !== bestMonthLabel && (
+                <>
+                  <span className="text-slate-400">—</span>
+                  <span>
+                    Pire mois : <strong className="text-red-500">{worstMonthLabel}</strong>
+                    <span className="text-slate-400"> ({monthlyData.find((d) => d.month === worstMonthLabel)?.rate ?? 0}%)</span>
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
+
+      </ChapterBlock>
 
       {/* ═══════════════════════════════════════════════════════ */}
-      {/* ═══ CONVERSION ═══ */}
+      {/* ═══ CH.3 — CONVERSION ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
-      <section id="wr-conversion" className="scroll-mt-28 space-y-6">
-        <SectionTitle title="Conversion" subtitle="De like a match — ton entonnoir de conversion" />
+      <ChapterInterstitial number={3} title="Conversion" subtitle="De like a match — ton entonnoir de conversion" icon={ChapterIcons.conversion} accent="#f43f5e" />
+      <ChapterBlock id="wr-conversion" bg="bg-rose-50" accent="#f43f5e">
 
       {/* Impact du commentaire (Hinge only) */}
       {metrics.commentImpact && (
@@ -2321,13 +2533,81 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
         </Card>
       )}
 
-      </section>
+      {/* ─── Boost Intelligence (absorbed from orphan, Tinder only) ─── */}
+      {metrics.boostDates && metrics.boostDates.length > 0 && (
+        <Card delay={0.26}>
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+            Boost Intelligence
+          </h3>
+          <div className="flex items-center justify-around">
+            <BigStat
+              value={metrics.boostDates.length}
+              label="boosts utilises"
+              color={appColor.primary}
+            />
+            <div className="h-12 w-px bg-gray-200" />
+            <BigStat
+              value={`${metrics.boostMatchRate ?? 0}%`}
+              label="matchs pendant les boosts"
+              size="sm"
+            />
+          </div>
+          <p className="mt-3 text-xs text-slate-400 text-center">
+            {metrics.boostMatchRate === 0
+              ? `Aucun match obtenu pendant tes ${metrics.boostDates.length} boosts. Les boosts augmentent ta visibilite mais ne garantissent pas un match.`
+              : metrics.boostMatchRate != null && metrics.swipeToMatchRate > 0 && metrics.boostMatchRate > metrics.swipeToMatchRate
+              ? `Tes boosts performent ${Math.round(metrics.boostMatchRate / metrics.swipeToMatchRate)}x mieux que ton taux normal (${metrics.swipeToMatchRate}%)`
+              : `Taux de match boost (${metrics.boostMatchRate ?? 0}%) vs normal (${metrics.swipeToMatchRate}%) — pas de difference significative`}
+          </p>
+        </Card>
+      )}
+
+      {/* ─── Super Likes (absorbed from orphan, Tinder only) ─── */}
+      {metrics.superLikesSent != null && metrics.superLikesSent > 0 && (
+        <Card delay={0.26}>
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+            Super Likes
+          </h3>
+          <div className="flex items-center justify-around">
+            <BigStat
+              value={metrics.superLikesSent}
+              label="super likes envoyes"
+              color={appColor.primary}
+            />
+            {metrics.superLikeMatchRate != null && (
+              <>
+                <div className="h-12 w-px bg-gray-200" />
+                <BigStat
+                  value={Math.round(metrics.superLikesSent * metrics.superLikeMatchRate / 100)}
+                  label="matchs obtenus"
+                  size="sm"
+                />
+                <div className="h-12 w-px bg-gray-200" />
+                <BigStat
+                  value={`${metrics.superLikeMatchRate}%`}
+                  label="taux de conversion"
+                  size="sm"
+                />
+              </>
+            )}
+          </div>
+          {metrics.superLikeMatchRate != null && (
+            <p className="mt-3 text-xs text-slate-400 text-center">
+              {metrics.superLikeMatchRate === 0
+                ? "Aucun match via Super Like. Le Super Like ne garantit pas un match."
+                : `${Math.round(metrics.superLikesSent * metrics.superLikeMatchRate / 100)} match${Math.round(metrics.superLikesSent * metrics.superLikeMatchRate / 100) > 1 ? "s" : ""} pour ${metrics.superLikesSent} Super Likes envoyes (${metrics.superLikeMatchRate}% de conversion)`}
+            </p>
+          )}
+        </Card>
+      )}
+
+      </ChapterBlock>
 
       {/* ═══════════════════════════════════════════════════════ */}
-      {/* ═══ CONVERSATIONS ═══ */}
+      {/* ═══ CH.4 — CONVERSATIONS ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
-      <section id="wr-conversations" className="scroll-mt-28 space-y-6">
-        <SectionTitle title="Conversations" subtitle="Ghost rate, tempo de reponse, et equilibre" />
+      <ChapterInterstitial number={4} title="Conversations" subtitle="Ghost rate, tempo de reponse, et equilibre" icon={ChapterIcons.conversations} accent="#f59e0b" />
+      <ChapterBlock id="wr-conversations" bg="bg-amber-50" accent="#f59e0b">
 
       {/* Conversations (enriched with ghost empathy + sent/received) */}
       <Card delay={0.25}>
@@ -2372,133 +2652,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
         {/* CTA coach masque — sera active apres lancement du coach */}
       </Card>
 
-      </section>
-
-      {/* ═══ CONVERSATION PULSE — 3 free teaser + 12 premium gated ═══ */}
-      {conversationInsights && conversationInsights.conversationsAnalyzed >= 5 && (
-        <div className="space-y-12">
-          <SectionNav items={CP_NAV_ITEMS} badgeLabel="Conversation Pulse" />
-          {/* Free teaser: Hero + Ghost + Questions */}
-          <CPSectionHero insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionGhost insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          <CPSectionQuestions insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-          {/* Premium: 12 remaining sections behind paywall */}
-          <PaywallGate
-            isUnlocked={isPremiumUnlocked}
-            isEarlyAccess={isEarlyAccess}
-            onCtaClick={onPaywallCtaClick ?? (() => {})}
-            sectionId="conversation-pulse"
-          >
-            <div className="space-y-12">
-              <CPSectionTempo insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-              <CPSectionOpeners insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-              <CPSectionEscalation insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-              <CPSectionDoubleText insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-              <CPSectionBalance insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-              <CPSectionFatigue insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-              <CPSectionSignals insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-              <CPSectionMirroring insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-              <CPSectionLanguage insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-              <CPSectionTimingAdv insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-              <CPSectionPatterns insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-              <CPSectionVerdict insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} onShareClick={onShareClick} />
-            </div>
-          </PaywallGate>
-        </div>
-      )}
-
-      {/* ═══ SWIPE PULSE — 1 free teaser + 4 premium gated ═══ */}
-      {advancedSwipeInsights && (
-        <div className="space-y-12">
-          <SectionNav items={SP_NAV_ITEMS} badgeLabel="Swipe Pulse" />
-          {/* Free teaser: Algorithm section */}
-          <SPSectionAlgorithm insights={advancedSwipeInsights} appColor={appColor} />
-          {/* Premium: 4 remaining sections behind paywall */}
-          <PaywallGate
-            isUnlocked={isPremiumUnlocked}
-            isEarlyAccess={isEarlyAccess}
-            onCtaClick={onPaywallCtaClick ?? (() => {})}
-            sectionId="swipe-pulse"
-          >
-            <div className="space-y-12">
-              <SPSectionPsychology insights={advancedSwipeInsights} appColor={appColor} />
-              <SPSectionRhythms insights={advancedSwipeInsights} appColor={appColor} />
-              <SPSectionConversion insights={advancedSwipeInsights} appColor={appColor} />
-              <SPSectionArchetype insights={advancedSwipeInsights} appColor={appColor} />
-            </div>
-          </PaywallGate>
-        </div>
-      )}
-
-      {/* ─── Boost Intelligence & Super Likes (Tinder only) ─── */}
-      {metrics.boostDates && metrics.boostDates.length > 0 && (
-        <Card delay={0.26}>
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-            Boost Intelligence
-          </h3>
-          <div className="flex items-center justify-around">
-            <BigStat
-              value={metrics.boostDates.length}
-              label="boosts utilises"
-              color={appColor.primary}
-            />
-            <div className="h-12 w-px bg-white/10" />
-            <BigStat
-              value={`${metrics.boostMatchRate ?? 0}%`}
-              label="matchs pendant les boosts"
-              size="sm"
-            />
-          </div>
-          <p className="mt-3 text-xs text-slate-400 text-center">
-            {metrics.boostMatchRate === 0
-              ? `Aucun match obtenu pendant tes ${metrics.boostDates.length} boosts. Les boosts augmentent ta visibilite mais ne garantissent pas un match.`
-              : metrics.boostMatchRate != null && metrics.swipeToMatchRate > 0 && metrics.boostMatchRate > metrics.swipeToMatchRate
-              ? `Tes boosts performent ${Math.round(metrics.boostMatchRate / metrics.swipeToMatchRate)}x mieux que ton taux normal (${metrics.swipeToMatchRate}%)`
-              : `Taux de match boost (${metrics.boostMatchRate ?? 0}%) vs normal (${metrics.swipeToMatchRate}%) — pas de difference significative`}
-          </p>
-        </Card>
-      )}
-
-      {/* ─── 9c. Super Likes ─── */}
-      {metrics.superLikesSent != null && metrics.superLikesSent > 0 && (
-        <Card delay={0.26}>
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-            Super Likes
-          </h3>
-          <div className="flex items-center justify-around">
-            <BigStat
-              value={metrics.superLikesSent}
-              label="super likes envoyes"
-              color={appColor.primary}
-            />
-            {metrics.superLikeMatchRate != null && (
-              <>
-                <div className="h-12 w-px bg-white/10" />
-                <BigStat
-                  value={Math.round(metrics.superLikesSent * metrics.superLikeMatchRate / 100)}
-                  label="matchs obtenus"
-                  size="sm"
-                />
-                <div className="h-12 w-px bg-white/10" />
-                <BigStat
-                  value={`${metrics.superLikeMatchRate}%`}
-                  label="taux de conversion"
-                  size="sm"
-                />
-              </>
-            )}
-          </div>
-          {metrics.superLikeMatchRate != null && (
-            <p className="mt-3 text-xs text-slate-400 text-center">
-              {metrics.superLikeMatchRate === 0
-                ? "Aucun match via Super Like. Le Super Like ne garantit pas un match."
-                : `${Math.round(metrics.superLikesSent * metrics.superLikeMatchRate / 100)} match${Math.round(metrics.superLikesSent * metrics.superLikeMatchRate / 100) > 1 ? "s" : ""} pour ${metrics.superLikesSent} Super Likes envoyes (${metrics.superLikeMatchRate}% de conversion)`}
-            </p>
-          )}
-        </Card>
-      )}
-
-      {/* ─── Response Time + Match Survival (inside Conversations section continued) ─── */}
+      {/* ─── Response Time (absorbed from orphan) ─── */}
       {metrics.responseTime && (
         <Card delay={0.27}>
           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
@@ -2511,7 +2665,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
           />
           <div className="mt-4 space-y-2">
             {[
-              { label: "< 1h", count: metrics.responseTime.under1h, badge: "⚡" },
+              { label: "< 1h", count: metrics.responseTime.under1h, badge: "\u26A1" },
               { label: "1-6h", count: metrics.responseTime.under6h, badge: undefined },
               { label: "6-24h", count: metrics.responseTime.under24h, badge: undefined },
               { label: "> 24h", count: metrics.responseTime.over24h, badge: "\u{1F422}" },
@@ -2546,7 +2700,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
         </Card>
       )}
 
-      {/* ─── 11. Survie des matchs (Hinge only) ─── */}
+      {/* ─── Survie des matchs (absorbed from orphan, Hinge only) ─── */}
       {metrics.unmatchData && metrics.unmatchData.totalUnmatched > 0 && (
         <Card delay={0.29}>
           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
@@ -2567,148 +2721,88 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
         </Card>
       )}
 
-      {/* ─── Evolution mensuelle (back to Timing section visually) ─── */}
-      {monthlyData.length > 1 && (
-        <Card delay={0.3}>
-          {/* Header + stat pills */}
-          <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Evolution mensuelle
-            </h3>
-            <ChartBadges items={[
-              { label: "Swipes", value: metrics.totalSwipes, color: "#6C7AE0" },
-              { label: "Matches", value: metrics.monthlyData.reduce((s, d) => s + d.matches, 0), color: "#F5A623" },
-              { label: "Moy.", value: `${avgRate}%`, color: "#34d399" },
-            ]} />
-          </div>
+      </ChapterBlock>
 
-          {/* Legend */}
-          <div className="flex justify-end gap-5 text-[11px] mb-3 pr-1">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "#6C7AE0" }} />
-              <span className="text-slate-400">Swipes</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block w-3.5 rounded-sm" style={{ height: 2.5, background: "#34d399" }} />
-              <span className="text-slate-400">Taux de match</span>
-            </span>
-          </div>
+      {/* ═══ CONVERSATION PULSE ═══ */}
+      {conversationInsights && conversationInsights.conversationsAnalyzed >= 5 && (
+        <>
+          <ChapterInterstitial number="CP" title="Conversation Pulse" subtitle="Analyse approfondie de tes conversations" icon={ChapterIcons.cp} accent="#10b981" />
+          <ChapterBlock id="wr-cp" bg="bg-emerald-50" accent="#10b981">
+            <div className="space-y-6">
+              {/* Free teaser: Hero + Ghost + Questions */}
+              <CPSectionHero insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <SectionDivider />
+              <CPSectionGhost insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <SectionDivider />
+              <CPSectionQuestions insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
 
-          {/* ComposedChart — swipes bars + rate line */}
-          <div className="h-56 sm:h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={monthlyData} barCategoryGap="20%">
-                <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" />
-                <XAxis
-                  dataKey="month"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: "#6b7085", fontSize: 11 }}
-                />
-                {/* Left axis — swipes */}
-                <YAxis
-                  yAxisId="swipes"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: "#6b7085", fontSize: 10 }}
-                  width={42}
-                  tickFormatter={(v: number) =>
-                    v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k` : `${v}`
-                  }
-                />
-                {/* Right axis — rate % */}
-                <YAxis
-                  yAxisId="rate"
-                  orientation="right"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: "#34d399", fontSize: 10 }}
-                  width={38}
-                  tickFormatter={(v: number) => `${v}%`}
-                />
-                <Tooltip
-                  content={<MonthlyTooltip bestMonth={bestMonthLabel} worstMonth={worstMonthLabel} />}
-                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
-                />
-                {/* Average rate dashed line */}
-                <ReferenceLine
-                  yAxisId="rate"
-                  y={avgRate}
-                  stroke="#6b7085"
-                  strokeDasharray="5 4"
-                  strokeWidth={1}
-                />
-                {/* Swipes bars with match count labels */}
-                <Bar yAxisId="swipes" dataKey="swipes" radius={[3, 3, 0, 0]} maxBarSize={32}>
-                  {monthlyData.map((_, i) => (
-                    <Cell key={i} fill="rgba(108,122,224,0.5)" />
-                  ))}
-                  <LabelList
-                    dataKey="matches"
-                    position="top"
-                    fill="#F5A623"
-                    fontSize={10}
-                    fontWeight={600}
-                    offset={6}
-                  />
-                </Bar>
-                {/* Rate line with best/worst dots */}
-                <Line
-                  yAxisId="rate"
-                  type="monotone"
-                  dataKey="rate"
-                  stroke="#34d399"
-                  strokeWidth={2.5}
-                  dot={(props: { cx: number; cy: number; payload: { month: string; rate: number }; key?: string }) => {
-                    const { cx, cy, payload } = props;
-                    const isBest = payload.month === bestMonthLabel;
-                    const isWorst = payload.month === worstMonthLabel;
-                    if (isBest || isWorst) {
-                      const c = isBest ? "#34d399" : "#ef4444";
-                      return (
-                        <g key={props.key}>
-                          <circle cx={cx} cy={cy} r={7} fill={c} opacity={0.15} />
-                          <circle cx={cx} cy={cy} r={4} fill={c} />
-                          <text x={cx} y={cy - 14} textAnchor="middle" fill={c} fontSize={11} fontWeight={700}>
-                            {payload.rate}%
-                          </text>
-                        </g>
-                      );
-                    }
-                    return <circle key={props.key} cx={cx} cy={cy} r={2.5} fill="#34d399" opacity={0.5} />;
-                  }}
-                  activeDot={{ r: 5, fill: "#34d399", stroke: "#181a20", strokeWidth: 2 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Bottom annotations */}
-          {bestMonthLabel && (
-            <div className="flex justify-center gap-4 mt-2 text-xs">
-              <span>
-                Meilleur mois : <strong className="text-emerald-400">{bestMonthLabel}</strong>
-                <span className="text-slate-400"> ({monthlyData.find((d) => d.month === bestMonthLabel)?.rate ?? 0}%)</span>
-              </span>
-              {worstMonthLabel && worstMonthLabel !== bestMonthLabel && (
-                <>
-                  <span className="text-slate-400">—</span>
-                  <span>
-                    Pire mois : <strong className="text-red-500">{worstMonthLabel}</strong>
-                    <span className="text-slate-400"> ({monthlyData.find((d) => d.month === worstMonthLabel)?.rate ?? 0}%)</span>
-                  </span>
-                </>
-              )}
+              {/* Premium: grouped into 4 thematic blocks behind paywall */}
+              <PaywallGate
+                isUnlocked={isPremiumUnlocked}
+                isEarlyAccess={isEarlyAccess}
+                onCtaClick={onPaywallCtaClick ?? (() => {})}
+                sectionId="conversation-pulse"
+              >
+                <div className="space-y-6">
+                  <CPSectionTempo insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+                  <CPSectionOpeners insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+                  <SectionDivider />
+                  <CPSectionEscalation insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+                  <CPSectionDoubleText insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+                  <SectionDivider />
+                  <CPSectionBalance insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+                  <CPSectionFatigue insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+                  <SectionDivider />
+                  <CPSectionSignals insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+                  <CPSectionMirroring insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+                  <CPSectionLanguage insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+                  <CPSectionTimingAdv insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+                  <SectionDivider />
+                  <CPSectionPatterns insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+                  <CPSectionVerdict insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} onShareClick={onShareClick} />
+                </div>
+              </PaywallGate>
             </div>
-          )}
-        </Card>
+          </ChapterBlock>
+        </>
+      )}
+
+      {/* ═══ SWIPE PULSE ═══ */}
+      {advancedSwipeInsights && (
+        <>
+          <ChapterInterstitial number="SP" title="Swipe Pulse" subtitle="Analyse avancee de tes patterns de swipe" icon={ChapterIcons.sp} accent="#06b6d4" />
+          <ChapterBlock id="wr-sp" bg="bg-cyan-50" accent="#06b6d4">
+            <div className="space-y-6">
+              {/* Free teaser: Algorithm section */}
+              <SPSectionAlgorithm insights={advancedSwipeInsights} appColor={appColor} />
+
+              {/* Premium: remaining sections behind paywall */}
+              <PaywallGate
+                isUnlocked={isPremiumUnlocked}
+                isEarlyAccess={isEarlyAccess}
+                onCtaClick={onPaywallCtaClick ?? (() => {})}
+                sectionId="swipe-pulse"
+              >
+                <div className="space-y-6">
+                  <SPSectionPsychology insights={advancedSwipeInsights} appColor={appColor} />
+                  <SectionDivider />
+                  <SPSectionRhythms insights={advancedSwipeInsights} appColor={appColor} />
+                  <SectionDivider />
+                  <SPSectionConversion insights={advancedSwipeInsights} appColor={appColor} />
+                  <SectionDivider />
+                  <SPSectionArchetype insights={advancedSwipeInsights} appColor={appColor} />
+                </div>
+              </PaywallGate>
+            </div>
+          </ChapterBlock>
+        </>
       )}
 
       {/* ═══════════════════════════════════════════════════════ */}
-      {/* ═══ ADN DATING ═══ */}
+      {/* ═══ CH.5 — ADN DATING ═══ */}
       {/* ═══════════════════════════════════════════════════════ */}
-      <section id="wr-dna" className="scroll-mt-28 space-y-6">
-        <SectionTitle title="Ton ADN Dating" subtitle="Ou tu te situes par rapport aux autres" />
+      <ChapterInterstitial number={5} title="ADN & Verdict" subtitle="Ton profil, tes benchmarks, le bilan final" icon={ChapterIcons.dna} accent="#8b5cf6" />
+      <ChapterBlock id="wr-dna" bg="bg-violet-50" accent="#8b5cf6">
 
       {/* Benchmarks: Ou tu te situes */}
       {metrics.source === "tinder" && (
@@ -2783,7 +2877,7 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
       )}
 
       {/* ─── 8. Ton ADN Dating (RadarChart) ─── */}
-      <Card delay={0.35}>
+      <Card delay={0.35} variant="elevated">
         <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
           Ton ADN Dating
         </h3>
@@ -2828,15 +2922,8 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
         </div>
       </Card>
 
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════ */}
-      {/* ═══ VERDICT ═══ */}
-      {/* ═══════════════════════════════════════════════════════ */}
-      <section id="wr-verdict" className="scroll-mt-28 space-y-6">
-        <SectionTitle title="Verdict" subtitle="Le bilan final de ton activite dating" />
-
-      {/* Verdict */}
+      {/* Verdict (inside ADN chapter) */}
+      <SectionDivider />
       <Card delay={0.4} className="border-brand-200 bg-brand-50">
         <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
           Verdict
@@ -2850,68 +2937,25 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
         </div>
       </Card>
 
-      {/* ─── Hourly activity (moved down, optional) ─── */}
-      {(!metrics.dailyOnly || metrics.hourlyFromMessages) && (
-        <Card delay={0.45}>
-          <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Tes horaires d'activite
-            </h3>
-            <ChartBadges items={[
-              { label: "Pic", value: formatHour(metrics.peakSwipeHour), color: appColor.primary },
-              ...(!metrics.hourlyFromMessages ? [{ label: "Pic matchs", value: formatHour(metrics.peakMatchHour), color: "#F5A623" }] : []),
-            ]} />
-          </div>
-          <div className="flex items-center justify-around mb-4">
-            <BigStat
-              value={formatHour(metrics.peakSwipeHour)}
-              label="pic d'activite"
-              size="sm"
-            />
-            {!metrics.hourlyFromMessages && (
-              <>
-                <div className="h-12 w-px bg-white/10" />
-                <BigStat
-                  value={formatHour(metrics.peakMatchHour)}
-                  label="pic de matches"
-                  size="sm"
-                />
-              </>
-            )}
-          </div>
-          <div className="h-40 sm:h-48 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={hourData} barSize={8}>
-                <XAxis
-                  dataKey="hour"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#6b7280", fontSize: 10 }}
-                  interval={3}
-                />
-                <YAxis hide />
-                <Tooltip
-                  content={<DarkTooltip />}
-                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
-                />
-                <Bar
-                  dataKey="swipes"
-                  name={metrics.hourlyFromMessages ? "Messages" : "Swipes"}
-                  fill={appColor.primary}
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          {metrics.hourlyFromMessages && (
-            <p className="mt-2 text-[10px] text-slate-400 text-center">
-              Base sur tes messages envoyes — l'export Tinder ne fournit pas l'heure exacte des swipes
-            </p>
-          )}
-        </Card>
+      {/* Share button */}
+      {onShareClick && (
+        <motion.button
+          onClick={onShareClick}
+          className={`w-full flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r ${appColor.gradient} px-6 py-3.5 text-sm sm:text-base font-semibold text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]`}
+          whileTap={{ scale: 0.98 }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="4" r="2" /><circle cx="4" cy="8" r="2" /><circle cx="12" cy="12" r="2" />
+            <path d="M6 9l4 2M6 7l4-2" />
+          </svg>
+          Partager mon Wrapped
+        </motion.button>
       )}
 
-      </section>
+      </ChapterBlock>
 
       {/* ─── Premium Insights: Teaser (always visible) + Gated content ─── */}
       {premiumInsights && (
@@ -2936,31 +2980,12 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
         </label>
       </div>
 
-      {/* Share button */}
-      {onShareClick && (
+      {/* Share button (duplicate removed — now inside Verdict chapter) */}
+      {false && onShareClick && (
         <motion.button
           onClick={onShareClick}
-          className={`w-full flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r ${appColor.gradient} px-6 py-3.5 text-sm sm:text-base font-semibold text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]`}
-          whileTap={{ scale: 0.98 }}
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+          className="hidden"
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="4" r="2" />
-            <circle cx="4" cy="8" r="2" />
-            <circle cx="12" cy="12" r="2" />
-            <path d="M6 9l4 2M6 7l4-2" />
-          </svg>
           Partager mon Wrapped
         </motion.button>
       )}

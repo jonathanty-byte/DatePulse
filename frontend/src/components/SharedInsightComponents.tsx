@@ -23,7 +23,7 @@ export const fadeHero = (delay: number) => ({
 /** Glass morphism card — static wrapper (no motion) */
 export function GlassCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`border border-gray-200 bg-white shadow-sm p-5 ${className}`}>
+    <div className={`rounded-2xl border border-gray-200/60 bg-white shadow-sm p-5 ${className}`}>
       {children}
     </div>
   );
@@ -62,7 +62,7 @@ export function SpotlightCard({ value, label, sublabel, color, icon }: {
 }) {
   return (
     <motion.div
-      className="relative overflow-hidden border border-gray-200 shadow-sm p-6 sm:p-8 text-center"
+      className="relative overflow-hidden rounded-2xl border border-gray-200/60 shadow-sm p-6 sm:p-8 text-center"
       style={{ background: `linear-gradient(135deg, ${color}10 0%, transparent 60%)`, borderColor: `${color}30` }}
       initial={{ opacity: 0, scale: 0.95 }}
       whileInView={{ opacity: 1, scale: 1 }}
@@ -137,13 +137,23 @@ export function ExpandToggle({ title, children }: { title: string; children: Rea
 }
 
 /** Section title with gradient text */
-export function SectionTitle({ emoji, title, subtitle, delay = 0 }: { emoji?: string; title: string; subtitle?: string; delay?: number }) {
+export function SectionTitle({ emoji, title, subtitle, delay = 0, level = "section" }: {
+  emoji?: string; title: string; subtitle?: string; delay?: number;
+  level?: "chapter" | "section";
+}) {
+  const isChapter = level === "chapter";
   return (
     <motion.div {...fadeIn(delay)} className="space-y-1">
-      <h2 className="text-2xl font-extrabold sm:text-3xl">
-        <span className="bg-gradient-to-r from-slate-900 to-slate-500 bg-clip-text text-transparent">{title}</span>
+      <h2 className={isChapter
+        ? "text-3xl sm:text-4xl font-black tracking-tight"
+        : "text-xl sm:text-2xl font-extrabold"}>
+        {isChapter ? (
+          <span className="bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-transparent">{title}</span>
+        ) : (
+          <span className="text-slate-800">{title}</span>
+        )}
       </h2>
-      {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
+      {subtitle && <p className={`${isChapter ? "text-sm" : "text-xs"} text-slate-400`}>{subtitle}</p>}
     </motion.div>
   );
 }
@@ -229,4 +239,57 @@ export function SectionNav({ items, badgeLabel }: {
       </div>
     </div>
   );
+}
+
+/** Chapter block — wraps a major section with tinted background */
+export function ChapterBlock({ id, bg, accent, children }: {
+  id: string;
+  bg?: string;
+  accent?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      id={id}
+      className={`scroll-mt-28 rounded-3xl px-5 sm:px-8 py-8 sm:py-10 space-y-6 border border-gray-200/40 ${bg || "bg-white/80"}`}
+      style={accent ? { borderLeftWidth: 4, borderLeftColor: accent } : undefined}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Chapter interstitial — compact horizontal separator between major chapters */
+export function ChapterInterstitial({ number, title, subtitle, icon, accent }: {
+  number: number | string;
+  title: string;
+  subtitle: string;
+  icon?: React.ReactNode;
+  accent?: string;
+}) {
+  return (
+    <motion.div
+      className="py-6 sm:py-8 flex items-center gap-4"
+      initial={{ opacity: 0, x: -10 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.4 }}
+    >
+      <span
+        className="flex shrink-0 items-center justify-center w-11 h-11 rounded-xl text-white shadow-md"
+        style={{ background: `linear-gradient(135deg, ${accent || "#6366f1"}, ${accent || "#6366f1"}cc)` }}
+      >
+        {icon || <span className="text-lg font-bold">{number}</span>}
+      </span>
+      <div>
+        <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">{title}</h2>
+        <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+/** Gradient divider between thematic groups */
+export function SectionDivider() {
+  return <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-2" />;
 }
