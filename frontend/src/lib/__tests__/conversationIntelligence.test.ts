@@ -273,7 +273,7 @@ describe("computeInvestmentBalance", () => {
     expect(result.overInvesting).toBe(0);
   });
 
-  it("classifies over-investing when only sent messages", () => {
+  it("skips one-sided conversations (ghost, not over-investing)", () => {
     const convos = [
       makeConvo([
         { body: "A", direction: "sent" },
@@ -282,7 +282,9 @@ describe("computeInvestmentBalance", () => {
       ]),
     ];
     const result = computeInvestmentBalance(convos);
-    expect(result.overInvesting).toBe(1);
+    // One-sided convos (no received messages) are ghosts, excluded from balance
+    expect(result.overInvesting).toBe(0);
+    expect(result.balanced).toBe(0);
   });
 });
 

@@ -1,0 +1,9 @@
+<svg viewBox="0 0 260 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(22, 25)">
+    <path d="M0 -5.5 C-2.2 -8.5, -7.5 -8.5, -7.5 -4.2 C-7.5 -0.8, -3.2 3.5, 0 6.5 C3.2 3.5, 7.5 -0.8, 7.5 -4.2 C7.5 -8.5, 2.2 -8.5, 0 -5.5Z" fill="#818CF8"/>
+    <path d="M10 -10 A 14 14 0 0 1 10 10" stroke="#818CF8" stroke-width="1.8" opacity="0.5" fill="none" stroke-linecap="round"/>
+    <path d="M14 -15 A 20 20 0 0 1 14 15" stroke="#818CF8" stroke-width="1.5" opacity="0.3" fill="none" stroke-linecap="round"/>
+    <path d="M18 -20 A 26 26 0 0 1 18 20" stroke="#818CF8" stroke-width="1.2" opacity="0.15" fill="none" stroke-linecap="round"/>
+  </g>
+  <text x="54" y="33" font-family="DM Sans, sans-serif" font-weight="600" font-size="24" fill="#ffffff">Date<tspan fill="#818CF8">Pulse</tspan></text>
+</svg>

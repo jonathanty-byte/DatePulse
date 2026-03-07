@@ -224,7 +224,7 @@ export default function Score() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            Swipe when it matters.
+            Swipe au bon moment.
           </motion.h1>
           <motion.p
             className="mt-4 text-base sm:text-lg text-slate-500 max-w-xl mx-auto leading-relaxed"
@@ -487,7 +487,7 @@ export default function Score() {
       <footer className="border-t border-gray-200 px-4 py-6 sm:py-8">
         <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-slate-400 space-y-2">
           <p className="font-medium text-slate-500">
-            DatePulse — Swipe when it matters.
+            DatePulse — Swipe au bon moment.
           </p>
           <p>
             <a href="/" className="hover:text-slate-700 transition">Accueil</a>

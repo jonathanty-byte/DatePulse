@@ -8,9 +8,7 @@ const TrailerPlayer = lazy(() => import("../components/TrailerPlayer"));
 
 const SUPPORTED_APPS: { name: string; color: string }[] = [
   { name: "Tinder", color: "#ec4899" },
-  { name: "Bumble", color: "#f59e0b" },
   { name: "Hinge", color: "#8b5cf6" },
-  { name: "Happn", color: "#f97316" },
 ];
 
 const STEPS = [
@@ -65,6 +63,7 @@ function FunnelPreview() {
         <span className="text-[10px] text-indigo-500 font-semibold">Match rate: 6.6%</span>
         <span className="text-[10px] text-slate-400">Conv. rate: 36.8%</span>
       </div>
+      <p className="text-[10px] text-slate-400 mt-1 text-center">187h investies sur les apps</p>
     </div>
   );
 }
@@ -128,6 +127,11 @@ function HeatmapPreview() {
 function ConversationPreview() {
   return (
     <div className="space-y-3">
+      <div className="flex justify-center mb-1">
+        <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold bg-amber-50 text-amber-600 border border-amber-200">
+          67% — Au-dessus de la moyenne
+        </span>
+      </div>
       <div>
         <div className="flex justify-between text-xs mb-1.5">
           <span className="text-slate-500">Ghost rate</span>
@@ -176,78 +180,120 @@ function ConversationPreview() {
   );
 }
 
-function RadarPreview() {
-  const size = 140;
-  const cx = size / 2;
-  const cy = size / 2;
-  const r = 50;
-  const axes = 5;
-  const values = [0.8, 0.5, 0.7, 0.6, 0.9];
-  const labels = ["Selectivite", "Reactivite", "Engagement", "Regularite", "Timing"];
+function SurvivalPreview() {
+  const data = [100, 58, 34, 22, 18, 15, 13, 12];
+  const w = 280;
+  const h = 120;
+  const pad = { top: 10, right: 10, bottom: 18, left: 30 };
+  const plotW = w - pad.left - pad.right;
+  const plotH = h - pad.top - pad.bottom;
 
-  const getPoint = (i: number, v: number) => {
-    const angle = (Math.PI * 2 * i) / axes - Math.PI / 2;
-    return { x: cx + Math.cos(angle) * r * v, y: cy + Math.sin(angle) * r * v };
-  };
+  const toX = (i: number) => pad.left + (i / (data.length - 1)) * plotW;
+  const toY = (v: number) => pad.top + (1 - v / 100) * plotH;
 
-  const dataPoints = values.map((v, i) => getPoint(i, v));
-  const dataPath = dataPoints.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ") + "Z";
-  const rings = [0.33, 0.66, 1.0];
+  const linePath = data.map((v, i) => `${i === 0 ? "M" : "L"}${toX(i)},${toY(v)}`).join(" ");
+  const areaPath = linePath + ` L${toX(data.length - 1)},${toY(0)} L${toX(0)},${toY(0)} Z`;
 
   return (
     <div className="flex flex-col items-center">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {rings.map((ring) => {
-          const pts = Array.from({ length: axes }, (_, i) => getPoint(i, ring));
-          const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ") + "Z";
-          return <path key={ring} d={path} fill="none" stroke="#e2e8f0" strokeWidth={0.8} />;
-        })}
-        {Array.from({ length: axes }, (_, i) => {
-          const p = getPoint(i, 1);
-          return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#e2e8f0" strokeWidth={0.5} />;
-        })}
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="w-full">
+        {/* Red danger zone (messages 1-3) */}
+        <rect x={toX(0)} y={pad.top} width={toX(2) - toX(0)} height={plotH} fill="rgba(239, 68, 68, 0.08)" />
+        {/* Area fill */}
         <motion.path
-          d={dataPath}
-          fill="rgba(139, 92, 246, 0.15)"
-          stroke="#8b5cf6"
-          strokeWidth={2}
-          initial={{ opacity: 0, scale: 0.5 }}
-          whileInView={{ opacity: 1, scale: 1 }}
+          d={areaPath}
+          fill="rgba(239, 68, 68, 0.1)"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          style={{ transformOrigin: `${cx}px ${cy}px` }}
+          transition={{ duration: 0.8 }}
         />
-        {dataPoints.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={3} fill="#8b5cf6" />
+        {/* Line */}
+        <motion.path
+          d={linePath}
+          fill="none"
+          stroke="#ef4444"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          initial={{ pathLength: 0 }}
+          whileInView={{ pathLength: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+        />
+        {/* Dots */}
+        {data.map((v, i) => (
+          <circle key={i} cx={toX(i)} cy={toY(v)} r={i < 3 ? 3.5 : 2.5} fill={i < 3 ? "#ef4444" : "#94a3b8"} />
+        ))}
+        {/* X labels */}
+        {data.map((_, i) => (
+          <text key={i} x={toX(i)} y={h - 4} textAnchor="middle" fontSize={8} fill="#94a3b8" fontFamily="system-ui">
+            {i + 1}
+          </text>
         ))}
       </svg>
-      <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5 mt-1">
-        {labels.map((l, i) => (
-          <span key={l} className="text-[9px] text-slate-400">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-400 mr-1" />
-            {l}: <span className="font-semibold text-slate-600">{Math.round(values[i] * 100)}%</span>
-          </span>
-        ))}
+      <div className="flex items-center gap-3 mt-2">
+        <span className="flex items-center gap-1 text-[9px] text-red-500 font-semibold">
+          <span className="inline-block w-2 h-2 rounded-sm bg-red-100 border border-red-300" />
+          Zone critique
+        </span>
+        <span className="text-[10px] font-semibold text-red-500">66% perdus avant le 3e message</span>
       </div>
     </div>
   );
 }
 
 function VerdictPreview() {
+  const rings = [
+    { label: "Questions", value: 8, color: "#6366f1" },
+    { label: "Reactivite", value: 14, color: "#3b82f6" },
+    { label: "Openers", value: 5, color: "#f43f5e" },
+    { label: "Escalation", value: 9, color: "#f59e0b" },
+    { label: "Equilibre", value: 6, color: "#10b981" },
+  ];
+
   return (
-    <div className="flex items-center gap-5">
-      <div className="shrink-0">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-100 to-purple-200 flex flex-col items-center justify-center border-4 border-violet-300/50">
-          <span className="text-2xl font-black text-violet-700 leading-none">72</span>
-          <span className="text-[9px] text-violet-500 font-medium">/100</span>
+    <div className="space-y-4">
+      <div className="flex items-center gap-5">
+        <div className="shrink-0">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-100 to-orange-200 flex flex-col items-center justify-center border-4 border-amber-300/50">
+            <span className="text-2xl font-black text-amber-700 leading-none">42</span>
+            <span className="text-[9px] text-amber-500 font-medium">/100</span>
+          </div>
+        </div>
+        <div className="flex-1 space-y-1.5">
+          <div className="text-[10px] text-amber-500 font-semibold uppercase tracking-wider">Marge de progression identifiee</div>
+          <div className="text-base font-bold text-slate-900">5 axes concrets pour remonter</div>
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            "Des leviers clairs pour ameliorer ton profil, tes conversations et ton timing."
+          </p>
         </div>
       </div>
-      <div className="flex-1 space-y-1.5">
-        <div className="text-[10px] text-violet-500 font-semibold uppercase tracking-wider">Ton archetype</div>
-        <div className="text-base font-bold text-slate-900">Le Stratege Selectif</div>
-        <p className="text-[11px] text-slate-500 leading-relaxed">
-          "Tu sais ce que tu veux et tu ne perds pas de temps. Ta selectivite est un atout — continue d'optimiser ton timing."
-        </p>
+      <div className="flex justify-between gap-1">
+        {rings.map((ring) => {
+          const pct = (ring.value / 20) * 100;
+          const r = 14;
+          const circ = 2 * Math.PI * r;
+          const dashOffset = circ * (1 - pct / 100);
+          return (
+            <div key={ring.label} className="flex flex-col items-center gap-0.5">
+              <svg width={36} height={36} viewBox="0 0 36 36">
+                <circle cx={18} cy={18} r={r} fill="none" stroke="#e2e8f0" strokeWidth={3} />
+                <circle
+                  cx={18} cy={18} r={r} fill="none"
+                  stroke={ring.color} strokeWidth={3}
+                  strokeDasharray={circ} strokeDashoffset={dashOffset}
+                  strokeLinecap="round"
+                  transform="rotate(-90 18 18)"
+                />
+                <text x={18} y={19} textAnchor="middle" dominantBaseline="middle" fontSize={9} fontWeight={700} fill="#334155" fontFamily="system-ui">
+                  {ring.value}
+                </text>
+              </svg>
+              <span className="text-[8px] text-slate-400 leading-none">{ring.label}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -294,41 +340,74 @@ function MonthlyPreview() {
         ))}
       </div>
       <p className="text-[10px] font-semibold text-rose-500 mt-2.5 text-center">
-        Meilleur mois: Janvier — 127 matchs
+        Meilleur mois: Janvier — 10 matchs
       </p>
     </div>
   );
 }
 
-function BoostPreview() {
-  const items = [
-    { label: "Sans boost", value: "4.2%", pct: 28, color: "#94a3b8" },
-    { label: "Avec boost", value: "11.8%", pct: 65, color: "#22c55e" },
-    { label: "Super likes", value: "15.3%", pct: 85, color: "#f59e0b" },
+function ArchetypePreview() {
+  const traits = ["Selectif", "Regulier", "Strategique"];
+  return (
+    <div className="flex flex-col items-center text-center space-y-2.5">
+      <motion.div
+        className="text-5xl"
+        initial={{ scale: 0, rotate: -20 }}
+        whileInView={{ scale: 1, rotate: 0 }}
+        viewport={{ once: true }}
+        transition={{ type: "spring", stiffness: 200, damping: 12 }}
+      >
+        ♟️
+      </motion.div>
+      <div>
+        <div className="text-[10px] text-violet-500 font-semibold uppercase tracking-wider">Ton archetype</div>
+        <div className="text-base font-bold text-slate-900 mt-0.5">Le Stratege Selectif</div>
+      </div>
+      <div className="flex gap-1.5">
+        {traits.map((t, i) => (
+          <motion.span
+            key={t}
+            className="rounded-full px-2.5 py-1 text-[10px] font-medium bg-violet-50 text-violet-600 border border-violet-200"
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 + i * 0.1 }}
+          >
+            {t}
+          </motion.span>
+        ))}
+      </div>
+      <p className="text-[10px] text-slate-400 leading-relaxed max-w-[200px]">
+        Tu sais ce que tu veux et tu ne perds pas de temps.
+      </p>
+    </div>
+  );
+}
+
+function RecommendationsPreview() {
+  const recos = [
+    { problem: "Openers trop courts (32 car.)", action: "Vise 60+ caracteres", color: "#ef4444" },
+    { problem: "Reponse trop rapide (4 min)", action: "Attends 15-30 min", color: "#f59e0b" },
+    { problem: "Escalation tardive (msg #18)", action: "Propose un date au msg 8-12", color: "#10b981" },
   ];
   return (
-    <div className="space-y-3">
-      {items.map((item, i) => (
-        <div key={item.label}>
-          <div className="flex justify-between text-xs mb-1">
-            <span className="text-slate-500">{item.label}</span>
-            <span className="font-bold" style={{ color: item.color }}>{item.value} match rate</span>
+    <div className="space-y-2">
+      {recos.map((r, i) => (
+        <motion.div
+          key={i}
+          className="flex items-start gap-2.5 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2"
+          initial={{ opacity: 0, x: 20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: i * 0.12, duration: 0.4 }}
+        >
+          <div className="w-1 h-full min-h-[28px] rounded-full shrink-0 mt-0.5" style={{ backgroundColor: r.color }} />
+          <div>
+            <div className="text-[11px] font-semibold text-slate-700">{r.problem}</div>
+            <div className="text-[10px] font-medium mt-0.5" style={{ color: r.color }}>→ {r.action}</div>
           </div>
-          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full rounded-full"
-              style={{ backgroundColor: item.color }}
-              initial={{ width: 0 }}
-              whileInView={{ width: `${item.pct}%` }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: i * 0.1 }}
-            />
-          </div>
-        </div>
+        </motion.div>
       ))}
-      <p className="text-[10px] font-semibold text-rose-500 pt-1 text-center">
-        ROI: 2.8x sur les boosts
-      </p>
     </div>
   );
 }
@@ -354,27 +433,33 @@ const SHOWCASE = [
     Preview: ConversationPreview,
   },
   {
+    title: "Courbe de survie",
+    subtitle: "Combien de conversations survivent apres chaque message",
+    accent: "#ef4444",
+    Preview: SurvivalPreview,
+  },
+  {
+    title: "Ton archetype",
+    subtitle: "Ton profil comportemental de dating identifie par IA",
+    accent: "#8b5cf6",
+    Preview: ArchetypePreview,
+  },
+  {
+    title: "Recommandations personnalisees",
+    subtitle: "Des actions concretes basees sur TES donnees",
+    accent: "#10b981",
+    Preview: RecommendationsPreview,
+  },
+  {
     title: "Evolution mensuelle",
     subtitle: "Tes performances mois par mois sur toute la periode",
     accent: "#f43f5e",
     Preview: MonthlyPreview,
   },
   {
-    title: "Impact des boosts",
-    subtitle: "Le vrai ROI de tes achats premium",
-    accent: "#f43f5e",
-    Preview: BoostPreview,
-  },
-  {
-    title: "ADN Dating",
-    subtitle: "Ton profil sur 5 dimensions cles",
-    accent: "#8b5cf6",
-    Preview: RadarPreview,
-  },
-  {
     title: "Verdict personnalise",
-    subtitle: "Ton archetype et ton plan d'action",
-    accent: "#8b5cf6",
+    subtitle: "Ton score global et 5 axes de progression",
+    accent: "#f59e0b",
     Preview: VerdictPreview,
     wide: true,
   },
@@ -511,7 +596,7 @@ export default function Home() {
             {[
               { icon: "🔒", text: "100% client-side" },
               { icon: "🚫", text: "0 donnee stockee" },
-              { icon: "📱", text: "4 apps supportees" },
+              { icon: "📱", text: "2 apps supportees" },
               { icon: "⚡", text: "Analyse en 2 min" },
             ].map((b) => (
               <span
@@ -556,7 +641,7 @@ export default function Home() {
               </span>
             </h2>
             <p className="mt-3 text-sm sm:text-base text-slate-500 max-w-xl mx-auto">
-              7 chapitres, 90+ analyses statistiques, un verdict personnalise.
+              8 chapitres, 90+ analyses statistiques, un verdict personnalise.
               Voici un apercu avec de vraies donnees Tinder.
             </p>
           </motion.div>
@@ -697,7 +782,7 @@ export default function Home() {
       <footer className="border-t border-gray-200 px-4 py-6 sm:py-8">
         <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-slate-400 space-y-2">
           <p className="font-medium text-slate-500">
-            DatePulse — Swipe when it matters.
+            DatePulse — Swipe au bon moment.
           </p>
           <p>
             <a href="/" className="hover:text-slate-700 transition">Accueil</a>

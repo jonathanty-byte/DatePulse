@@ -1,5 +1,5 @@
 import { Player, type PlayerRef } from "@remotion/player";
-import { useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   DatePulseTrailer,
   TRAILER_DURATION_FRAMES,
@@ -12,44 +12,21 @@ interface TrailerPlayerProps {
 
 export default function TrailerPlayer({ onEnd }: TrailerPlayerProps) {
   const playerRef = useRef<PlayerRef>(null);
-  const [started, setStarted] = useState(false);
 
-  const handlePlay = () => {
-    setStarted(true);
-    // Small delay so the Player is visible before playing
-    setTimeout(() => playerRef.current?.play(), 50);
-  };
+  useEffect(() => {
+    // Auto-play after a short delay to ensure the Player is mounted
+    const t = setTimeout(() => playerRef.current?.play(), 100);
+    // Fallback: if onEnded doesn't fire, dismiss after full duration + buffer
+    const fallback = setTimeout(onEnd, (TRAILER_DURATION_FRAMES / TRAILER_FPS) * 1000 + 500);
+    return () => { clearTimeout(t); clearTimeout(fallback); };
+  }, [onEnd]);
 
   return (
     <div
       className="h-full w-full flex items-center justify-center cursor-pointer relative"
-      onClick={started ? onEnd : handlePlay}
-      title={started ? "Cliquer pour passer" : "Cliquer pour lancer"}
+      onClick={onEnd}
+      title="Cliquer pour passer"
     >
-      {!started && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-6 bg-[#f8f9fc]">
-          <div className="text-center">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
-              Decouvre ton rapport en un coup d'oeil
-            </h2>
-            <p className="mt-2 text-sm text-slate-400">
-              15 secondes d'apercu — clique pour lancer
-            </p>
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePlay();
-            }}
-            className="flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-105 transition-all"
-          >
-            <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </button>
-        </div>
-      )}
-
       <Player
         ref={playerRef}
         component={DatePulseTrailer}
@@ -66,17 +43,15 @@ export default function TrailerPlayer({ onEnd }: TrailerPlayerProps) {
         onEnded={onEnd}
       />
 
-      {started && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEnd();
-          }}
-          className="absolute bottom-8 right-8 text-sm text-slate-400 hover:text-slate-600 transition font-medium"
-        >
-          Passer &rarr;
-        </button>
-      )}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onEnd();
+        }}
+        className="absolute top-6 right-6 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200 shadow-sm text-sm text-slate-500 hover:text-slate-700 transition font-medium"
+      >
+        Passer &rarr;
+      </button>
     </div>
   );
 }

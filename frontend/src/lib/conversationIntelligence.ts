@@ -119,7 +119,8 @@ export interface ConversationInsights {
 const ESCALATION_REGEX = /\b(date|caf[eé]|boire|verre|num[eé]ro|insta|snap|whatsapp|tel|t[eé]l[eé]phone|rendez[- ]?vous|rdv|resto|restaurant|sortir|retrouver|voir)\b/i;
 
 // Generic opener poison words (H50)
-const GENERIC_OPENERS = /^(hello|salut|hey|coucou|yo|bonjour|hi|hola|cc|slt|re)\.?\s*!*$/i;
+// Match generic openers: "salut", "Hey!", "Coucou 😊", "Cc !", "Bonjour :)", etc.
+const GENERIC_OPENERS = /^(hello|salut|hey|coucou|yo|bonjour|hi|hola|cc|slt|re|wesh|bjr)\s*[.!,;:)😊😁😄👋🙂🤗]*\s*$/iu;
 
 // French + question + personalized heuristic
 const FR_QUESTION_PERSO_REGEX = /[àâéèêëïîôùûüçÀÂÉÈÊËÏÎÔÙÛÜÇ]|(\b(tu|toi|ton|ta|tes|vous|votre|vos)\b.*\?)/i;
@@ -253,7 +254,8 @@ export function computeResponseTimes(conversations: ConversationRecord[]): {
       // Look for: received message followed by a sent message
       if (msgs[i].direction === "sent" && msgs[i - 1].direction === "received") {
         const deltaMs = msgs[i].timestamp.getTime() - msgs[i - 1].timestamp.getTime();
-        if (deltaMs >= 0) {
+        // Skip deltas < 5 seconds — likely same-batch export timestamps or bot-speed replies
+        if (deltaMs >= 5000) {
           responseTimes.push(deltaMs / (60 * 1000)); // to minutes
         }
       }
@@ -268,7 +270,7 @@ export function computeResponseTimes(conversations: ConversationRecord[]): {
   const median = responseTimes[Math.floor(responseTimes.length / 2)];
 
   return {
-    median: Math.round(median),
+    median: Math.max(1, Math.round(median)),
     buckets: {
       under1h: responseTimes.filter((t) => t < 60).length,
       under6h: responseTimes.filter((t) => t >= 60 && t < 360).length,
@@ -370,11 +372,10 @@ export function computeInvestmentBalance(conversations: ConversationRecord[]): B
   for (const convo of conversations) {
     const sent = convo.messages.filter((m) => m.direction === "sent").length;
     const received = convo.messages.filter((m) => m.direction === "received").length;
-    if (received === 0 && sent > 0) {
-      overInvesting++;
-      continue;
-    }
-    if (received === 0 && sent === 0) continue;
+    // Skip one-sided or empty conversations — they are ghosts, not balance data
+    if (received === 0 || sent === 0) continue;
+    // Require at least 3 total messages for a meaningful ratio
+    if (sent + received < 3) continue;
     const ratio = sent / received;
     if (ratio >= 0.6 && ratio <= 1.5) balanced++;
     else if (ratio > 1.5) overInvesting++;
@@ -456,8 +457,10 @@ export function computeConversationPulseScore(params: {
   const qd = Math.min(20, Math.round(Math.min(1, questionDensity / 0.25) * 20));
 
   // Response speed (0-20): <30min=20, <60min=16, <120min=12, <360min=8, >360min=4
+  // median=0 means no data — use neutral score instead of max
   let rs = 4;
-  if (responseTimeMedian <= 30) rs = 20;
+  if (responseTimeMedian === 0) rs = 10; // no data → neutral
+  else if (responseTimeMedian <= 30) rs = 20;
   else if (responseTimeMedian <= 60) rs = 16;
   else if (responseTimeMedian <= 120) rs = 12;
   else if (responseTimeMedian <= 360) rs = 8;

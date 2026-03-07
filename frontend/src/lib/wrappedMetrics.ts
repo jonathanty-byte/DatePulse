@@ -761,7 +761,7 @@ export function getVerdict(m: WrappedMetrics): Verdict {
     icon: "\u{1F4CA}",
     title: "Optimise tes sessions",
     message:
-      "Utilise DatePulse pour swiper au bon moment et maximiser tes matches. Swipe when it matters.",
+      "Utilise DatePulse pour swiper au bon moment et maximiser tes matches. Swipe au bon moment.",
     ctaLabel: "Voir les fenetres momentum",
     ctaHref: "/",
   };

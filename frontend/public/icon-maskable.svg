@@ -1,7 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#030712" />
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#ec4899" stroke-width="20" opacity="0.3" />
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#ec4899" stroke-width="20" stroke-dasharray="942" stroke-dashoffset="236" stroke-linecap="round" transform="rotate(-90 256 256)" />
-  <text x="256" y="280" text-anchor="middle" font-size="120" font-weight="bold" font-family="system-ui, sans-serif" fill="white">D</text>
-  <text x="256" y="330" text-anchor="middle" font-size="36" font-family="system-ui, sans-serif" fill="#9ca3af">PULSE</text>
+  <defs>
+    <linearGradient id="g" x1="100" y1="140" x2="412" y2="372" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#a5b4fc"/>
+      <stop offset="50%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <!-- Full bleed background for maskable safe zone -->
+  <rect width="512" height="512" fill="#080b14"/>
+  <g transform="translate(236, 256)">
+    <path d="M0 -22 C-8.8 -34, -30 -34, -30 -16.8 C-30 -3.2, -12.8 14, 0 26 C12.8 14, 30 -3.2, 30 -16.8 C30 -34, 8.8 -34, 0 -22Z" fill="url(#g)"/>
+    <path d="M40 -40 A 56 56 0 0 1 40 40" stroke="url(#g)" strokeWidth="7" opacity="0.5" fill="none" strokeLinecap="round"/>
+    <path d="M56 -60 A 80 80 0 0 1 56 60" stroke="url(#g)" strokeWidth="5.5" opacity="0.3" fill="none" strokeLinecap="round"/>
+    <path d="M72 -80 A 104 104 0 0 1 72 80" stroke="url(#g)" strokeWidth="4" opacity="0.15" fill="none" strokeLinecap="round"/>
+  </g>
 </svg>

@@ -602,7 +602,7 @@ export default function Methodology() {
       <footer className="border-t border-gray-200 px-4 py-8">
         <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-slate-400 space-y-2">
           <p className="font-medium text-slate-400">
-            DatePulse — Swipe when it matters.
+            DatePulse — Swipe au bon moment.
           </p>
           <p>
             <a href="/methodology" className="hover:text-slate-900 transition">Methodologie</a>

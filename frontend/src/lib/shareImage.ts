@@ -148,7 +148,7 @@ export async function generateShareImage(
   ctx.font =
     "400 24px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   ctx.fillStyle = "#4b5563"; // gray-600
-  ctx.fillText("Swipe when it matters.", width / 2, brandingY + 40);
+  ctx.fillText("Swipe au bon moment.", width / 2, brandingY + 40);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -241,7 +241,7 @@ async function generateConversationShareImage(
   };
 
   drawSpotlightCard(cardsStartX, cardY, `${ghostPct}%`, "Ghost rate", "#ef4444");
-  drawSpotlightCard(cardsStartX + cardW + cardGap, cardY, `${insights.score}/100`, "Score CDS", scoreColor);
+  drawSpotlightCard(cardsStartX + cardW + cardGap, cardY, `${insights.score}/100`, "Score Conversation", scoreColor);
   drawSpotlightCard(cardsStartX + 2 * (cardW + cardGap), cardY, insights.archetype, "Archetype", "#818cf8");
 
   // Conversations analyzed stat
@@ -301,7 +301,7 @@ async function generateConversationShareImage(
 
   ctx.font = "400 22px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   ctx.fillStyle = "#4b5563";
-  ctx.fillText("Swipe when it matters.", width / 2, height - 45);
+  ctx.fillText("Swipe au bon moment.", width / 2, height - 45);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(

@@ -262,7 +262,7 @@ export default function Wrapped() {
       </section>
       <footer className="border-t border-gray-200 px-4 py-6 sm:py-8">
         <div className="mx-auto max-w-4xl text-center text-xs sm:text-sm text-slate-400 space-y-2">
-          <p className="font-medium text-slate-400">DatePulse — Swipe when it matters.</p>
+          <p className="font-medium text-slate-400">DatePulse — Swipe au bon moment.</p>
           <p>
             <a href="/" className="hover:text-slate-900 transition">Accueil</a>
             <span className="mx-2 text-slate-300">|</span>

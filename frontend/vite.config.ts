@@ -15,7 +15,7 @@ export default defineConfig({
         "robots.txt",
       ],
       manifest: {
-        name: "DatePulse — Swipe when it matters.",
+        name: "DatePulse — Swipe au bon moment.",
         short_name: "DatePulse",
         description:
           "Sais exactement quand les apps de dating sont actives. Score temps reel, fenetres optimales, optimisation intelligente.",
@@ -49,7 +49,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Cache-first for everything — app is 100% static/client-side
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

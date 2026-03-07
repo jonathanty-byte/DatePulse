@@ -77,16 +77,140 @@ function NumberScene({
   );
 }
 
-// ── Scene 2: Funnel bars animated ───────────────────────────────
+// ── Scene 2: Survival curve ─────────────────────────────────────
 
-function FunnelScene() {
+function SurvivalScene() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const bars = [
-    { label: "Swipes", value: "12,847", pct: 100, color: "#6366f1" },
-    { label: "Matchs", value: "847", pct: 38, color: "#8b5cf6" },
-    { label: "Conversations", value: "312", pct: 16, color: "#a78bfa" },
+  const data = [100, 58, 34, 22, 18, 15, 13, 12];
+  const w = 520;
+  const h = 240;
+  const pad = { top: 20, right: 20, bottom: 30, left: 50 };
+  const plotW = w - pad.left - pad.right;
+  const plotH = h - pad.top - pad.bottom;
+
+  const drawProgress = spring({ frame, fps, config: { damping: 15, stiffness: 30 }, durationInFrames: 40 });
+  const enterOpacity = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: "clamp" });
+  const exitOpacity = interpolate(frame, [55, 65], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  // Red zone flash (messages 1-3)
+  const flashOpacity = interpolate(frame, [20, 28, 36, 40], [0, 0.3, 0.15, 0.1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  const toX = (i: number) => pad.left + (i / (data.length - 1)) * plotW;
+  const toY = (v: number) => pad.top + (1 - v / 100) * plotH;
+
+  const linePath = data.map((v, i) => `${i === 0 ? "M" : "L"}${toX(i)},${toY(v * drawProgress)}`).join(" ");
+  const areaPath = linePath + ` L${toX(data.length - 1)},${toY(0)} L${toX(0)},${toY(0)} Z`;
+
+  return (
+    <AbsoluteFill
+      style={{
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#f8f9fc",
+        opacity: enterOpacity * exitOpacity,
+      }}
+    >
+      <div style={{ textAlign: "center" }}>
+        <div
+          style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: "#334155",
+            marginBottom: 20,
+            fontFamily: "system-ui, sans-serif",
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+          }}
+        >
+          Courbe de survie
+        </div>
+        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+          {/* Red danger zone (messages 1-3) */}
+          <rect
+            x={toX(0)}
+            y={pad.top}
+            width={toX(2) - toX(0)}
+            height={plotH}
+            fill={`rgba(239, 68, 68, ${flashOpacity})`}
+          />
+          {/* Area fill */}
+          <path d={areaPath} fill="rgba(239, 68, 68, 0.12)" />
+          {/* Line */}
+          <path d={linePath} fill="none" stroke="#ef4444" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+          {/* Dots */}
+          {data.map((v, i) => (
+            <circle
+              key={i}
+              cx={toX(i)}
+              cy={toY(v * drawProgress)}
+              r={i < 3 ? 5 : 3.5}
+              fill={i < 3 ? "#ef4444" : "#94a3b8"}
+              opacity={drawProgress}
+            />
+          ))}
+          {/* X axis labels */}
+          {data.map((_, i) => (
+            <text
+              key={i}
+              x={toX(i)}
+              y={h - 6}
+              textAnchor="middle"
+              fontSize={11}
+              fill="#94a3b8"
+              fontFamily="system-ui, sans-serif"
+            >
+              msg {i + 1}
+            </text>
+          ))}
+          {/* Y axis labels */}
+          {[0, 25, 50, 75, 100].map((v) => (
+            <text
+              key={v}
+              x={pad.left - 8}
+              y={toY(v) + 4}
+              textAnchor="end"
+              fontSize={10}
+              fill="#94a3b8"
+              fontFamily="system-ui, sans-serif"
+            >
+              {v}%
+            </text>
+          ))}
+        </svg>
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: 14,
+            fontWeight: 600,
+            color: "#ef4444",
+            fontFamily: "system-ui, sans-serif",
+          }}
+        >
+          66% perdus avant le 3e message
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+}
+
+// ── Scene 3: Personalized recommendations ───────────────────────
+
+function RecommendationScene() {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const recos = [
+    { problem: "Openers trop courts (32 car.)", action: "Vise 60+ caracteres", icon: "✏️" },
+    { problem: "Reponse trop rapide (4 min)", action: "Attends 15-30 min", icon: "⏱️" },
+    { problem: "Escalation tardive (msg #18)", action: "Propose un date au msg 8-12", icon: "📍" },
   ];
 
   const enterOpacity = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: "clamp" });
@@ -105,191 +229,72 @@ function FunnelScene() {
         padding: "0 80px",
       }}
     >
-      <div style={{ width: "100%", maxWidth: 600 }}>
+      <div style={{ width: "100%", maxWidth: 520 }}>
         <div
           style={{
             fontSize: 18,
             fontWeight: 700,
             color: "#334155",
-            marginBottom: 32,
+            marginBottom: 28,
             textAlign: "center",
             fontFamily: "system-ui, sans-serif",
             textTransform: "uppercase",
             letterSpacing: "0.1em",
           }}
         >
-          Funnel complet
+          Recommandations
         </div>
-        {bars.map((bar, i) => {
-          const delay = i * 8;
-          const width = spring({
-            frame: Math.max(0, frame - delay - 5),
+        {recos.map((reco, i) => {
+          const slideIn = spring({
+            frame: Math.max(0, frame - i * 10 - 5),
             fps,
-            config: { damping: 15, stiffness: 40 },
+            config: { damping: 14, stiffness: 60 },
           });
+          const x = interpolate(slideIn, [0, 1], [60, 0]);
           return (
             <div
-              key={bar.label}
+              key={i}
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 16,
-                marginBottom: 20,
+                marginBottom: 16,
+                padding: "14px 18px",
+                borderRadius: 12,
+                backgroundColor: "white",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                border: "1px solid #e2e8f0",
+                opacity: slideIn,
+                transform: `translateX(${x}px)`,
               }}
             >
-              <div
-                style={{
-                  width: 110,
-                  textAlign: "right",
-                  fontSize: 15,
-                  fontWeight: 500,
-                  color: "#64748b",
-                  fontFamily: "system-ui, sans-serif",
-                }}
-              >
-                {bar.label}
-              </div>
-              <div
-                style={{
-                  flex: 1,
-                  height: 36,
-                  backgroundColor: "#e2e8f0",
-                  borderRadius: 18,
-                  overflow: "hidden",
-                }}
-              >
+              <span style={{ fontSize: 24 }}>{reco.icon}</span>
+              <div style={{ flex: 1 }}>
                 <div
                   style={{
-                    width: `${width * bar.pct}%`,
-                    height: "100%",
-                    backgroundColor: bar.color,
-                    borderRadius: 18,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
-                    paddingRight: 12,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#334155",
+                    fontFamily: "system-ui, sans-serif",
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: "white",
-                      fontFamily: "system-ui, sans-serif",
-                      opacity: width > 0.5 ? 1 : 0,
-                    }}
-                  >
-                    {bar.value}
-                  </span>
+                  {reco.problem}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "#10b981",
+                    marginTop: 2,
+                    fontFamily: "system-ui, sans-serif",
+                  }}
+                >
+                  → {reco.action}
                 </div>
               </div>
             </div>
           );
         })}
-      </div>
-    </AbsoluteFill>
-  );
-}
-
-// ── Scene 3: Heatmap grid fill ──────────────────────────────────
-
-function HeatmapScene() {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-
-  const data = [
-    [0.05, 0.1, 0.3, 0.7, 0.9, 0.4],
-    [0.05, 0.15, 0.4, 0.8, 0.95, 0.5],
-    [0.05, 0.2, 0.5, 0.75, 0.85, 0.4],
-    [0.05, 0.15, 0.4, 0.8, 0.9, 0.5],
-    [0.1, 0.25, 0.5, 0.85, 1.0, 0.6],
-    [0.2, 0.4, 0.7, 0.95, 1.0, 0.7],
-    [0.2, 0.35, 0.6, 0.9, 0.95, 0.6],
-  ];
-  const days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-  const hours = ["6h", "10h", "14h", "18h", "21h", "0h"];
-
-  const enterOpacity = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: "clamp" });
-  const exitOpacity = interpolate(frame, [55, 65], [1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  return (
-    <AbsoluteFill
-      style={{
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#f8f9fc",
-        opacity: enterOpacity * exitOpacity,
-      }}
-    >
-      <div>
-        <div
-          style={{
-            fontSize: 18,
-            fontWeight: 700,
-            color: "#334155",
-            marginBottom: 24,
-            textAlign: "center",
-            fontFamily: "system-ui, sans-serif",
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-          }}
-        >
-          Timing optimal
-        </div>
-        <div style={{ display: "flex", gap: 4, marginLeft: 48, marginBottom: 6 }}>
-          {hours.map((h) => (
-            <div
-              key={h}
-              style={{
-                width: 52,
-                fontSize: 12,
-                color: "#94a3b8",
-                textAlign: "center",
-                fontFamily: "system-ui, sans-serif",
-              }}
-            >
-              {h}
-            </div>
-          ))}
-        </div>
-        {data.map((row, d) => (
-          <div key={d} style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-            <div
-              style={{
-                width: 44,
-                fontSize: 13,
-                color: "#64748b",
-                textAlign: "right",
-                fontWeight: 500,
-                fontFamily: "system-ui, sans-serif",
-              }}
-            >
-              {days[d]}
-            </div>
-            {row.map((v, h) => {
-              const cellDelay = d * 3 + h * 2;
-              const cellSpring = spring({
-                frame: Math.max(0, frame - cellDelay - 5),
-                fps,
-                config: { damping: 20 },
-              });
-              return (
-                <div
-                  key={h}
-                  style={{
-                    width: 52,
-                    height: 32,
-                    borderRadius: 4,
-                    backgroundColor: `rgba(59, 130, 246, ${v * cellSpring})`,
-                  }}
-                />
-              );
-            })}
-          </div>
-        ))}
       </div>
     </AbsoluteFill>
   );
@@ -301,7 +306,7 @@ function RadarScene() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const size = 280;
+  const size = 360;
   const cx = size / 2;
   const cy = size / 2;
   const r = 110;
@@ -456,10 +461,10 @@ export const DatePulseTrailer: React.FC = () => {
         <NumberScene value="67%" label="de conversations fantomes" color="#f59e0b" />
       </Sequence>
       <Sequence from={SCENE_DURATION * 2} durationInFrames={SCENE_DURATION + 10}>
-        <FunnelScene />
+        <SurvivalScene />
       </Sequence>
       <Sequence from={SCENE_DURATION * 3 + 10} durationInFrames={SCENE_DURATION + 10}>
-        <HeatmapScene />
+        <RecommendationScene />
       </Sequence>
       <Sequence from={SCENE_DURATION * 4 + 20} durationInFrames={SCENE_DURATION + 10}>
         <RadarScene />
