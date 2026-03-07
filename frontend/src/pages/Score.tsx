@@ -470,19 +470,6 @@ export default function Score() {
                   </span>
                 </a>
 
-                <a
-                  href="/coach"
-                  className="group border border-gray-200 bg-white p-6 sm:p-8 transition hover:shadow-lg hover:border-brand-200 shadow-[0_4px_24px_-6px_rgba(15,23,42,0.06)]"
-                >
-                  <div className="text-[10px] font-bold tracking-[0.15em] text-amber-600 uppercase">Coach</div>
-                  <h3 className="mt-2 text-lg font-bold text-slate-900">Message Coach</h3>
-                  <p className="mt-2 text-sm text-slate-500 leading-relaxed">
-                    Colle ta conversation et reçois 3 suggestions calibrées — du safe à l'audacieux.
-                  </p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 group-hover:text-brand-600 transition">
-                    Lancer le coach →
-                  </span>
-                </a>
               </div>
             </section>
 
@@ -510,8 +497,6 @@ export default function Score() {
             <a href="/score" className="hover:text-slate-700 transition">Score</a>
             <span className="mx-2 text-slate-300">|</span>
             <a href="/insights" className="hover:text-slate-700 transition">Insights</a>
-            <span className="mx-2 text-slate-300">|</span>
-            <a href="/coach" className="hover:text-slate-700 transition">Coach</a>
           </p>
           <p className="text-slate-300">
             Aucune donnée personnelle stockée sur nos serveurs.

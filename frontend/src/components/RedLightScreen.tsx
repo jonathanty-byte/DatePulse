@@ -122,13 +122,13 @@ export default function RedLightScreen({ score, event, app, now }: RedLightScree
 
         {/* CTA */}
         <motion.a
-          href="/coach?tab=photo&from=redlight"
+          href="/wrapped"
           className="mt-5 sm:mt-6 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-700 transition"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.65 }}
         >
-          Profite-en pour améliorer ton profil
+          Profite-en pour analyser tes donnees
           <span className="text-xs">&rarr;</span>
         </motion.a>
       </div>

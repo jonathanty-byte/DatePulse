@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import DatePulseLogo from "./DatePulseLogo";
 
 const NAV_LINKS: { href: string; label: string; badge?: string }[] = [
   { href: "/", label: "Accueil" },
   { href: "/wrapped", label: "Wrapped" },
   { href: "/score", label: "Score" },
   { href: "/insights", label: "Insights" },
-  { href: "/coach", label: "Coach" },
 ];
 
 export default function NavBar() {
@@ -17,13 +17,8 @@ export default function NavBar() {
     <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-brand-500">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-          <span className="text-lg font-bold tracking-tight text-slate-900">
-            DatePulse
-          </span>
+        <a href="/" className="flex items-center">
+          <DatePulseLogo className="h-7" />
         </a>
 
         {/* Desktop links */}

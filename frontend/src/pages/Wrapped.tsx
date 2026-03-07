@@ -4,7 +4,9 @@ import NavBar from "../components/NavBar";
 import WrappedUpload from "../components/WrappedUpload";
 import WrappedReport from "../components/WrappedReport";
 import WrappedShare from "../components/WrappedShare";
+import WrappedReveal from "../components/WrappedReveal";
 import EmailCaptureModal from "../components/EmailCaptureModal";
+import DatePulseLogo from "../components/DatePulseLogo";
 import type { WrappedMetrics } from "../lib/wrappedMetrics";
 import type { ConversationInsights } from "../lib/conversationIntelligence";
 import type { AdvancedSwipeInsights } from "../lib/swipeAdvanced";
@@ -46,9 +48,7 @@ function ComputingOverlay() {
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-12 w-12">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg>
+            <DatePulseLogo iconOnly className="h-12 w-12" />
           </motion.div>
           <div className="text-center">
             <h2 className="text-xl font-bold tracking-tight text-slate-900">DatePulse</h2>
@@ -90,6 +90,7 @@ export default function Wrapped() {
   const [premiumInsights, setPremiumInsights] = useState<InsightsDataSet | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [isComputing, setIsComputing] = useState(false);
+  const [showReveal, setShowReveal] = useState(false);
   const paywall = usePaywall();
 
   const handleDataParsed = async (
@@ -197,8 +198,9 @@ export default function Wrapped() {
       // Still show the report with basic metrics (graceful degradation)
       setMetrics(m);
     } finally {
-      console.log("[Wrapped] setIsComputing(false) — done");
+      console.log("[Wrapped] setIsComputing(false) — done, starting reveal");
       setIsComputing(false);
+      setShowReveal(true);
     }
   };
 
@@ -209,6 +211,9 @@ export default function Wrapped() {
         {isComputing ? (
           /* Computing overlay: shown while async insights are generated */
           <ComputingOverlay />
+        ) : showReveal && metrics ? (
+          /* Story reveal: animated slides before the full report */
+          <WrappedReveal metrics={metrics} onComplete={() => setShowReveal(false)} />
         ) : metrics ? (
           /* Report mode: wider container matching Insights layout */
           <div className="mx-auto max-w-4xl">
@@ -266,8 +271,6 @@ export default function Wrapped() {
             <a href="/score" className="hover:text-slate-900 transition">Score</a>
             <span className="mx-2 text-slate-300">|</span>
             <a href="/insights" className="hover:text-slate-900 transition">Insights</a>
-            <span className="mx-2 text-slate-300">|</span>
-            <a href="/coach" className="hover:text-slate-900 transition">Coach</a>
           </p>
         </div>
       </footer>

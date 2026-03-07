@@ -644,8 +644,8 @@ export function getVerdict(m: WrappedMetrics): Verdict {
       message:
         `x${m.premiumROI.boostFactor} boost seulement pour ${m.premiumROI.totalSpent}\u20AC depenses. ` +
         "L'Audit DatePulse peut t'aider a optimiser sans payer plus.",
-      ctaLabel: "Auditer mon profil",
-      ctaHref: "/audit",
+      ctaLabel: "Voir mes insights",
+      ctaHref: "/insights",
     };
   }
 
@@ -657,8 +657,8 @@ export function getVerdict(m: WrappedMetrics): Verdict {
       message:
         `Temps de reponse median : ${m.responseTime.medianHours}h. ` +
         "Les matchs qui repondent dans l'heure ont 3x plus de chances de mener a un date.",
-      ctaLabel: "Ameliorer mes messages",
-      ctaHref: "/coach",
+      ctaLabel: "Voir mes insights",
+      ctaHref: "/insights",
     };
   }
 
@@ -669,9 +669,9 @@ export function getVerdict(m: WrappedMetrics): Verdict {
       title: "Tes commentaires boostent tes matchs !",
       message:
         `x${m.commentImpact.boostFactor} match rate quand tu commentes. ` +
-        "Le Coach DatePulse peut t'aider a ecrire le premier message parfait.",
-      ctaLabel: "Ameliorer mes messages",
-      ctaHref: "/coach",
+        "Continue a commenter — c'est ton meilleur levier de conversion.",
+      ctaLabel: "Voir mes insights",
+      ctaHref: "/insights",
     };
   }
 
@@ -683,8 +683,8 @@ export function getVerdict(m: WrappedMetrics): Verdict {
       message:
         `${m.purchasesTotal}\u20AC depenses pour ${m.costPerMatch}\u20AC par match. ` +
         "L'Audit DatePulse peut t'aider a optimiser sans payer plus.",
-      ctaLabel: "Auditer mon profil",
-      ctaHref: "/audit",
+      ctaLabel: "Voir mes insights",
+      ctaHref: "/insights",
     };
   }
 
@@ -695,9 +695,9 @@ export function getVerdict(m: WrappedMetrics): Verdict {
       title: "Tu parles dans le vide",
       message:
         `Tu envoies ${m.sentReceivedRatio}x plus de messages que tu n'en recois. ` +
-        "Le Coach DatePulse peut t'aider a ecrire des messages qui obtiennent des reponses.",
-      ctaLabel: "Ameliorer mes messages",
-      ctaHref: "/coach",
+        "Essaie des messages plus courts et pose plus de questions ouvertes.",
+      ctaLabel: "Voir mes insights",
+      ctaHref: "/insights",
     };
   }
 
@@ -707,8 +707,8 @@ export function getVerdict(m: WrappedMetrics): Verdict {
       title: "Tu te fais ghoster trop souvent",
       message:
         "Plus de la moitie de tes matches ne menent a rien. Travaille tes premiers messages pour convertir plus de matches en conversations.",
-      ctaLabel: "Ameliorer mes messages",
-      ctaHref: "/coach",
+      ctaLabel: "Voir mes insights",
+      ctaHref: "/insights",
     };
   }
 
@@ -722,7 +722,7 @@ export function getVerdict(m: WrappedMetrics): Verdict {
         m.rightSwipeRate +
         "% penalise ton algorithme. Sois plus selectif pour que l'app te montre de meilleurs profils.",
       ctaLabel: "Optimiser ma strategie",
-      ctaHref: "/audit",
+      ctaHref: "/insights",
     };
   }
 

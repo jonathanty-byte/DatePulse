@@ -30,14 +30,6 @@ const FEATURES = [
     cta: "Voir le score",
   },
   {
-    href: "/coach",
-    tag: "Coach",
-    tagColor: "#f59e0b",
-    title: "Message Coach IA",
-    desc: "Colle ta conversation et recois 3 suggestions calibrees — du safe a l'audacieux.",
-    cta: "Lancer le coach",
-  },
-  {
     href: "/insights",
     tag: "Insights",
     tagColor: "#6366f1",
@@ -339,8 +331,6 @@ export default function Home() {
             <a href="/score" className="hover:text-slate-700 transition">Score</a>
             <span className="mx-2 text-slate-300">|</span>
             <a href="/insights" className="hover:text-slate-700 transition">Insights</a>
-            <span className="mx-2 text-slate-300">|</span>
-            <a href="/coach" className="hover:text-slate-700 transition">Coach</a>
           </p>
           <p className="text-slate-300">
             Aucune donnee personnelle stockee sur nos serveurs.
