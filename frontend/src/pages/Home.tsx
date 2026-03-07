@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import NavBar from "../components/NavBar";
 import { computeScore } from "../lib/scoring";
 import type { AppName } from "../lib/data";
+
+const TrailerPlayer = lazy(() => import("../components/TrailerPlayer"));
 
 const SUPPORTED_APPS: { name: string; color: string }[] = [
   { name: "Tinder", color: "#ec4899" },
@@ -395,84 +397,14 @@ const REPORT_FEATURES = [
   "90+ hypotheses testees sur TES donnees",
 ];
 
-// ── Hero Reveal Intro ───────────────────────────────────────────
-
-const REVEAL_SLIDES: { big: string; sub: string; tagline?: boolean }[] = [
-  { big: "12,847", sub: "swipes analyses" },
-  { big: "67%", sub: "de conversations fantomes" },
-  { big: "", sub: "", tagline: true },
-];
-
-const SLIDE_DURATION = 1000; // ms per slide
-const FADE_OUT_DURATION = 600; // ms for final overlay fade
-
-function HeroReveal({ onComplete }: { onComplete: () => void }) {
-  const [slideIndex, setSlideIndex] = useState(0);
-  const [exiting, setExiting] = useState(false);
-
-  const finish = useCallback(() => {
-    setExiting(true);
-    setTimeout(() => {
-      sessionStorage.setItem("dp_home_reveal_seen", "1");
-      onComplete();
-    }, FADE_OUT_DURATION);
-  }, [onComplete]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (slideIndex < REVEAL_SLIDES.length - 1) {
-        setSlideIndex((i) => i + 1);
-      } else {
-        finish();
-      }
-    }, SLIDE_DURATION);
-    return () => clearTimeout(timer);
-  }, [slideIndex, finish]);
-
-  const slide = REVEAL_SLIDES[slideIndex];
-
-  return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#f8f9fc]"
-      initial={{ opacity: 1 }}
-      animate={{ opacity: exiting ? 0 : 1 }}
-      transition={{ duration: FADE_OUT_DURATION / 1000, ease: "easeInOut" }}
-    >
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={slideIndex}
-          className="flex flex-col items-center gap-3 px-6 text-center"
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 1.1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-        >
-          {slide.tagline ? (
-            <span className="text-3xl sm:text-5xl lg:text-6xl font-black leading-tight bg-gradient-to-r from-brand-500 to-pink-500 bg-clip-text text-transparent">
-              Tes donnees racontent une histoire
-            </span>
-          ) : (
-            <>
-              <span className="text-6xl sm:text-8xl font-black text-slate-900 tabular-nums">
-                {slide.big}
-              </span>
-              <span className="text-lg sm:text-xl text-slate-500 font-medium">
-                {slide.sub}
-              </span>
-            </>
-          )}
-        </motion.div>
-      </AnimatePresence>
-    </motion.div>
-  );
-}
+// ── Remotion Trailer (lazy-loaded) ──────────────────────────────
 
 // ── Page ────────────────────────────────────────────────────────
 
 export default function Home() {
   const [liveScore, setLiveScore] = useState<number>(0);
   const [liveApp] = useState<AppName>("tinder");
-  const [showReveal, setShowReveal] = useState(() => {
+  const [showTrailer, setShowTrailer] = useState(() => {
     return !sessionStorage.getItem("dp_home_reveal_seen");
   });
 
@@ -483,13 +415,20 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [liveApp]);
 
+  const handleTrailerEnd = () => {
+    sessionStorage.setItem("dp_home_reveal_seen", "1");
+    setShowTrailer(false);
+  };
+
   return (
     <div className="min-h-screen bg-[#f8f9fc] text-slate-900">
-      <AnimatePresence>
-        {showReveal && (
-          <HeroReveal onComplete={() => setShowReveal(false)} />
-        )}
-      </AnimatePresence>
+      {showTrailer && (
+        <div className="fixed inset-0 z-50 bg-[#f8f9fc]">
+          <Suspense fallback={null}>
+            <TrailerPlayer onEnd={handleTrailerEnd} />
+          </Suspense>
+        </div>
+      )}
       <NavBar />
 
       {/* ── HERO ──────────────────────────────────────── */}
