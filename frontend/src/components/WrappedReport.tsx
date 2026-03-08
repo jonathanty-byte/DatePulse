@@ -67,6 +67,7 @@ const APP_COLORS: Record<string, { primary: string; gradient: string; bg: string
   tinder: { primary: "#ec4899", gradient: "from-pink-400 to-pink-600", bg: "rgba(236,72,153,0.06)" },
   bumble: { primary: "#f59e0b", gradient: "from-amber-400 to-amber-600", bg: "rgba(245,158,11,0.06)" },
   hinge: { primary: "#8b5cf6", gradient: "from-violet-400 to-violet-600", bg: "rgba(139,92,246,0.06)" },
+  happn: { primary: "#f97316", gradient: "from-orange-400 to-orange-600", bg: "rgba(249,115,22,0.06)" },
 };
 
 // ── Chapter icons (SVG, premium look) ───────────────────────────
@@ -2816,6 +2817,8 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
               <CPSectionGhost insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
               <SectionDivider />
               <CPSectionQuestions insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
+              <SectionDivider />
+              <CPSectionOpeners insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
 
               {/* Premium: grouped into 4 thematic blocks behind paywall */}
               <PaywallGate
@@ -2826,8 +2829,6 @@ export default function WrappedReport({ metrics, conversationInsights, advancedS
               >
                 <div className="space-y-6">
                   <CPSectionTempo insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-                  <CPSectionOpeners insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
-                  <SectionDivider />
                   <CPSectionEscalation insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
                   <CPSectionDoubleText insights={conversationInsights} appColor={appColor} benchmarkGender={benchmarkGender} />
                   <SectionDivider />

@@ -171,7 +171,7 @@ describe("getVerdict", () => {
     });
     const m = computeWrappedMetrics(data);
     const v = getVerdict(m);
-    expect(v.ctaHref).toBe("/coach");
+    expect(v.ctaHref).toBe("/wrapped");
   });
 
   it("returns like-too-much verdict when rightSwipeRate > 70", () => {
@@ -188,7 +188,7 @@ describe("getVerdict", () => {
     const m = computeWrappedMetrics(data);
     const v = getVerdict(m);
     expect(v.icon).toBe("\u{1F6A8}");
-    expect(v.ctaHref).toBe("/audit");
+    expect(v.ctaHref).toBe("/wrapped");
   });
 
   it("returns default verdict for balanced profile", () => {

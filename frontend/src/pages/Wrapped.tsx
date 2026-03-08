@@ -13,14 +13,16 @@ import type { AdvancedSwipeInsights } from "../lib/swipeAdvanced";
 import type { InsightsDataSet } from "../lib/insightsEngine";
 import { saveUserInsights } from "../lib/insightsPersistence";
 import { usePaywall } from "../lib/usePaywall";
+import { DEMO_PARSED_DATA } from "../lib/demoData";
+import { computeWrappedMetrics } from "../lib/wrappedMetrics";
 
 // ── Computing overlay (shown while async insights are computed) ──
 
 const COMPUTING_MESSAGES = [
   "Analyse des conversations...",
-  "Detection des patterns...",
-  "Calcul des hypotheses...",
-  "Generation du rapport...",
+  "Détection des patterns...",
+  "Calcul des hypothèses...",
+  "Génération du rapport...",
 ];
 
 function ComputingOverlay() {
@@ -71,11 +73,11 @@ function ComputingOverlay() {
         </AnimatePresence>
 
         {/* Indeterminate progress bar */}
-        <div className="mt-4 h-1 w-48 overflow-hidden rounded-full bg-gray-100">
+        <div className="relative mt-4 h-1 w-48 overflow-hidden rounded-full bg-gray-100">
           <motion.div
-            className="h-full w-1/3 rounded-full bg-brand-500"
-            animate={{ x: ["-100%", "300%"] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-0 h-full w-16 rounded-full bg-brand-500"
+            animate={{ left: ["-4rem", "12rem"] }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
           />
         </div>
       </motion.div>
@@ -91,7 +93,22 @@ export default function Wrapped() {
   const [showShare, setShowShare] = useState(false);
   const [isComputing, setIsComputing] = useState(false);
   const [showReveal, setShowReveal] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
   const paywall = usePaywall();
+
+  // Auto-load demo mode if ?demo=true in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("demo") === "true" && !metrics) {
+      loadDemo();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadDemo = async () => {
+    setIsDemo(true);
+    const demoMetrics = computeWrappedMetrics(DEMO_PARSED_DATA);
+    await handleDataParsed(demoMetrics, DEMO_PARSED_DATA.conversations, DEMO_PARSED_DATA);
+  };
 
   const handleDataParsed = async (
     m: WrappedMetrics,
@@ -99,11 +116,9 @@ export default function Wrapped() {
     parsedData?: import("../lib/wrappedParser").ParsedData
   ) => {
     // Show computing overlay while all insights are generated
-    console.log("[Wrapped] handleDataParsed called, metrics:", m.source, "swipes:", m.totalSwipes);
     setIsComputing(true);
     // Yield to React to render the overlay before starting heavy computation
     await new Promise(r => setTimeout(r, 50));
-    console.log("[Wrapped] overlay rendered, starting computations...");
     const overlayStart = Date.now();
 
     let convInsights: ConversationInsights | undefined;
@@ -113,7 +128,6 @@ export default function Wrapped() {
     try {
       // Compute conversation insights if message content is available
       if (parsedConversations && parsedConversations.length > 0) {
-        console.log("[Wrapped] computing conversation insights for", parsedConversations.length, "conversations...");
         try {
           const { computeConversationInsights } = await import("../lib/conversationIntelligence");
           const { isConversationPulseEnabled, trackConversationUpload } = await import("../lib/featureFlags");
@@ -127,15 +141,10 @@ export default function Wrapped() {
               totalMatches
             );
             trackConversationUpload(m.source, parsedConversations.length);
-            console.log("[Wrapped] conversation insights done ✓");
-          } else {
-            console.log("[Wrapped] conversation pulse disabled, skipping");
           }
-        } catch (err) {
-          console.error("[Wrapped] Conversation insights error:", err);
+        } catch {
+          // Conversation insights computation failed — graceful degradation
         }
-      } else {
-        console.log("[Wrapped] no conversations, skipping conversation insights");
       }
 
       // Yield between heavy computations so overlay stays animated
@@ -143,23 +152,18 @@ export default function Wrapped() {
 
       // Compute advanced swipe insights if swipe data is available
       if (parsedData && parsedData.swipes && parsedData.swipes.length >= 50) {
-        console.log("[Wrapped] computing swipe insights for", parsedData.swipes.length, "swipes...");
         try {
           const { computeAdvancedSwipeInsights } = await import("../lib/swipeAdvanced");
           swipeIns = computeAdvancedSwipeInsights(parsedData, m);
-          console.log("[Wrapped] swipe insights done ✓");
-        } catch (err) {
-          console.error("[Wrapped] Advanced swipe insights error:", err);
+        } catch {
+          // Advanced swipe insights failed — graceful degradation
         }
-      } else {
-        console.log("[Wrapped] insufficient swipe data, skipping advanced insights");
       }
 
       // Yield between heavy computations
       await new Promise(r => setTimeout(r, 0));
 
       // Persist for Insights page personalization
-      console.log("[Wrapped] generating premium insights...");
       try {
         const persistedData = {
           version: 1 as const,
@@ -174,31 +178,26 @@ export default function Wrapped() {
         // Generate premium insights from the engine
         const { generateUserInsights } = await import("../lib/insightsEngine");
         premIns = generateUserInsights(persistedData);
-        console.log("[Wrapped] premium insights done ✓");
-      } catch (err) {
-        console.error("[Wrapped] Premium insights error:", err);
+      } catch {
+        // Premium insights generation failed — graceful degradation
       }
 
       // Ensure overlay stays visible at least 2s for UX polish
       const elapsed = Date.now() - overlayStart;
       const MIN_OVERLAY_MS = 2000;
-      console.log("[Wrapped] computations took", elapsed, "ms, min overlay:", MIN_OVERLAY_MS, "ms");
       if (elapsed < MIN_OVERLAY_MS) {
         await new Promise(r => setTimeout(r, MIN_OVERLAY_MS - elapsed));
       }
 
       // Set all state atomically — metrics LAST (triggers report render)
-      console.log("[Wrapped] setting state → rendering report");
       setConversationInsights(convInsights);
       setAdvancedSwipeInsights(swipeIns);
       setPremiumInsights(premIns);
       setMetrics(m);
-    } catch (err) {
-      console.error("[Wrapped] Fatal computation error:", err);
+    } catch {
       // Still show the report with basic metrics (graceful degradation)
       setMetrics(m);
     } finally {
-      console.log("[Wrapped] setIsComputing(false) — done, starting reveal");
       setIsComputing(false);
       setShowReveal(true);
     }
@@ -217,6 +216,17 @@ export default function Wrapped() {
         ) : metrics ? (
           /* Report mode: wider container matching Insights layout */
           <div className="mx-auto max-w-4xl">
+            {isDemo && (
+              <motion.div
+                className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <p className="text-sm font-medium text-amber-700">
+                  Données de démonstration — <a href="/wrapped" className="underline font-bold" onClick={(e) => { e.preventDefault(); setMetrics(null); setIsDemo(false); window.history.replaceState(null, "", "/wrapped"); }}>upload tes données</a> pour voir tes vrais stats
+                </p>
+              </motion.div>
+            )}
             <WrappedReport
               metrics={metrics}
               conversationInsights={conversationInsights}
@@ -242,19 +252,21 @@ export default function Wrapped() {
                 </span>
               </h1>
               <p className="mt-2 text-sm sm:text-base text-slate-500">
-                Decouvre tes stats de dating en 2 minutes
+                Découvre tes stats de dating en 2 minutes
               </p>
             </motion.div>
             <div className="text-center mb-6 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
               <p className="text-gray-600 mb-2">
-                Pas encore tes donnees ? Ca prend 1-3 jours.
+                Pas encore tes données ? Ça prend 1-3 jours.
               </p>
-              <a
-                href="/insights"
-                className="text-indigo-600 font-semibold hover:underline"
-              >
-                Voir un apercu du rapport que tu obtiendras →
-              </a>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mt-2">
+                <button
+                  onClick={loadDemo}
+                  className="text-indigo-600 font-semibold hover:underline text-sm"
+                >
+                  Voir un rapport démo →
+                </button>
+              </div>
             </div>
             <WrappedUpload onDataParsed={handleDataParsed} />
           </div>

@@ -131,9 +131,9 @@ function Slide1({ metrics: m }: { metrics: WrappedMetrics }) {
   const tenure = m.tenureMonths ?? 0;
   const tenureComment =
     tenure > 24
-      ? "Veterane du swipe"
+      ? "Vétérane du swipe"
       : tenure > 12
-        ? "Ca fait un moment..."
+        ? "Ça fait un moment..."
         : "Nouvelle recrue !";
 
   return (
@@ -168,11 +168,11 @@ function Slide2({ metrics: m }: { metrics: WrappedMetrics }) {
     hours >= 200
       ? `${hours} heures. Tu aurais pu apprendre le piano.`
       : hours >= 100
-        ? `${hours} heures. C'est un stage non remunere.`
+        ? `${hours} heures. C'est un stage non rémunéré.`
         : hours >= 50
-          ? `${hours} heures. Ca merite un diplome.`
+          ? `${hours} heures. Ça mérite un diplôme.`
           : hours >= 20
-            ? `${hours} heures. L'equivalent d'un vol Paris-Sydney.`
+            ? `${hours} heures. L'équivalent d'un vol Paris-Sydney.`
             : `${hours} heures seulement. Efficace.`;
 
   return (
@@ -202,11 +202,11 @@ function Slide3({ metrics: m }: { metrics: WrappedMetrics }) {
   const comment = isHinge
     ? "Hinge ne compte pas les passes. On sait que tu es exigeant(e)."
     : rate > 80
-      ? "Tu likes tout ce qui bouge. L'algo te penalise."
+      ? "Tu likes tout ce qui bouge. L'algo te pénalise."
       : rate > 60
-        ? "Genereux(se). Mais l'algo prefere les selectifs."
+        ? "Généreux(se). Mais l'algo préfère les sélectifs."
         : rate > 40
-          ? "Equilibre. Tu sais ce que tu veux (a peu pres)."
+          ? "Équilibré. Tu sais ce que tu veux (à peu près)."
           : rate > 20
             ? "Selectif(ve). L'algorithme t'adore."
             : "Chirurgical(e). Que les ames soeurs potentielles.";
@@ -238,7 +238,7 @@ function Slide4({ metrics: m }: { metrics: WrappedMetrics }) {
         <p className="text-7xl sm:text-8xl font-extrabold" style={{ color }}>0</p>
         <p className="text-xl text-white/60">match</p>
         <DelayedText delay={800} className="text-base text-white/40 italic max-w-sm">
-          Tout reste a construire.
+          Tout reste à construire.
         </DelayedText>
       </div>
     );
@@ -264,7 +264,7 @@ function Slide5({ metrics: m }: { metrics: WrappedMetrics }) {
 
   const chronoLabel =
     hour < 6
-      ? "Noctambule assume(e)"
+      ? "Noctambule assumé(e)"
       : hour < 9
         ? "Matinal(e)"
         : hour < 12
@@ -285,9 +285,9 @@ function Slide5({ metrics: m }: { metrics: WrappedMetrics }) {
         : hour < 12
           ? "Entre deux mails, un petit swipe."
           : hour < 14
-            ? "Le dating, ca se fait a la cantine."
+            ? "Le dating, ça se fait à la cantine."
             : hour < 18
-              ? "L'apres-midi, tranquille."
+              ? "L'après-midi, tranquille."
               : hour < 21
                 ? "Tu swipes aux heures de pointe. Malin."
                 : "La nuit, tous les profils sont beaux.";
@@ -337,12 +337,6 @@ function Slide6({
       >
         Voir le rapport complet
       </button>
-      <a
-        href={verdict.ctaHref}
-        className="text-sm text-white/40 underline underline-offset-4 hover:text-white/60 transition"
-      >
-        {verdict.ctaLabel}
-      </a>
     </div>
   );
 }
@@ -434,14 +428,14 @@ export default function WrappedReveal({ metrics, onComplete }: WrappedRevealProp
       {/* Tap zone (not on last slide — CTA button handles it) */}
       {!isLastSlide && (
         <div
-          className="absolute inset-0 z-10 cursor-pointer"
+          className="absolute inset-0 z-30 cursor-pointer"
           onClick={goNext}
           aria-label="Slide suivant"
         />
       )}
 
       {/* Skip button */}
-      <div className="relative z-20 flex justify-end p-4">
+      <div className="relative z-40 flex justify-end p-4">
         <button
           onClick={handleSkip}
           className="text-sm text-white/40 hover:text-white/70 transition"
