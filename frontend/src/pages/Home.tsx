@@ -9,25 +9,26 @@ const TrailerPlayer = lazy(() => import("../components/TrailerPlayer"));
 const SUPPORTED_APPS: { name: string; color: string }[] = [
   { name: "Tinder", color: "#ec4899" },
   { name: "Hinge", color: "#8b5cf6" },
+  { name: "Happn", color: "#f97316" },
 ];
 
 const STEPS = [
   {
     num: "1",
-    title: "Demande tes donnees",
-    desc: "Chaque app de dating doit te fournir tes donnees. Ca prend 2 jours.",
+    title: "Demande tes données",
+    desc: "Chaque app de dating doit te fournir tes données. Ça prend 2 jours.",
     icon: "📩",
   },
   {
     num: "2",
     title: "Upload sur DatePulse",
-    desc: "Glisse ton fichier JSON ou ZIP. Tout est analyse dans ton navigateur, rien ne quitte ton appareil.",
+    desc: "Glisse ton fichier JSON ou ZIP. Tout est analysé dans ton navigateur, rien ne quitte ton appareil.",
     icon: "📊",
   },
   {
     num: "3",
-    title: "Decouvre tes stats",
-    desc: "Swipes, matches, ghost rate, timing optimal, score ELO estime — tout est la.",
+    title: "Découvre tes stats",
+    desc: "Swipes, matches, ghost rate, timing optimal, score ELO estimé — tout est là.",
     icon: "🔍",
   },
 ];
@@ -149,7 +150,7 @@ function ConversationPreview() {
       </div>
       <div>
         <div className="flex justify-between text-xs mb-1.5">
-          <span className="text-slate-500">Reponse en &lt;1h</span>
+          <span className="text-slate-500">Réponse en &lt;1h</span>
           <span className="font-bold text-emerald-600">34%</span>
         </div>
         <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
@@ -164,15 +165,15 @@ function ConversationPreview() {
       </div>
       <div className="pt-2 border-t border-slate-100 space-y-1.5">
         <div className="flex justify-between text-xs">
-          <span className="text-slate-400">Messages envoyes</span>
+          <span className="text-slate-400">Messages envoyés</span>
           <span className="font-semibold text-slate-700">1,247</span>
         </div>
         <div className="flex justify-between text-xs">
-          <span className="text-slate-400">Temps moyen de reponse</span>
+          <span className="text-slate-400">Temps moyen de réponse</span>
           <span className="font-semibold text-slate-700">4h12</span>
         </div>
         <div className="flex justify-between text-xs">
-          <span className="text-slate-400">Ratio msg envoyes/recus</span>
+          <span className="text-slate-400">Ratio msg envoyés/reçus</span>
           <span className="font-semibold text-slate-700">1.3x</span>
         </div>
       </div>
@@ -246,10 +247,10 @@ function SurvivalPreview() {
 function VerdictPreview() {
   const rings = [
     { label: "Questions", value: 8, color: "#6366f1" },
-    { label: "Reactivite", value: 14, color: "#3b82f6" },
+    { label: "Réactivité", value: 14, color: "#3b82f6" },
     { label: "Openers", value: 5, color: "#f43f5e" },
     { label: "Escalation", value: 9, color: "#f59e0b" },
-    { label: "Equilibre", value: 6, color: "#10b981" },
+    { label: "Équilibre", value: 6, color: "#10b981" },
   ];
 
   return (
@@ -262,10 +263,10 @@ function VerdictPreview() {
           </div>
         </div>
         <div className="flex-1 space-y-1.5">
-          <div className="text-[10px] text-amber-500 font-semibold uppercase tracking-wider">Marge de progression identifiee</div>
+          <div className="text-[10px] text-amber-500 font-semibold uppercase tracking-wider">Marge de progression identifiée</div>
           <div className="text-base font-bold text-slate-900">5 axes concrets pour remonter</div>
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            "Des leviers clairs pour ameliorer ton profil, tes conversations et ton timing."
+            "Des leviers clairs pour améliorer ton profil, tes conversations et ton timing."
           </p>
         </div>
       </div>
@@ -360,7 +361,7 @@ function ArchetypePreview() {
         ♟️
       </motion.div>
       <div>
-        <div className="text-[10px] text-violet-500 font-semibold uppercase tracking-wider">Ton archetype</div>
+        <div className="text-[10px] text-violet-500 font-semibold uppercase tracking-wider">Ton archétype</div>
         <div className="text-base font-bold text-slate-900 mt-0.5">Le Stratege Selectif</div>
       </div>
       <div className="flex gap-1.5">
@@ -386,9 +387,9 @@ function ArchetypePreview() {
 
 function RecommendationsPreview() {
   const recos = [
-    { problem: "Openers trop courts (32 car.)", action: "Vise 60+ caracteres", color: "#ef4444" },
-    { problem: "Reponse trop rapide (4 min)", action: "Attends 15-30 min", color: "#f59e0b" },
-    { problem: "Escalation tardive (msg #18)", action: "Propose un date au msg 8-12", color: "#10b981" },
+    { problem: "Openers trop courts (32 car.)", action: "Vise 60+ caractères", color: "#ef4444" },
+    { problem: "Réponse trop rapide (4 min)", action: "Attends 15-30 min", color: "#f59e0b" },
+    { problem: "Escalade tardive (msg #18)", action: "Propose un date au msg 8-12", color: "#10b981" },
   ];
   return (
     <div className="space-y-2">
@@ -422,42 +423,42 @@ const SHOWCASE = [
   },
   {
     title: "Timing optimal",
-    subtitle: "Tes meilleurs creneaux jour par jour",
+    subtitle: "Tes meilleurs créneaux jour par jour",
     accent: "#3b82f6",
     Preview: HeatmapPreview,
   },
   {
     title: "Conversations",
-    subtitle: "Ghost rate, tempo, equilibre des messages",
+    subtitle: "Ghost rate, tempo, équilibre des messages",
     accent: "#f59e0b",
     Preview: ConversationPreview,
   },
   {
     title: "Courbe de survie",
-    subtitle: "Combien de conversations survivent apres chaque message",
+    subtitle: "Combien de conversations survivent après chaque message",
     accent: "#ef4444",
     Preview: SurvivalPreview,
   },
   {
     title: "Ton archetype",
-    subtitle: "Ton profil comportemental de dating identifie par IA",
+    subtitle: "Ton profil comportemental de dating identifié par IA",
     accent: "#8b5cf6",
     Preview: ArchetypePreview,
   },
   {
-    title: "Recommandations personnalisees",
-    subtitle: "Des actions concretes basees sur TES donnees",
+    title: "Recommandations personnalisées",
+    subtitle: "Des actions concrètes basées sur TES données",
     accent: "#10b981",
     Preview: RecommendationsPreview,
   },
   {
     title: "Evolution mensuelle",
-    subtitle: "Tes performances mois par mois sur toute la periode",
+    subtitle: "Tes performances mois par mois sur toute la période",
     accent: "#f43f5e",
     Preview: MonthlyPreview,
   },
   {
-    title: "Verdict personnalise",
+    title: "Verdict personnalisé",
     subtitle: "Ton score global et 5 axes de progression",
     accent: "#f59e0b",
     Preview: VerdictPreview,
@@ -470,16 +471,16 @@ const SHOWCASE = [
 const REPORT_FEATURES = [
   "Funnel complet likes → matchs → conversations",
   "Heatmap jour/heure de tes matchs",
-  "Ghost rate et causes identifiees",
-  "Impact reel de tes boosts et super likes",
+  "Ghost rate et causes identifiées",
+  "Impact réel de tes boosts et super likes",
   "Score conversationnel sur 6 dimensions",
-  "Radar chart ADN Dating personnalise",
+  "Radar chart ADN Dating personnalisé",
   "ROI de tes abonnements premium",
   "Archetype comportemental de swipe",
-  "Evolution mensuelle detaillee",
-  "Plan d'action personnalise",
+  "Évolution mensuelle détaillée",
+  "Plan d'action personnalisé",
   "Image partageable de tes stats",
-  "90+ hypotheses testees sur TES donnees",
+  "90+ hypothèses testées sur TES données",
 ];
 
 // ── Remotion Trailer (lazy-loaded) ──────────────────────────────
@@ -489,7 +490,7 @@ const REPORT_FEATURES = [
 export default function Home() {
   const [liveScore, setLiveScore] = useState<number>(0);
   const [liveApp] = useState<AppName>("tinder");
-  const [showTrailer, setShowTrailer] = useState(true);
+  const [showTrailer, setShowTrailer] = useState(false);
 
   useEffect(() => {
     const update = () => setLiveScore(computeScore(new Date(), liveApp).score);
@@ -547,7 +548,7 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            Tes donnees de dating{" "}
+            Tes données de dating{" "}
             <span className="bg-gradient-to-r from-brand-500 to-pink-500 bg-clip-text text-transparent">
               racontent une histoire
             </span>
@@ -559,8 +560,8 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.4 }}
           >
-            Decouvre ce que tes apps ne te montrent pas.
-            Demande tes donnees (1-3 jours), l'analyse prend 2 minutes.
+            Découvre ce que tes apps ne te montrent pas.
+            Demande tes données (1-3 jours), l'analyse prend 2 minutes.
           </motion.p>
 
           <motion.div
@@ -573,7 +574,7 @@ export default function Home() {
               href="/wrapped"
               className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-brand-500/25 transition hover:bg-brand-600 hover:shadow-brand-500/40"
             >
-              Analyser mes donnees
+              Analyser mes données
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
@@ -586,6 +587,23 @@ export default function Home() {
             </a>
           </motion.div>
 
+          <motion.div
+            className="mt-3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <a
+              href="/demo"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-600 hover:bg-brand-100 transition"
+            >
+              Voir un rapport demo
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
+              </svg>
+            </a>
+          </motion.div>
+
           {/* Trust badges */}
           <motion.div
             className="mt-10 flex flex-wrap items-center justify-center gap-4 sm:gap-6"
@@ -595,8 +613,8 @@ export default function Home() {
           >
             {[
               { icon: "🔒", text: "100% client-side" },
-              { icon: "🚫", text: "0 donnee stockee" },
-              { icon: "📱", text: "2 apps supportees" },
+              { icon: "🚫", text: "0 donnée stockée" },
+              { icon: "📱", text: "3 apps supportées" },
               { icon: "⚡", text: "Analyse en 2 min" },
             ].map((b) => (
               <span
@@ -637,12 +655,12 @@ export default function Home() {
           >
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
               <span className="bg-gradient-to-r from-brand-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                Ce que ton rapport revele
+                Ce que ton rapport révèle
               </span>
             </h2>
             <p className="mt-3 text-sm sm:text-base text-slate-500 max-w-xl mx-auto">
-              8 chapitres, 90+ analyses statistiques, un verdict personnalise.
-              Voici un apercu avec de vraies donnees Tinder.
+              8 chapitres, 90+ analyses statistiques, un verdict personnalisé.
+              Voici un aperçu avec de vraies données Tinder.
             </p>
           </motion.div>
 
@@ -678,7 +696,7 @@ export default function Home() {
               href="/wrapped"
               className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-10 py-4 text-base font-bold text-white shadow-lg shadow-brand-500/25 transition hover:bg-brand-600 hover:shadow-brand-500/40"
             >
-              Voir mon rapport personnalise
+              Voir mon rapport personnalisé
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
@@ -699,7 +717,7 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            Comment ca marche
+            Comment ça marche
           </motion.h2>
           <div className="grid gap-6 sm:grid-cols-3">
             {STEPS.map((step, i) => (
@@ -733,7 +751,7 @@ export default function Home() {
             viewport={{ once: true }}
           >
             <h2 className="text-xl font-extrabold text-slate-900 mb-1">Ce que ton rapport contient</h2>
-            <p className="text-xs text-slate-400 mb-5">Genere automatiquement a partir de ton export RGPD</p>
+            <p className="text-xs text-slate-400 mb-5">Généré automatiquement à partir de ton export RGPD</p>
             <div className="grid gap-3 sm:grid-cols-2">
               {REPORT_FEATURES.map((f) => (
                 <div key={f} className="flex items-start gap-2">
@@ -759,11 +777,11 @@ export default function Home() {
           >
             <span className="text-4xl">🔒</span>
             <h2 className="mt-4 text-xl sm:text-2xl font-extrabold">
-              Tes donnees restent chez toi
+              Tes données restent chez toi
             </h2>
             <p className="mt-3 text-sm sm:text-base text-slate-500 leading-relaxed">
-              Tout est analyse directement dans ton navigateur. Aucun fichier n'est envoye a un serveur.
-              Aucune donnee personnelle n'est stockee. Zero tracking, zero compte, zero bullshit.
+              Tout est analysé directement dans ton navigateur. Aucun fichier n'est envoyé à un serveur.
+              Aucune donnée personnelle n'est stockée. Zéro tracking, zéro compte, zéro bullshit.
             </p>
             <a
               href="/wrapped"
@@ -792,7 +810,7 @@ export default function Home() {
             <a href="/score" className="hover:text-slate-700 transition">Score</a>
           </p>
           <p className="text-slate-300">
-            Aucune donnee personnelle stockee sur nos serveurs.
+            Aucune donnée personnelle stockée sur nos serveurs.
           </p>
         </div>
       </footer>

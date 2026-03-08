@@ -5,6 +5,7 @@ import DatePulseLogo from "./DatePulseLogo";
 const NAV_LINKS: { href: string; label: string; badge?: string }[] = [
   { href: "/", label: "Accueil" },
   { href: "/wrapped", label: "Wrapped" },
+  { href: "/demo", label: "Demo", badge: "NEW" },
   { href: "/score", label: "Score" },
 ];
 

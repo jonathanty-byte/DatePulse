@@ -1,194 +1,1362 @@
 import type { ParsedData, RawSwipe, RawMatch, ConversationRecord, RawMessage } from "./wrappedParser";
 
-// ── Demo data: realistic Tinder profile (~12 months, calibrated from real exports) ──
-//
-// Inspired by real user ratios:
-// - Right swipe rate: ~40% (selective)
-// - Match rate on likes: ~3% (realistic for male users)
-// - Ghost rate: ~60%
-// - 12 months of activity
+// ── Demo data: Real anonymized Tinder RGPD export ──
+// Source: CEO's actual data (300 days, 2025-04-15 to 2026-02-26)
+// Anonymization: message bodies replaced, match IDs sequential, no names/geo/photos
+// Stats preserved: 27040 swipes, 91 matches, 38 conversations, 5089 app opens
 
-// ── Deterministic pseudo-random (seeded, no Math.random) ────────
-
-function seededRng(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 1664525 + 1013904223) & 0x7fffffff;
-    return s / 0x7fffffff;
-  };
-}
-
-const rng = seededRng(42);
-
-// ── Weighted random helpers ──────────────────────────────────────
-
-function weightedPick(weights: number[], rand: number): number {
-  const total = weights.reduce((a, b) => a + b, 0);
-  let threshold = rand * total;
-  for (let i = 0; i < weights.length; i++) {
-    threshold -= weights[i];
-    if (threshold <= 0) return i;
-  }
-  return weights.length - 1;
-}
-
-// Realistic 24h activity distribution (peak 20-21h, lunch bump, dead at night)
-const HOUR_WEIGHTS = [
-  3, 2, 1, 1, 1, 2,     // 0-5h  (night, very low)
-  3, 5, 7, 8, 8, 9,     // 6-11h (morning, gradual rise)
-  12, 10, 9, 8, 9, 10,  // 12-17h (lunch peak, afternoon)
-  14, 16, 18, 20, 17, 13, // 18-23h (evening peak)
+// Compact daily totals: [date, likes, passes, superlikes]
+const dailySwipeData: [string, number, number, number][] = [
+  ["2025-04-15", 201, 89, 0],
+  ["2025-04-16", 80, 80, 0],
+  ["2025-04-17", 66, 42, 0],
+  ["2025-04-18", 87, 86, 0],
+  ["2025-04-19", 78, 116, 1],
+  ["2025-04-20", 59, 41, 0],
+  ["2025-04-21", 63, 53, 0],
+  ["2025-04-22", 72, 77, 1],
+  ["2025-04-23", 25, 39, 0],
+  ["2025-04-24", 101, 52, 0],
+  ["2025-04-25", 122, 61, 2],
+  ["2025-04-26", 82, 82, 0],
+  ["2025-04-27", 56, 93, 1],
+  ["2025-04-28", 105, 132, 1],
+  ["2025-04-29", 32, 89, 0],
+  ["2025-04-30", 29, 29, 0],
+  ["2025-05-01", 23, 54, 0],
+  ["2025-05-02", 36, 121, 0],
+  ["2025-05-03", 29, 60, 0],
+  ["2025-05-04", 28, 70, 1],
+  ["2025-05-05", 5, 8, 0],
+  ["2025-05-06", 70, 161, 0],
+  ["2025-05-07", 87, 24, 2],
+  ["2025-05-08", 59, 36, 0],
+  ["2025-05-11", 28, 35, 0],
+  ["2025-05-12", 27, 15, 0],
+  ["2025-05-13", 18, 15, 0],
+  ["2025-05-14", 37, 28, 0],
+  ["2025-05-15", 5, 5, 0],
+  ["2025-05-16", 21, 46, 0],
+  ["2025-05-17", 33, 47, 1],
+  ["2025-05-18", 62, 105, 0],
+  ["2025-05-19", 40, 50, 0],
+  ["2025-05-20", 37, 73, 0],
+  ["2025-05-21", 35, 57, 0],
+  ["2025-05-22", 40, 87, 0],
+  ["2025-05-23", 97, 73, 0],
+  ["2025-05-24", 43, 47, 0],
+  ["2025-05-25", 66, 132, 0],
+  ["2025-05-26", 78, 167, 2],
+  ["2025-05-27", 181, 285, 1],
+  ["2025-05-28", 43, 41, 0],
+  ["2025-05-29", 75, 69, 0],
+  ["2025-05-30", 214, 246, 2],
+  ["2025-05-31", 787, 2139, 2],
+  ["2025-06-01", 989, 428, 1],
+  ["2025-06-02", 214, 292, 0],
+  ["2025-06-03", 8, 238, 0],
+  ["2025-06-04", 111, 41, 0],
+  ["2025-06-05", 32, 4, 0],
+  ["2025-06-07", 58, 17, 0],
+  ["2025-06-08", 291, 92, 0],
+  ["2025-06-09", 24, 2, 0],
+  ["2025-06-10", 40, 16, 0],
+  ["2025-06-14", 13, 3, 0],
+  ["2025-06-19", 52, 34, 1],
+  ["2025-06-20", 50, 22, 0],
+  ["2025-06-21", 16, 2, 0],
+  ["2025-06-22", 43, 21, 0],
+  ["2025-06-23", 62, 35, 0],
+  ["2025-06-24", 51, 22, 0],
+  ["2025-06-25", 60, 19, 0],
+  ["2025-06-26", 49, 22, 0],
+  ["2025-06-27", 44, 21, 0],
+  ["2025-06-28", 41, 31, 0],
+  ["2025-06-29", 52, 45, 0],
+  ["2025-06-30", 48, 24, 0],
+  ["2025-07-01", 63, 62, 0],
+  ["2025-07-02", 54, 54, 0],
+  ["2025-07-03", 46, 59, 0],
+  ["2025-07-06", 55, 47, 0],
+  ["2025-07-07", 61, 55, 0],
+  ["2025-07-08", 58, 56, 0],
+  ["2025-07-09", 32, 13, 0],
+  ["2025-07-10", 1, 1, 0],
+  ["2025-07-11", 1, 7, 0],
+  ["2025-07-12", 6, 6, 0],
+  ["2025-07-13", 49, 63, 0],
+  ["2025-07-14", 8, 12, 0],
+  ["2025-07-15", 10, 26, 0],
+  ["2025-07-16", 7, 45, 0],
+  ["2025-07-17", 5, 8, 0],
+  ["2025-07-18", 1, 11, 0],
+  ["2025-07-19", 2, 7, 0],
+  ["2025-07-20", 28, 79, 0],
+  ["2025-07-21", 18, 19, 0],
+  ["2025-07-22", 10, 13, 0],
+  ["2025-07-23", 30, 75, 0],
+  ["2025-07-24", 45, 77, 0],
+  ["2025-07-25", 13, 20, 0],
+  ["2025-07-26", 1, 1, 0],
+  ["2025-07-27", 59, 192, 0],
+  ["2025-07-28", 13, 33, 0],
+  ["2025-07-29", 17, 12, 0],
+  ["2025-07-30", 52, 168, 0],
+  ["2025-07-31", 64, 144, 0],
+  ["2025-08-01", 13, 11, 0],
+  ["2025-08-02", 5, 8, 0],
+  ["2025-08-03", 13, 18, 0],
+  ["2025-08-04", 9, 35, 0],
+  ["2025-08-05", 35, 29, 0],
+  ["2025-08-06", 3, 5, 0],
+  ["2025-08-07", 5, 3, 0],
+  ["2025-08-13", 6, 6, 0],
+  ["2025-08-14", 26, 104, 0],
+  ["2025-08-15", 18, 12, 0],
+  ["2025-08-16", 20, 5, 0],
+  ["2025-08-17", 53, 17, 0],
+  ["2025-08-18", 13, 12, 0],
+  ["2025-08-20", 36, 27, 0],
+  ["2025-08-21", 73, 75, 0],
+  ["2025-08-22", 61, 65, 0],
+  ["2025-08-23", 35, 31, 0],
+  ["2025-08-24", 66, 71, 1],
+  ["2025-08-25", 55, 63, 0],
+  ["2025-08-26", 82, 65, 0],
+  ["2025-08-27", 101, 71, 0],
+  ["2025-08-28", 68, 20, 0],
+  ["2025-08-29", 40, 63, 0],
+  ["2025-08-30", 52, 65, 0],
+  ["2025-08-31", 71, 83, 1],
+  ["2025-09-01", 88, 79, 0],
+  ["2025-09-02", 37, 21, 0],
+  ["2025-09-03", 24, 31, 0],
+  ["2025-09-04", 59, 139, 0],
+  ["2025-09-05", 29, 59, 1],
+  ["2025-09-06", 16, 36, 0],
+  ["2025-09-07", 22, 11, 1],
+  ["2025-09-08", 22, 18, 0],
+  ["2025-09-09", 11, 12, 0],
+  ["2025-09-10", 26, 22, 0],
+  ["2025-09-11", 17, 5, 0],
+  ["2025-09-12", 39, 58, 0],
+  ["2025-09-15", 9, 26, 0],
+  ["2025-09-16", 2, 1, 0],
+  ["2025-09-19", 15, 41, 0],
+  ["2025-09-20", 20, 23, 0],
+  ["2025-09-21", 12, 21, 0],
+  ["2025-09-22", 10, 13, 0],
+  ["2025-09-23", 22, 48, 0],
+  ["2025-09-24", 13, 19, 0],
+  ["2025-09-25", 27, 21, 0],
+  ["2025-09-26", 20, 31, 0],
+  ["2025-09-27", 27, 35, 0],
+  ["2025-09-28", 31, 31, 0],
+  ["2025-09-29", 11, 18, 0],
+  ["2025-10-01", 42, 10, 0],
+  ["2025-10-02", 32, 6, 0],
+  ["2025-10-05", 23, 34, 0],
+  ["2025-10-07", 24, 4, 0],
+  ["2025-10-08", 13, 4, 0],
+  ["2025-10-09", 1, 0, 0],
+  ["2025-10-10", 13, 5, 0],
+  ["2025-10-14", 17, 34, 0],
+  ["2025-10-15", 36, 25, 0],
+  ["2025-10-16", 18, 24, 0],
+  ["2025-10-17", 19, 16, 0],
+  ["2025-10-18", 29, 30, 0],
+  ["2025-10-19", 25, 19, 0],
+  ["2025-10-20", 9, 19, 0],
+  ["2025-10-21", 9, 16, 0],
+  ["2025-10-23", 11, 1, 0],
+  ["2025-10-24", 1, 0, 0],
+  ["2025-10-25", 1, 0, 0],
+  ["2025-10-26", 13, 5, 0],
+  ["2025-10-27", 21, 7, 0],
+  ["2025-10-28", 29, 31, 0],
+  ["2025-10-29", 34, 26, 0],
+  ["2025-10-30", 47, 39, 0],
+  ["2025-10-31", 31, 27, 1],
+  ["2025-11-01", 6, 4, 0],
+  ["2025-11-02", 35, 13, 0],
+  ["2025-11-03", 27, 10, 0],
+  ["2025-11-04", 22, 12, 0],
+  ["2025-11-05", 33, 15, 0],
+  ["2025-11-06", 29, 14, 0],
+  ["2025-11-07", 27, 27, 1],
+  ["2025-11-08", 20, 20, 0],
+  ["2025-11-09", 37, 83, 0],
+  ["2025-11-10", 41, 64, 0],
+  ["2025-11-11", 16, 22, 0],
+  ["2025-11-12", 18, 94, 0],
+  ["2025-11-13", 97, 74, 0],
+  ["2025-11-14", 83, 398, 2],
+  ["2025-11-15", 12, 23, 0],
+  ["2025-11-16", 70, 36, 0],
+  ["2025-11-17", 62, 43, 0],
+  ["2025-11-18", 38, 28, 1],
+  ["2025-11-20", 145, 103, 0],
+  ["2025-11-21", 11, 20, 0],
+  ["2025-11-22", 42, 46, 0],
+  ["2025-11-23", 32, 58, 0],
+  ["2025-11-24", 67, 79, 0],
+  ["2025-11-25", 28, 19, 0],
+  ["2025-11-26", 35, 23, 0],
+  ["2025-11-27", 55, 50, 0],
+  ["2025-11-28", 35, 29, 0],
+  ["2025-11-29", 70, 31, 0],
+  ["2025-11-30", 84, 38, 0],
+  ["2025-12-01", 58, 42, 0],
+  ["2025-12-02", 67, 33, 0],
+  ["2025-12-03", 281, 206, 1],
+  ["2025-12-04", 106, 121, 2],
+  ["2025-12-05", 22, 95, 0],
+  ["2025-12-06", 35, 122, 0],
+  ["2025-12-07", 33, 47, 0],
+  ["2025-12-08", 29, 57, 0],
+  ["2025-12-09", 31, 16, 1],
+  ["2025-12-10", 56, 65, 0],
+  ["2025-12-11", 62, 70, 0],
+  ["2025-12-12", 37, 29, 0],
+  ["2025-12-13", 38, 133, 0],
+  ["2025-12-14", 56, 174, 0],
+  ["2025-12-15", 59, 41, 0],
+  ["2025-12-16", 57, 28, 0],
+  ["2025-12-20", 19, 23, 0],
+  ["2025-12-21", 50, 74, 0],
+  ["2025-12-22", 87, 79, 0],
+  ["2025-12-24", 4, 3, 0],
+  ["2025-12-26", 7, 19, 0],
+  ["2025-12-28", 78, 53, 0],
+  ["2025-12-29", 50, 125, 0],
+  ["2025-12-30", 14, 13, 0],
+  ["2026-01-01", 41, 165, 1],
+  ["2026-01-02", 11, 85, 0],
+  ["2026-01-03", 24, 226, 0],
+  ["2026-01-04", 18, 126, 0],
+  ["2026-01-05", 6, 38, 0],
+  ["2026-01-06", 0, 9, 0],
+  ["2026-01-07", 34, 63, 1],
+  ["2026-01-08", 61, 42, 0],
+  ["2026-01-09", 2, 12, 0],
+  ["2026-01-10", 3, 18, 0],
+  ["2026-01-13", 23, 18, 0],
+  ["2026-01-15", 9, 31, 0],
+  ["2026-01-16", 0, 4, 0],
+  ["2026-01-19", 15, 5, 0],
+  ["2026-01-20", 18, 4, 0],
+  ["2026-01-21", 6, 5, 0],
+  ["2026-01-22", 56, 36, 0],
+  ["2026-01-23", 3, 0, 0],
+  ["2026-01-24", 12, 3, 0],
+  ["2026-01-26", 22, 5, 0],
+  ["2026-01-27", 13, 4, 0],
+  ["2026-01-28", 9, 7, 1],
+  ["2026-01-29", 6, 0, 0],
+  ["2026-01-30", 4, 3, 0],
+  ["2026-02-01", 17, 14, 0],
+  ["2026-02-02", 1, 0, 0],
+  ["2026-02-03", 64, 176, 0],
+  ["2026-02-04", 42, 84, 0],
+  ["2026-02-05", 10, 1, 0],
+  ["2026-02-08", 20, 4, 0],
+  ["2026-02-09", 1, 1, 0],
+  ["2026-02-11", 5, 0, 0],
+  ["2026-02-13", 6, 1, 0],
+  ["2026-02-14", 11, 20, 0],
+  ["2026-02-22", 45, 9, 0],
+  ["2026-02-23", 34, 10, 0],
+  ["2026-02-24", 14, 13, 0],
+  ["2026-02-25", 39, 27, 0],
+  ["2026-02-26", 40, 31, 0]
 ];
 
-// Day-of-week weights (0=Sun, 1=Mon, ..., 6=Sat) — more swipes on weekends
-const DOW_WEIGHTS = [130, 85, 80, 90, 95, 75, 140]; // Sun Mon Tue Wed Thu Fri Sat
-
-// ── Swipe generator ─────────────────────────────────────────────
-
-const MONTHLY_ACTIVITY = [
-  // month offset, swipes, rightPct
-  { offset: 0,  swipes: 620, rightPct: 45 },  // Jan 2025 — New Year boost
-  { offset: 1,  swipes: 540, rightPct: 42 },
-  { offset: 2,  swipes: 480, rightPct: 40 },
-  { offset: 3,  swipes: 350, rightPct: 38 },
-  { offset: 4,  swipes: 310, rightPct: 36 },
-  { offset: 5,  swipes: 280, rightPct: 35 },  // Jun — summer slowdown
-  { offset: 6,  swipes: 200, rightPct: 33 },  // Jul — vacation
-  { offset: 7,  swipes: 180, rightPct: 32 },  // Aug — low
-  { offset: 8,  swipes: 420, rightPct: 40 },  // Sep — rentrée
-  { offset: 9,  swipes: 500, rightPct: 42 },
-  { offset: 10, swipes: 380, rightPct: 39 },
-  { offset: 11, swipes: 260, rightPct: 35 },  // Dec — holidays slow
-];
-
+// Expand daily totals into individual swipe records
 const allSwipes: RawSwipe[] = [];
-const allMatches: RawMatch[] = [];
-
-// Precompute DOW-weighted day picker for each month
-function pickDayWeighted(year: number, monthOffset: number): number {
-  const daysInMonth = new Date(year, monthOffset + 1, 0).getDate();
-  // Build weights for each day based on its DOW
-  const dayWeights: number[] = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dow = new Date(year, monthOffset, d).getDay();
-    dayWeights.push(DOW_WEIGHTS[dow]);
-  }
-  return weightedPick(dayWeights, rng()) + 1; // 1-indexed day
+for (const [date, likes, passes, superlikes] of dailySwipeData) {
+  const d = new Date(date);
+  for (let i = 0; i < likes; i++) allSwipes.push({ timestamp: d, direction: "like" });
+  for (let i = 0; i < passes; i++) allSwipes.push({ timestamp: d, direction: "pass" });
+  for (let i = 0; i < superlikes; i++) allSwipes.push({ timestamp: d, direction: "superlike" });
 }
 
-for (const month of MONTHLY_ACTIVITY) {
-  const rightCount = Math.round(month.swipes * month.rightPct / 100);
-  const matchCount = Math.max(1, Math.round(rightCount * 0.03)); // ~3% match rate
-
-  // Spread swipes across the month with realistic hour + DOW distributions
-  for (let i = 0; i < month.swipes; i++) {
-    const day = pickDayWeighted(2025, month.offset);
-    const hour = weightedPick(HOUR_WEIGHTS, rng());
-    const minute = Math.floor(rng() * 60);
-    allSwipes.push({
-      timestamp: new Date(2025, month.offset, day, hour, minute),
-      direction: i < rightCount ? "like" : "pass",
-    });
-  }
-
-  // Generate matches (also with realistic timing)
-  for (let i = 0; i < matchCount; i++) {
-    const day = pickDayWeighted(2025, month.offset);
-    const hour = weightedPick(HOUR_WEIGHTS, rng());
-    const isGhost = rng() < 0.60; // 60% ghost rate
-    const msgCount = isGhost ? 0 : Math.floor(rng() * 25) + 2;
-    const matchDate = new Date(2025, month.offset, day, hour);
-    const firstMsgDate = new Date(matchDate);
-    firstMsgDate.setHours(firstMsgDate.getHours() + Math.floor(rng() * 12) + 1);
-
-    allMatches.push({
-      timestamp: matchDate,
-      messagesCount: msgCount,
-      userInitiated: rng() > 0.45,
-      ...(msgCount > 0 ? { firstMessageDate: firstMsgDate } : {}),
-      ...(rng() < 0.25 && msgCount > 0 ? {
-        unmatchDate: new Date(matchDate.getTime() + (Math.floor(rng() * 14) + 1) * 86400000)
-      } : {}),
-    });
-  }
-}
-
-// ── Conversation generator ──────────────────────────────────────
-
-const OPENERS = [
-  "Salut ! Ton profil m'a interpellé",
-  "Hey, comment ça va ?",
-  "Hello ! Tu fais quoi dans la vie ?",
-  "Salut, sympa ta dernière photo",
-  "Coucou, tu connais un bon resto dans le coin ?",
-  "Hey ! On a matché, c'est cool",
-  "Salut, tu as l'air sympa",
-  "Hello, belle soirée pour matcher non ?",
+const allMatches: RawMatch[] = [
+  { timestamp: new Date("2025-04-15T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-04-18T00:00:00.000Z"), messagesCount: 5, userInitiated: true, firstMessageDate: new Date("2025-04-18T05:54:05.000Z"), lastMessageDate: new Date("2025-05-07T19:33:33.000Z"), matchId: "Match 34" },
+  { timestamp: new Date("2025-04-19T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-04-21T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-04-22T00:00:00.000Z"), messagesCount: 2, userInitiated: true, firstMessageDate: new Date("2025-04-22T06:32:33.000Z"), lastMessageDate: new Date("2025-04-24T14:38:28.000Z"), matchId: "Match 38" },
+  { timestamp: new Date("2025-04-27T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-04-28T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-04-28T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-01T00:00:00.000Z"), messagesCount: 3, userInitiated: true, firstMessageDate: new Date("2025-05-01T17:45:10.000Z"), lastMessageDate: new Date("2025-05-07T19:28:38.000Z"), matchId: "Match 35" },
+  { timestamp: new Date("2025-05-07T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-11T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-25T00:00:00.000Z"), messagesCount: 17, userInitiated: true, firstMessageDate: new Date("2025-05-25T08:57:05.000Z"), lastMessageDate: new Date("2025-05-25T19:51:13.000Z"), matchId: "Match 33" },
+  { timestamp: new Date("2025-05-27T00:00:00.000Z"), messagesCount: 1, userInitiated: true, firstMessageDate: new Date("2025-05-27T19:34:36.000Z"), lastMessageDate: new Date("2025-05-27T19:34:36.000Z"), matchId: "Match 32" },
+  { timestamp: new Date("2025-05-27T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-27T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-30T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-30T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-30T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-31T00:00:00.000Z"), messagesCount: 1, userInitiated: true, firstMessageDate: new Date("2025-05-31T00:14:50.000Z"), lastMessageDate: new Date("2025-05-31T00:14:50.000Z"), matchId: "Match 31" },
+  { timestamp: new Date("2025-05-31T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-31T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-31T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-31T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-31T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-31T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-05-31T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-01T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-01T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-01T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-02T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-02T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-02T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-02T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-02T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-03T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-03T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-03T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-04T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-04T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-09T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-11T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-14T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-19T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-20T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-24T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-06-26T00:00:00.000Z"), messagesCount: 31, userInitiated: true, firstMessageDate: new Date("2025-06-26T20:36:47.000Z"), lastMessageDate: new Date("2025-08-29T22:05:41.000Z"), matchId: "Match 28" },
+  { timestamp: new Date("2025-07-06T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-07-31T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-08-12T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-08-21T00:00:00.000Z"), messagesCount: 1, userInitiated: true, firstMessageDate: new Date("2025-08-21T19:12:51.000Z"), lastMessageDate: new Date("2025-08-21T19:12:51.000Z"), matchId: "Match 30" },
+  { timestamp: new Date("2025-08-21T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-08-22T00:00:00.000Z"), messagesCount: 36, userInitiated: true, firstMessageDate: new Date("2025-08-22T14:41:55.000Z"), lastMessageDate: new Date("2025-08-31T18:14:56.000Z"), matchId: "Match 24" },
+  { timestamp: new Date("2025-08-23T00:00:00.000Z"), messagesCount: 9, userInitiated: true, firstMessageDate: new Date("2025-08-23T22:08:47.000Z"), lastMessageDate: new Date("2025-08-30T08:41:00.000Z"), matchId: "Match 26" },
+  { timestamp: new Date("2025-08-24T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-08-25T00:00:00.000Z"), messagesCount: 1, userInitiated: true, firstMessageDate: new Date("2025-08-25T13:08:01.000Z"), lastMessageDate: new Date("2025-08-25T13:08:01.000Z"), matchId: "Match 29" },
+  { timestamp: new Date("2025-08-30T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-08-31T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-09-07T00:00:00.000Z"), messagesCount: 3, userInitiated: true, firstMessageDate: new Date("2025-09-07T21:36:47.000Z"), lastMessageDate: new Date("2025-09-20T19:47:19.000Z"), matchId: "Match 22" },
+  { timestamp: new Date("2025-09-26T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-10-07T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-10-08T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-10-15T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-10-15T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-10-26T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-10-28T00:00:00.000Z"), messagesCount: 1, userInitiated: true, firstMessageDate: new Date("2025-10-28T17:37:29.000Z"), lastMessageDate: new Date("2025-10-28T17:37:29.000Z"), matchId: "Match 20" },
+  { timestamp: new Date("2025-11-02T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-11-05T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-11-09T00:00:00.000Z"), messagesCount: 4, userInitiated: true, firstMessageDate: new Date("2025-11-09T11:29:55.000Z"), lastMessageDate: new Date("2025-11-09T14:58:10.000Z"), matchId: "Match 17" },
+  { timestamp: new Date("2025-11-09T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-11-10T00:00:00.000Z"), messagesCount: 2, userInitiated: true, firstMessageDate: new Date("2025-11-10T07:13:40.000Z"), lastMessageDate: new Date("2025-11-11T17:52:23.000Z"), matchId: "Match 16" },
+  { timestamp: new Date("2025-11-10T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-11-13T00:00:00.000Z"), messagesCount: 2, userInitiated: true, firstMessageDate: new Date("2025-11-13T21:35:21.000Z"), lastMessageDate: new Date("2025-11-13T21:37:11.000Z"), matchId: "Match 15" },
+  { timestamp: new Date("2025-11-14T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-11-22T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-11-23T00:00:00.000Z"), messagesCount: 1, userInitiated: true, firstMessageDate: new Date("2025-11-23T16:38:44.000Z"), lastMessageDate: new Date("2025-11-23T16:38:44.000Z"), matchId: "Match 13" },
+  { timestamp: new Date("2025-12-01T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-12-02T00:00:00.000Z"), messagesCount: 6, userInitiated: true, firstMessageDate: new Date("2025-12-02T07:29:47.000Z"), lastMessageDate: new Date("2025-12-24T08:25:44.000Z"), matchId: "Match 7" },
+  { timestamp: new Date("2025-12-07T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-12-09T00:00:00.000Z"), messagesCount: 1, userInitiated: true, firstMessageDate: new Date("2025-12-09T22:16:31.000Z"), lastMessageDate: new Date("2025-12-09T22:16:31.000Z"), matchId: "Match 9" },
+  { timestamp: new Date("2025-12-10T00:00:00.000Z"), messagesCount: 3, userInitiated: true, firstMessageDate: new Date("2025-12-10T07:56:26.000Z"), lastMessageDate: new Date("2025-12-11T20:23:08.000Z"), matchId: "Match 8" },
+  { timestamp: new Date("2025-12-13T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2025-12-14T00:00:00.000Z"), messagesCount: 4, userInitiated: true, firstMessageDate: new Date("2025-12-14T07:32:20.000Z"), lastMessageDate: new Date("2026-01-03T13:22:42.000Z"), matchId: "Match 6" },
+  { timestamp: new Date("2026-01-09T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2026-01-15T00:00:00.000Z"), messagesCount: 2, userInitiated: true, firstMessageDate: new Date("2026-01-15T12:22:17.000Z"), lastMessageDate: new Date("2026-01-15T12:28:54.000Z"), matchId: "Match 5" },
+  { timestamp: new Date("2026-01-16T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2026-01-21T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2026-01-25T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2026-02-05T00:00:00.000Z"), messagesCount: 1, userInitiated: true, firstMessageDate: new Date("2026-02-05T23:24:42.000Z"), lastMessageDate: new Date("2026-02-05T23:24:42.000Z"), matchId: "Match 4" },
+  { timestamp: new Date("2026-02-13T00:00:00.000Z"), messagesCount: 2, userInitiated: true, firstMessageDate: new Date("2026-02-13T17:10:07.000Z"), lastMessageDate: new Date("2026-02-22T15:40:15.000Z"), matchId: "Match 2" },
+  { timestamp: new Date("2026-02-13T00:00:00.000Z"), messagesCount: 0, userInitiated: false },
+  { timestamp: new Date("2026-02-23T00:00:00.000Z"), messagesCount: 10, userInitiated: true, firstMessageDate: new Date("2026-02-23T12:39:29.000Z"), lastMessageDate: new Date("2026-02-25T20:01:41.000Z"), matchId: "Match 1" }
 ];
 
-const REPLIES = [
-  "Merci ! Et toi ?",
-  "Ça va bien, toi ?",
-  "Ahah sympa comme approche",
-  "Oui je suis dans le marketing",
-  "Haha, c'est gentil",
-  "Tu fais quoi ce weekend ?",
-  "Tu habites dans quel coin ?",
-  "Je suis plutôt team apéro",
-  "Oui j'adore voyager aussi",
-  "Cool ! On pourrait se voir ?",
-  "Mdrrr",
-  "Ah ouais ?",
-  "Intéressant, raconte",
-  "C'est noté !",
-  "Trop bien",
-  "Haha j'avoue",
-  "Grave",
-  "Tu connais ce bar ?",
-  "Non je connais pas, c'est où ?",
-  "On se dit quoi alors ?",
+const conversations: ConversationRecord[] = [
+  {
+    matchTimestamp: new Date("2026-02-23T12:39:29.000Z"),
+    matchId: "Match 1",
+    messages: [
+      { timestamp: new Date("2026-02-23T12:39:29.000Z"), direction: "sent" as const, body: "Hey ! On a matché, c'est cool" },
+      { timestamp: new Date("2026-02-25T17:40:40.000Z"), direction: "sent" as const, body: "Tu fais quoi ce weekend ?" },
+      { timestamp: new Date("2026-02-25T17:44:51.000Z"), direction: "sent" as const, body: "Haha, c'est gentil" },
+      { timestamp: new Date("2026-02-25T17:46:54.000Z"), direction: "sent" as const, body: "C'est noté !" },
+      { timestamp: new Date("2026-02-25T17:47:29.000Z"), direction: "sent" as const, body: "Tu as des frères et sœurs ?" },
+      { timestamp: new Date("2026-02-25T17:51:45.000Z"), direction: "sent" as const, body: "Ça va bien, toi ?" },
+      { timestamp: new Date("2026-02-25T17:52:04.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2026-02-25T18:01:21.000Z"), direction: "sent" as const, body: "Je suis plutôt team apéro" },
+      { timestamp: new Date("2026-02-25T18:01:24.000Z"), direction: "sent" as const, body: "Tu as des frères et sœurs ?" },
+      { timestamp: new Date("2026-02-25T20:01:41.000Z"), direction: "sent" as const, body: "On verra bien" }
+    ],
+    firstMessageDate: new Date("2026-02-23T12:39:29.000Z"),
+    lastMessageDate: new Date("2026-02-25T20:01:41.000Z")
+  },
+  {
+    matchTimestamp: new Date("2026-02-13T17:10:07.000Z"),
+    matchId: "Match 2",
+    messages: [
+      { timestamp: new Date("2026-02-13T17:10:07.000Z"), direction: "sent" as const, body: "Hello, belle soirée pour matcher non ?" },
+      { timestamp: new Date("2026-02-22T15:40:15.000Z"), direction: "sent" as const, body: "On verra bien" }
+    ],
+    firstMessageDate: new Date("2026-02-13T17:10:07.000Z"),
+    lastMessageDate: new Date("2026-02-22T15:40:15.000Z")
+  },
+  {
+    matchTimestamp: new Date("2026-02-16T08:12:01.000Z"),
+    matchId: "Match 3",
+    messages: [
+      { timestamp: new Date("2026-02-16T08:12:01.000Z"), direction: "sent" as const, body: "Hello ! Tu fais quoi dans la vie ?" }
+    ],
+    firstMessageDate: new Date("2026-02-16T08:12:01.000Z"),
+    lastMessageDate: new Date("2026-02-16T08:12:01.000Z")
+  },
+  {
+    matchTimestamp: new Date("2026-02-05T23:24:42.000Z"),
+    matchId: "Match 4",
+    messages: [
+      { timestamp: new Date("2026-02-05T23:24:42.000Z"), direction: "sent" as const, body: "Hello, belle soirée pour matcher non ?" }
+    ],
+    firstMessageDate: new Date("2026-02-05T23:24:42.000Z"),
+    lastMessageDate: new Date("2026-02-05T23:24:42.000Z")
+  },
+  {
+    matchTimestamp: new Date("2026-01-15T12:22:17.000Z"),
+    matchId: "Match 5",
+    messages: [
+      { timestamp: new Date("2026-01-15T12:22:17.000Z"), direction: "sent" as const, body: "Hey, comment ça va ?" },
+      { timestamp: new Date("2026-01-15T12:28:54.000Z"), direction: "sent" as const, body: "Tu fais quoi ce weekend ?" }
+    ],
+    firstMessageDate: new Date("2026-01-15T12:22:17.000Z"),
+    lastMessageDate: new Date("2026-01-15T12:28:54.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-12-14T07:32:20.000Z"),
+    matchId: "Match 6",
+    messages: [
+      { timestamp: new Date("2025-12-14T07:32:20.000Z"), direction: "sent" as const, body: "Hello ! Tu fais quoi dans la vie ?" },
+      { timestamp: new Date("2026-01-02T17:58:29.000Z"), direction: "sent" as const, body: "Je te dis demain" },
+      { timestamp: new Date("2026-01-03T12:49:32.000Z"), direction: "sent" as const, body: "Oui carrément" },
+      { timestamp: new Date("2026-01-03T13:22:42.000Z"), direction: "sent" as const, body: "Pas mal comme idée" }
+    ],
+    firstMessageDate: new Date("2025-12-14T07:32:20.000Z"),
+    lastMessageDate: new Date("2026-01-03T13:22:42.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-12-02T07:29:47.000Z"),
+    matchId: "Match 7",
+    messages: [
+      { timestamp: new Date("2025-12-02T07:29:47.000Z"), direction: "sent" as const, body: "Hey, comment ça va ?" },
+      { timestamp: new Date("2025-12-09T07:30:05.000Z"), direction: "sent" as const, body: "Mdrrr" },
+      { timestamp: new Date("2025-12-11T20:23:21.000Z"), direction: "sent" as const, body: "Oui je suis dans le marketing" },
+      { timestamp: new Date("2025-12-17T05:37:51.000Z"), direction: "sent" as const, body: "Haha j'avoue" },
+      { timestamp: new Date("2025-12-21T19:35:05.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2025-12-24T08:25:44.000Z"), direction: "sent" as const, body: "On se dit quoi alors ?" }
+    ],
+    firstMessageDate: new Date("2025-12-02T07:29:47.000Z"),
+    lastMessageDate: new Date("2025-12-24T08:25:44.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-12-10T07:56:26.000Z"),
+    matchId: "Match 8",
+    messages: [
+      { timestamp: new Date("2025-12-10T07:56:26.000Z"), direction: "sent" as const, body: "Salut, sympa ta dernière photo" },
+      { timestamp: new Date("2025-12-10T11:52:20.000Z"), direction: "sent" as const, body: "On se dit quoi alors ?" },
+      { timestamp: new Date("2025-12-11T20:23:08.000Z"), direction: "sent" as const, body: "D'accord, à bientôt !" }
+    ],
+    firstMessageDate: new Date("2025-12-10T07:56:26.000Z"),
+    lastMessageDate: new Date("2025-12-11T20:23:08.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-12-09T22:16:31.000Z"),
+    matchId: "Match 9",
+    messages: [
+      { timestamp: new Date("2025-12-09T22:16:31.000Z"), direction: "sent" as const, body: "Hey, comment ça va ?" }
+    ],
+    firstMessageDate: new Date("2025-12-09T22:16:31.000Z"),
+    lastMessageDate: new Date("2025-12-09T22:16:31.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-12-08T20:54:39.000Z"),
+    matchId: "Match 10",
+    messages: [
+      { timestamp: new Date("2025-12-08T20:54:39.000Z"), direction: "sent" as const, body: "Salut ! Ton profil m'a interpellé" }
+    ],
+    firstMessageDate: new Date("2025-12-08T20:54:39.000Z"),
+    lastMessageDate: new Date("2025-12-08T20:54:39.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-12-02T09:30:33.000Z"),
+    matchId: "Match 11",
+    messages: [
+      { timestamp: new Date("2025-12-02T09:30:33.000Z"), direction: "sent" as const, body: "Salut ! Ton profil m'a interpellé" },
+      { timestamp: new Date("2025-12-02T09:31:55.000Z"), direction: "sent" as const, body: "On se dit quoi alors ?" },
+      { timestamp: new Date("2025-12-02T09:33:07.000Z"), direction: "sent" as const, body: "Ahah c'est marrant" },
+      { timestamp: new Date("2025-12-02T09:34:32.000Z"), direction: "sent" as const, body: "Mdrrr" },
+      { timestamp: new Date("2025-12-02T09:37:51.000Z"), direction: "sent" as const, body: "Tu as des frères et sœurs ?" }
+    ],
+    firstMessageDate: new Date("2025-12-02T09:30:33.000Z"),
+    lastMessageDate: new Date("2025-12-02T09:37:51.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-10-16T08:32:04.000Z"),
+    matchId: "Match 12",
+    messages: [
+      { timestamp: new Date("2025-10-16T08:32:04.000Z"), direction: "sent" as const, body: "Hey, comment ça va ?" },
+      { timestamp: new Date("2025-10-16T16:18:43.000Z"), direction: "sent" as const, body: "Ah ouais ?" },
+      { timestamp: new Date("2025-10-16T18:06:06.000Z"), direction: "sent" as const, body: "Intéressant, raconte" },
+      { timestamp: new Date("2025-10-16T18:06:14.000Z"), direction: "sent" as const, body: "C'est noté !" },
+      { timestamp: new Date("2025-10-16T18:06:22.000Z"), direction: "sent" as const, body: "On verra bien" },
+      { timestamp: new Date("2025-10-17T12:32:57.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2025-10-17T12:33:46.000Z"), direction: "sent" as const, body: "Tu fais quoi ce weekend ?" },
+      { timestamp: new Date("2025-10-18T08:24:05.000Z"), direction: "sent" as const, body: "Ah ouais ?" },
+      { timestamp: new Date("2025-10-18T13:45:26.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2025-10-18T22:13:27.000Z"), direction: "sent" as const, body: "Je suis plutôt team apéro" },
+      { timestamp: new Date("2025-10-18T22:13:41.000Z"), direction: "sent" as const, body: "Grave" },
+      { timestamp: new Date("2025-10-18T22:13:46.000Z"), direction: "sent" as const, body: "Tu fais quoi ce weekend ?" },
+      { timestamp: new Date("2025-10-19T08:50:41.000Z"), direction: "sent" as const, body: "Non je connais pas, c'est où ?" },
+      { timestamp: new Date("2025-10-19T11:25:42.000Z"), direction: "sent" as const, body: "Pas mal comme idée" },
+      { timestamp: new Date("2025-10-19T12:26:55.000Z"), direction: "sent" as const, body: "Intéressant, raconte" },
+      { timestamp: new Date("2025-10-19T19:13:50.000Z"), direction: "sent" as const, body: "Grave" },
+      { timestamp: new Date("2025-10-19T19:14:03.000Z"), direction: "sent" as const, body: "Ça va bien, toi ?" },
+      { timestamp: new Date("2025-10-19T19:15:08.000Z"), direction: "sent" as const, body: "Grave" },
+      { timestamp: new Date("2025-10-19T19:15:27.000Z"), direction: "sent" as const, body: "Ahah c'est marrant" },
+      { timestamp: new Date("2025-10-21T18:39:58.000Z"), direction: "sent" as const, body: "Tu as des frères et sœurs ?" },
+      { timestamp: new Date("2025-10-21T18:59:31.000Z"), direction: "sent" as const, body: "Je te dis demain" },
+      { timestamp: new Date("2025-10-21T19:00:59.000Z"), direction: "sent" as const, body: "Ah ouais ?" },
+      { timestamp: new Date("2025-10-21T19:04:39.000Z"), direction: "sent" as const, body: "Tu as des frères et sœurs ?" },
+      { timestamp: new Date("2025-10-21T19:04:56.000Z"), direction: "sent" as const, body: "Haha, c'est gentil" },
+      { timestamp: new Date("2025-10-21T19:05:38.000Z"), direction: "sent" as const, body: "Ahah c'est marrant" },
+      { timestamp: new Date("2025-10-21T19:07:25.000Z"), direction: "sent" as const, body: "Non je connais pas, c'est où ?" },
+      { timestamp: new Date("2025-10-21T19:08:22.000Z"), direction: "sent" as const, body: "Je suis plutôt team apéro" },
+      { timestamp: new Date("2025-10-23T11:47:24.000Z"), direction: "sent" as const, body: "D'accord, à bientôt !" },
+      { timestamp: new Date("2025-10-23T11:50:13.000Z"), direction: "sent" as const, body: "Tu habites dans quel coin ?" },
+      { timestamp: new Date("2025-10-23T11:52:26.000Z"), direction: "sent" as const, body: "Oui carrément" },
+      { timestamp: new Date("2025-10-23T11:52:47.000Z"), direction: "sent" as const, body: "Non je connais pas, c'est où ?" },
+      { timestamp: new Date("2025-10-23T11:54:51.000Z"), direction: "sent" as const, body: "Oui carrément" },
+      { timestamp: new Date("2025-10-23T11:55:53.000Z"), direction: "sent" as const, body: "Intéressant, raconte" },
+      { timestamp: new Date("2025-10-23T11:58:17.000Z"), direction: "sent" as const, body: "Non je connais pas, c'est où ?" },
+      { timestamp: new Date("2025-10-23T11:58:40.000Z"), direction: "sent" as const, body: "Je suis plutôt team apéro" },
+      { timestamp: new Date("2025-10-23T12:52:30.000Z"), direction: "sent" as const, body: "Merci ! Et toi ?" },
+      { timestamp: new Date("2025-10-23T12:53:51.000Z"), direction: "sent" as const, body: "Je suis plutôt team apéro" },
+      { timestamp: new Date("2025-10-27T18:58:50.000Z"), direction: "sent" as const, body: "Trop bien" },
+      { timestamp: new Date("2025-10-29T09:19:26.000Z"), direction: "sent" as const, body: "Tu habites dans quel coin ?" },
+      { timestamp: new Date("2025-10-31T10:21:04.000Z"), direction: "sent" as const, body: "Ah ouais ?" },
+      { timestamp: new Date("2025-11-03T20:35:41.000Z"), direction: "sent" as const, body: "On verra bien" },
+      { timestamp: new Date("2025-11-30T20:54:37.000Z"), direction: "sent" as const, body: "Intéressant, raconte" },
+      { timestamp: new Date("2025-12-01T07:18:04.000Z"), direction: "sent" as const, body: "C'est noté !" },
+      { timestamp: new Date("2025-12-01T07:18:32.000Z"), direction: "sent" as const, body: "Ah ouais ?" },
+      { timestamp: new Date("2025-12-01T07:18:51.000Z"), direction: "sent" as const, body: "Tu as des frères et sœurs ?" },
+      { timestamp: new Date("2025-12-01T19:42:45.000Z"), direction: "sent" as const, body: "On se dit quoi alors ?" },
+      { timestamp: new Date("2025-12-01T19:43:29.000Z"), direction: "sent" as const, body: "Ah ouais ?" },
+      { timestamp: new Date("2025-12-01T19:44:09.000Z"), direction: "sent" as const, body: "Ahah c'est marrant" },
+      { timestamp: new Date("2025-12-01T19:45:35.000Z"), direction: "sent" as const, body: "C'est sympa ça" }
+    ],
+    firstMessageDate: new Date("2025-10-16T08:32:04.000Z"),
+    lastMessageDate: new Date("2025-12-01T19:45:35.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-11-23T16:38:44.000Z"),
+    matchId: "Match 13",
+    messages: [
+      { timestamp: new Date("2025-11-23T16:38:44.000Z"), direction: "sent" as const, body: "Salut, sympa ta dernière photo" }
+    ],
+    firstMessageDate: new Date("2025-11-23T16:38:44.000Z"),
+    lastMessageDate: new Date("2025-11-23T16:38:44.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-11-11T08:15:38.000Z"),
+    matchId: "Match 14",
+    messages: [
+      { timestamp: new Date("2025-11-11T08:15:38.000Z"), direction: "sent" as const, body: "Hello ! Tu fais quoi dans la vie ?" },
+      { timestamp: new Date("2025-11-11T17:54:52.000Z"), direction: "sent" as const, body: "Ahah sympa comme approche" },
+      { timestamp: new Date("2025-11-11T17:57:56.000Z"), direction: "sent" as const, body: "Cool ! On pourrait se voir ?" },
+      { timestamp: new Date("2025-11-11T18:21:55.000Z"), direction: "sent" as const, body: "On verra bien" },
+      { timestamp: new Date("2025-11-11T18:33:27.000Z"), direction: "sent" as const, body: "Oui carrément" },
+      { timestamp: new Date("2025-11-11T20:00:53.000Z"), direction: "sent" as const, body: "Trop bien" },
+      { timestamp: new Date("2025-11-11T20:15:09.000Z"), direction: "sent" as const, body: "Oui carrément" },
+      { timestamp: new Date("2025-11-11T20:26:57.000Z"), direction: "sent" as const, body: "Ahah sympa comme approche" },
+      { timestamp: new Date("2025-11-11T21:12:46.000Z"), direction: "sent" as const, body: "Haha, c'est gentil" },
+      { timestamp: new Date("2025-11-11T21:13:08.000Z"), direction: "sent" as const, body: "On se dit quoi alors ?" },
+      { timestamp: new Date("2025-11-11T21:35:58.000Z"), direction: "sent" as const, body: "D'accord, à bientôt !" },
+      { timestamp: new Date("2025-11-11T21:37:42.000Z"), direction: "sent" as const, body: "Tu connais ce bar ?" },
+      { timestamp: new Date("2025-11-11T21:43:26.000Z"), direction: "sent" as const, body: "Mdrrr" },
+      { timestamp: new Date("2025-11-11T21:43:55.000Z"), direction: "sent" as const, body: "Pas mal comme idée" },
+      { timestamp: new Date("2025-11-11T21:44:10.000Z"), direction: "sent" as const, body: "Grave" },
+      { timestamp: new Date("2025-11-11T21:54:03.000Z"), direction: "sent" as const, body: "On verra bien" },
+      { timestamp: new Date("2025-11-11T21:54:13.000Z"), direction: "sent" as const, body: "Ahah c'est marrant" },
+      { timestamp: new Date("2025-11-11T21:54:45.000Z"), direction: "sent" as const, body: "C'est sympa ça" },
+      { timestamp: new Date("2025-11-11T21:55:10.000Z"), direction: "sent" as const, body: "Ah ouais ?" },
+      { timestamp: new Date("2025-11-11T21:57:05.000Z"), direction: "sent" as const, body: "Non je connais pas, c'est où ?" },
+      { timestamp: new Date("2025-11-11T21:57:37.000Z"), direction: "sent" as const, body: "Ça va bien, toi ?" },
+      { timestamp: new Date("2025-11-11T22:00:13.000Z"), direction: "sent" as const, body: "Haha j'avoue" },
+      { timestamp: new Date("2025-11-11T22:00:34.000Z"), direction: "sent" as const, body: "C'est sympa ça" },
+      { timestamp: new Date("2025-11-11T22:00:51.000Z"), direction: "sent" as const, body: "Merci ! Et toi ?" },
+      { timestamp: new Date("2025-11-11T22:01:17.000Z"), direction: "sent" as const, body: "Oui j'adore voyager aussi" },
+      { timestamp: new Date("2025-11-11T22:02:00.000Z"), direction: "sent" as const, body: "Tu as des frères et sœurs ?" },
+      { timestamp: new Date("2025-11-11T22:08:38.000Z"), direction: "sent" as const, body: "D'accord, à bientôt !" },
+      { timestamp: new Date("2025-11-11T22:09:18.000Z"), direction: "sent" as const, body: "Haha j'avoue" },
+      { timestamp: new Date("2025-11-11T22:12:26.000Z"), direction: "sent" as const, body: "Tu fais quoi ce weekend ?" },
+      { timestamp: new Date("2025-11-11T22:56:45.000Z"), direction: "sent" as const, body: "Intéressant, raconte" },
+      { timestamp: new Date("2025-11-11T22:57:30.000Z"), direction: "sent" as const, body: "Oui je suis dans le marketing" },
+      { timestamp: new Date("2025-11-11T23:28:41.000Z"), direction: "sent" as const, body: "Tu habites dans quel coin ?" },
+      { timestamp: new Date("2025-11-11T23:50:26.000Z"), direction: "sent" as const, body: "C'est noté !" },
+      { timestamp: new Date("2025-11-12T14:34:14.000Z"), direction: "sent" as const, body: "Tu as des frères et sœurs ?" },
+      { timestamp: new Date("2025-11-12T17:02:11.000Z"), direction: "sent" as const, body: "Oui carrément" },
+      { timestamp: new Date("2025-11-12T17:48:43.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2025-11-12T21:13:15.000Z"), direction: "sent" as const, body: "Trop bien" },
+      { timestamp: new Date("2025-11-12T23:14:14.000Z"), direction: "sent" as const, body: "Oui carrément" },
+      { timestamp: new Date("2025-11-12T23:14:32.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2025-11-12T23:17:42.000Z"), direction: "sent" as const, body: "Haha, c'est gentil" },
+      { timestamp: new Date("2025-11-12T23:17:49.000Z"), direction: "sent" as const, body: "Oui carrément" },
+      { timestamp: new Date("2025-11-12T23:19:04.000Z"), direction: "sent" as const, body: "Ça va bien, toi ?" },
+      { timestamp: new Date("2025-11-12T23:24:19.000Z"), direction: "sent" as const, body: "Haha j'avoue" },
+      { timestamp: new Date("2025-11-12T23:27:34.000Z"), direction: "sent" as const, body: "Ahah sympa comme approche" },
+      { timestamp: new Date("2025-11-12T23:34:08.000Z"), direction: "sent" as const, body: "Merci ! Et toi ?" },
+      { timestamp: new Date("2025-11-12T23:39:25.000Z"), direction: "sent" as const, body: "Je te dis demain" },
+      { timestamp: new Date("2025-11-12T23:41:10.000Z"), direction: "sent" as const, body: "D'accord, à bientôt !" },
+      { timestamp: new Date("2025-11-12T23:41:31.000Z"), direction: "sent" as const, body: "Intéressant, raconte" },
+      { timestamp: new Date("2025-11-12T23:47:05.000Z"), direction: "sent" as const, body: "Non je connais pas, c'est où ?" },
+      { timestamp: new Date("2025-11-12T23:57:41.000Z"), direction: "sent" as const, body: "Non je connais pas, c'est où ?" },
+      { timestamp: new Date("2025-11-12T23:57:48.000Z"), direction: "sent" as const, body: "Oui je suis dans le marketing" },
+      { timestamp: new Date("2025-11-13T00:01:32.000Z"), direction: "sent" as const, body: "Ah ouais ?" },
+      { timestamp: new Date("2025-11-13T00:02:45.000Z"), direction: "sent" as const, body: "Ahah sympa comme approche" },
+      { timestamp: new Date("2025-11-13T00:03:38.000Z"), direction: "sent" as const, body: "Ahah c'est marrant" },
+      { timestamp: new Date("2025-11-13T00:13:18.000Z"), direction: "sent" as const, body: "Je te dis demain" },
+      { timestamp: new Date("2025-11-13T00:17:26.000Z"), direction: "sent" as const, body: "Haha j'avoue" },
+      { timestamp: new Date("2025-11-13T00:18:03.000Z"), direction: "sent" as const, body: "D'accord, à bientôt !" },
+      { timestamp: new Date("2025-11-13T00:18:23.000Z"), direction: "sent" as const, body: "Ahah sympa comme approche" },
+      { timestamp: new Date("2025-11-13T19:25:41.000Z"), direction: "sent" as const, body: "Haha, c'est gentil" },
+      { timestamp: new Date("2025-11-13T21:31:47.000Z"), direction: "sent" as const, body: "Non je connais pas, c'est où ?" },
+      { timestamp: new Date("2025-11-13T21:43:45.000Z"), direction: "sent" as const, body: "Oui j'adore voyager aussi" },
+      { timestamp: new Date("2025-11-13T21:45:17.000Z"), direction: "sent" as const, body: "Mdrrr" },
+      { timestamp: new Date("2025-11-13T21:48:27.000Z"), direction: "sent" as const, body: "D'accord, à bientôt !" },
+      { timestamp: new Date("2025-11-13T21:48:43.000Z"), direction: "sent" as const, body: "Haha j'avoue" },
+      { timestamp: new Date("2025-11-13T21:48:57.000Z"), direction: "sent" as const, body: "C'est noté !" },
+      { timestamp: new Date("2025-11-13T21:49:12.000Z"), direction: "sent" as const, body: "Merci ! Et toi ?" },
+      { timestamp: new Date("2025-11-13T22:06:58.000Z"), direction: "sent" as const, body: "Ahah sympa comme approche" },
+      { timestamp: new Date("2025-11-13T22:39:10.000Z"), direction: "sent" as const, body: "Ahah c'est marrant" },
+      { timestamp: new Date("2025-11-13T22:39:20.000Z"), direction: "sent" as const, body: "C'est noté !" }
+    ],
+    firstMessageDate: new Date("2025-11-11T08:15:38.000Z"),
+    lastMessageDate: new Date("2025-11-13T22:39:20.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-11-13T21:35:21.000Z"),
+    matchId: "Match 15",
+    messages: [
+      { timestamp: new Date("2025-11-13T21:35:21.000Z"), direction: "sent" as const, body: "Ton sourire est contagieux" },
+      { timestamp: new Date("2025-11-13T21:37:11.000Z"), direction: "sent" as const, body: "Trop bien" }
+    ],
+    firstMessageDate: new Date("2025-11-13T21:35:21.000Z"),
+    lastMessageDate: new Date("2025-11-13T21:37:11.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-11-10T07:13:40.000Z"),
+    matchId: "Match 16",
+    messages: [
+      { timestamp: new Date("2025-11-10T07:13:40.000Z"), direction: "sent" as const, body: "Salut ! Ton profil m'a interpellé" },
+      { timestamp: new Date("2025-11-11T17:52:23.000Z"), direction: "sent" as const, body: "On verra bien" }
+    ],
+    firstMessageDate: new Date("2025-11-10T07:13:40.000Z"),
+    lastMessageDate: new Date("2025-11-11T17:52:23.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-11-09T11:29:55.000Z"),
+    matchId: "Match 17",
+    messages: [
+      { timestamp: new Date("2025-11-09T11:29:55.000Z"), direction: "sent" as const, body: "Hey ! Dis-moi, tu es plutôt montagne ou plage ?" },
+      { timestamp: new Date("2025-11-09T14:13:53.000Z"), direction: "sent" as const, body: "Je suis plutôt team apéro" },
+      { timestamp: new Date("2025-11-09T14:19:11.000Z"), direction: "sent" as const, body: "Tu connais ce bar ?" },
+      { timestamp: new Date("2025-11-09T14:58:10.000Z"), direction: "sent" as const, body: "Oui je suis dans le marketing" }
+    ],
+    firstMessageDate: new Date("2025-11-09T11:29:55.000Z"),
+    lastMessageDate: new Date("2025-11-09T14:58:10.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-10-29T09:18:50.000Z"),
+    matchId: "Match 18",
+    messages: [
+      { timestamp: new Date("2025-10-29T09:18:50.000Z"), direction: "sent" as const, body: "Salut ! Ton profil m'a interpellé" },
+      { timestamp: new Date("2025-10-29T22:11:40.000Z"), direction: "sent" as const, body: "Tu habites dans quel coin ?" },
+      { timestamp: new Date("2025-10-31T10:29:42.000Z"), direction: "sent" as const, body: "Trop bien" },
+      { timestamp: new Date("2025-10-31T15:15:11.000Z"), direction: "sent" as const, body: "Trop bien" },
+      { timestamp: new Date("2025-10-31T22:01:15.000Z"), direction: "sent" as const, body: "Ça va bien, toi ?" },
+      { timestamp: new Date("2025-10-31T22:01:29.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2025-11-02T09:24:47.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2025-11-03T10:29:57.000Z"), direction: "sent" as const, body: "J'aime bien ta bio" },
+      { timestamp: new Date("2025-11-03T10:35:06.000Z"), direction: "sent" as const, body: "Haha, c'est gentil" },
+      { timestamp: new Date("2025-11-03T11:34:45.000Z"), direction: "sent" as const, body: "Haha, c'est gentil" },
+      { timestamp: new Date("2025-11-03T11:35:46.000Z"), direction: "sent" as const, body: "Ça va bien, toi ?" },
+      { timestamp: new Date("2025-11-03T11:39:51.000Z"), direction: "sent" as const, body: "C'est sympa ça" },
+      { timestamp: new Date("2025-11-03T12:08:04.000Z"), direction: "sent" as const, body: "Tu fais quoi ce weekend ?" },
+      { timestamp: new Date("2025-11-03T13:49:20.000Z"), direction: "sent" as const, body: "Haha, c'est gentil" },
+      { timestamp: new Date("2025-11-03T13:49:57.000Z"), direction: "sent" as const, body: "Oui j'adore voyager aussi" },
+      { timestamp: new Date("2025-11-03T20:11:59.000Z"), direction: "sent" as const, body: "Tu habites dans quel coin ?" },
+      { timestamp: new Date("2025-11-03T20:39:25.000Z"), direction: "sent" as const, body: "Haha j'avoue" },
+      { timestamp: new Date("2025-11-03T20:51:22.000Z"), direction: "sent" as const, body: "Grave" },
+      { timestamp: new Date("2025-11-04T08:07:56.000Z"), direction: "sent" as const, body: "Oui je suis dans le marketing" },
+      { timestamp: new Date("2025-11-04T12:31:52.000Z"), direction: "sent" as const, body: "Oui carrément" },
+      { timestamp: new Date("2025-11-04T14:36:58.000Z"), direction: "sent" as const, body: "D'accord, à bientôt !" },
+      { timestamp: new Date("2025-11-05T12:53:30.000Z"), direction: "sent" as const, body: "Mdrrr" },
+      { timestamp: new Date("2025-11-05T14:30:09.000Z"), direction: "sent" as const, body: "Tu fais quoi ce weekend ?" },
+      { timestamp: new Date("2025-11-05T15:03:48.000Z"), direction: "sent" as const, body: "J'aime bien ta bio" },
+      { timestamp: new Date("2025-11-05T15:50:17.000Z"), direction: "sent" as const, body: "Intéressant, raconte" },
+      { timestamp: new Date("2025-11-05T15:50:27.000Z"), direction: "sent" as const, body: "Grave" },
+      { timestamp: new Date("2025-11-05T15:51:02.000Z"), direction: "sent" as const, body: "C'est sympa ça" },
+      { timestamp: new Date("2025-11-05T16:47:27.000Z"), direction: "sent" as const, body: "Tu as des frères et sœurs ?" },
+      { timestamp: new Date("2025-11-05T19:01:34.000Z"), direction: "sent" as const, body: "Oui je suis dans le marketing" },
+      { timestamp: new Date("2025-11-06T17:57:50.000Z"), direction: "sent" as const, body: "Cool ! On pourrait se voir ?" },
+      { timestamp: new Date("2025-11-09T09:12:13.000Z"), direction: "sent" as const, body: "Trop bien" }
+    ],
+    firstMessageDate: new Date("2025-10-29T09:18:50.000Z"),
+    lastMessageDate: new Date("2025-11-09T09:12:13.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-11-03T20:36:16.000Z"),
+    matchId: "Match 19",
+    messages: [
+      { timestamp: new Date("2025-11-03T20:36:16.000Z"), direction: "sent" as const, body: "Hey, comment ça va ?" }
+    ],
+    firstMessageDate: new Date("2025-11-03T20:36:16.000Z"),
+    lastMessageDate: new Date("2025-11-03T20:36:16.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-10-28T17:37:29.000Z"),
+    matchId: "Match 20",
+    messages: [
+      { timestamp: new Date("2025-10-28T17:37:29.000Z"), direction: "sent" as const, body: "Hey ! On a matché, c'est cool" }
+    ],
+    firstMessageDate: new Date("2025-10-28T17:37:29.000Z"),
+    lastMessageDate: new Date("2025-10-28T17:37:29.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-10-27T18:57:32.000Z"),
+    matchId: "Match 21",
+    messages: [
+      { timestamp: new Date("2025-10-27T18:57:32.000Z"), direction: "sent" as const, body: "Hello ! Tu fais quoi dans la vie ?" },
+      { timestamp: new Date("2025-10-27T19:24:48.000Z"), direction: "sent" as const, body: "Trop bien" },
+      { timestamp: new Date("2025-10-27T19:30:18.000Z"), direction: "sent" as const, body: "Tu habites dans quel coin ?" },
+      { timestamp: new Date("2025-10-27T19:44:51.000Z"), direction: "sent" as const, body: "Ahah c'est marrant" },
+      { timestamp: new Date("2025-10-27T19:46:25.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2025-10-27T19:47:15.000Z"), direction: "sent" as const, body: "Grave" },
+      { timestamp: new Date("2025-10-28T17:35:55.000Z"), direction: "sent" as const, body: "Oui j'adore voyager aussi" }
+    ],
+    firstMessageDate: new Date("2025-10-27T18:57:32.000Z"),
+    lastMessageDate: new Date("2025-10-28T17:35:55.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-09-07T21:36:47.000Z"),
+    matchId: "Match 22",
+    messages: [
+      { timestamp: new Date("2025-09-07T21:36:47.000Z"), direction: "sent" as const, body: "Salut, tu as l'air sympa" },
+      { timestamp: new Date("2025-09-15T18:31:34.000Z"), direction: "sent" as const, body: "Tu connais ce bar ?" },
+      { timestamp: new Date("2025-09-20T19:47:19.000Z"), direction: "sent" as const, body: "Ah ouais ?" }
+    ],
+    firstMessageDate: new Date("2025-09-07T21:36:47.000Z"),
+    lastMessageDate: new Date("2025-09-20T19:47:19.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-09-15T18:26:17.000Z"),
+    matchId: "Match 23",
+    messages: [
+      { timestamp: new Date("2025-09-15T18:26:17.000Z"), direction: "sent" as const, body: "Ton sourire est contagieux" },
+      { timestamp: new Date("2025-09-15T18:29:36.000Z"), direction: "sent" as const, body: "J'aime bien ta bio" },
+      { timestamp: new Date("2025-09-15T18:31:56.000Z"), direction: "sent" as const, body: "C'est noté !" },
+      { timestamp: new Date("2025-09-15T18:34:36.000Z"), direction: "sent" as const, body: "Ça va bien, toi ?" },
+      { timestamp: new Date("2025-09-15T18:35:12.000Z"), direction: "sent" as const, body: "Haha j'avoue" }
+    ],
+    firstMessageDate: new Date("2025-09-15T18:26:17.000Z"),
+    lastMessageDate: new Date("2025-09-15T18:35:12.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-08-22T14:41:55.000Z"),
+    matchId: "Match 24",
+    messages: [
+      { timestamp: new Date("2025-08-22T14:41:55.000Z"), direction: "sent" as const, body: "Salut, sympa ta dernière photo" },
+      { timestamp: new Date("2025-08-22T20:15:00.000Z"), direction: "sent" as const, body: "Grave" },
+      { timestamp: new Date("2025-08-23T06:49:29.000Z"), direction: "sent" as const, body: "Non je connais pas, c'est où ?" },
+      { timestamp: new Date("2025-08-23T21:35:04.000Z"), direction: "sent" as const, body: "Je te dis demain" },
+      { timestamp: new Date("2025-08-24T19:58:25.000Z"), direction: "sent" as const, body: "Tu connais ce bar ?" },
+      { timestamp: new Date("2025-08-25T06:49:05.000Z"), direction: "sent" as const, body: "Tu as des frères et sœurs ?" },
+      { timestamp: new Date("2025-08-25T06:49:20.000Z"), direction: "sent" as const, body: "Cool ! On pourrait se voir ?" },
+      { timestamp: new Date("2025-08-25T19:58:45.000Z"), direction: "sent" as const, body: "Tu fais quoi ce weekend ?" },
+      { timestamp: new Date("2025-08-25T19:59:42.000Z"), direction: "sent" as const, body: "Merci ! Et toi ?" },
+      { timestamp: new Date("2025-08-25T20:00:27.000Z"), direction: "sent" as const, body: "Ah ouais ?" },
+      { timestamp: new Date("2025-08-26T06:39:45.000Z"), direction: "sent" as const, body: "Merci ! Et toi ?" },
+      { timestamp: new Date("2025-08-26T06:40:11.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2025-08-26T19:08:30.000Z"), direction: "sent" as const, body: "Oui je suis dans le marketing" },
+      { timestamp: new Date("2025-08-27T08:31:34.000Z"), direction: "sent" as const, body: "On se dit quoi alors ?" },
+      { timestamp: new Date("2025-08-27T08:33:25.000Z"), direction: "sent" as const, body: "C'est noté !" },
+      { timestamp: new Date("2025-08-27T08:34:17.000Z"), direction: "sent" as const, body: "Pas mal comme idée" },
+      { timestamp: new Date("2025-08-28T10:38:38.000Z"), direction: "sent" as const, body: "D'accord, à bientôt !" },
+      { timestamp: new Date("2025-08-28T20:40:18.000Z"), direction: "sent" as const, body: "Mdrrr" },
+      { timestamp: new Date("2025-08-28T20:40:23.000Z"), direction: "sent" as const, body: "Tu habites dans quel coin ?" },
+      { timestamp: new Date("2025-08-29T05:39:01.000Z"), direction: "sent" as const, body: "Je suis plutôt team apéro" },
+      { timestamp: new Date("2025-08-29T05:40:22.000Z"), direction: "sent" as const, body: "On verra bien" },
+      { timestamp: new Date("2025-08-29T19:09:17.000Z"), direction: "sent" as const, body: "Haha, c'est gentil" },
+      { timestamp: new Date("2025-08-29T19:09:40.000Z"), direction: "sent" as const, body: "Oui carrément" },
+      { timestamp: new Date("2025-08-29T19:10:26.000Z"), direction: "sent" as const, body: "Oui j'adore voyager aussi" },
+      { timestamp: new Date("2025-08-30T08:43:43.000Z"), direction: "sent" as const, body: "Cool ! On pourrait se voir ?" },
+      { timestamp: new Date("2025-08-30T08:44:43.000Z"), direction: "sent" as const, body: "Non je connais pas, c'est où ?" },
+      { timestamp: new Date("2025-08-30T08:49:07.000Z"), direction: "sent" as const, body: "D'accord, à bientôt !" },
+      { timestamp: new Date("2025-08-30T21:23:51.000Z"), direction: "sent" as const, body: "Grave" },
+      { timestamp: new Date("2025-08-30T21:27:03.000Z"), direction: "sent" as const, body: "Je suis plutôt team apéro" },
+      { timestamp: new Date("2025-08-30T21:35:15.000Z"), direction: "sent" as const, body: "C'est noté !" },
+      { timestamp: new Date("2025-08-30T21:35:57.000Z"), direction: "sent" as const, body: "Tu connais ce bar ?" },
+      { timestamp: new Date("2025-08-30T22:14:24.000Z"), direction: "sent" as const, body: "Tu as des frères et sœurs ?" },
+      { timestamp: new Date("2025-08-30T22:14:44.000Z"), direction: "sent" as const, body: "Tu as des frères et sœurs ?" },
+      { timestamp: new Date("2025-08-30T22:15:59.000Z"), direction: "sent" as const, body: "J'aime bien ta bio" },
+      { timestamp: new Date("2025-08-30T22:16:27.000Z"), direction: "sent" as const, body: "Tu fais quoi ce weekend ?" },
+      { timestamp: new Date("2025-08-31T18:14:56.000Z"), direction: "sent" as const, body: "Mdrrr" }
+    ],
+    firstMessageDate: new Date("2025-08-22T14:41:55.000Z"),
+    lastMessageDate: new Date("2025-08-31T18:14:56.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-09-01T06:55:58.000Z"),
+    matchId: "Match 25",
+    messages: [
+      { timestamp: new Date("2025-09-01T06:55:58.000Z"), direction: "sent" as const, body: "Ton sourire est contagieux" }
+    ],
+    firstMessageDate: new Date("2025-09-01T06:55:58.000Z"),
+    lastMessageDate: new Date("2025-09-01T06:55:58.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-08-23T22:08:47.000Z"),
+    matchId: "Match 26",
+    messages: [
+      { timestamp: new Date("2025-08-23T22:08:47.000Z"), direction: "sent" as const, body: "Hello ! Tu fais quoi dans la vie ?" },
+      { timestamp: new Date("2025-08-24T19:19:12.000Z"), direction: "sent" as const, body: "Haha, c'est gentil" },
+      { timestamp: new Date("2025-08-25T04:53:24.000Z"), direction: "sent" as const, body: "Pas mal comme idée" },
+      { timestamp: new Date("2025-08-25T12:57:40.000Z"), direction: "sent" as const, body: "Haha j'avoue" },
+      { timestamp: new Date("2025-08-25T17:09:25.000Z"), direction: "sent" as const, body: "Haha j'avoue" },
+      { timestamp: new Date("2025-08-25T19:55:07.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2025-08-26T06:37:39.000Z"), direction: "sent" as const, body: "Tu connais ce bar ?" },
+      { timestamp: new Date("2025-08-26T06:37:58.000Z"), direction: "sent" as const, body: "Trop bien" },
+      { timestamp: new Date("2025-08-30T08:41:00.000Z"), direction: "sent" as const, body: "On verra bien" }
+    ],
+    firstMessageDate: new Date("2025-08-23T22:08:47.000Z"),
+    lastMessageDate: new Date("2025-08-30T08:41:00.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-08-29T23:07:41.000Z"),
+    matchId: "Match 27",
+    messages: [
+      { timestamp: new Date("2025-08-29T23:07:41.000Z"), direction: "sent" as const, body: "Hey, comment ça va ?" }
+    ],
+    firstMessageDate: new Date("2025-08-29T23:07:41.000Z"),
+    lastMessageDate: new Date("2025-08-29T23:07:41.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-06-26T20:36:47.000Z"),
+    matchId: "Match 28",
+    messages: [
+      { timestamp: new Date("2025-06-26T20:36:47.000Z"), direction: "sent" as const, body: "Coucou, tu connais un bon resto dans le coin ?" },
+      { timestamp: new Date("2025-06-27T18:45:02.000Z"), direction: "sent" as const, body: "Cool ! On pourrait se voir ?" },
+      { timestamp: new Date("2025-07-01T17:48:10.000Z"), direction: "sent" as const, body: "Oui carrément" },
+      { timestamp: new Date("2025-07-02T20:41:27.000Z"), direction: "sent" as const, body: "Oui j'adore voyager aussi" },
+      { timestamp: new Date("2025-07-02T22:29:22.000Z"), direction: "sent" as const, body: "Tu connais ce bar ?" },
+      { timestamp: new Date("2025-08-29T19:11:05.000Z"), direction: "sent" as const, body: "Ah ouais ?" },
+      { timestamp: new Date("2025-08-29T19:48:59.000Z"), direction: "sent" as const, body: "C'est noté !" },
+      { timestamp: new Date("2025-08-29T19:49:11.000Z"), direction: "sent" as const, body: "C'est noté !" },
+      { timestamp: new Date("2025-08-29T19:49:31.000Z"), direction: "sent" as const, body: "Tu fais quoi ce weekend ?" },
+      { timestamp: new Date("2025-08-29T19:49:37.000Z"), direction: "sent" as const, body: "Non je connais pas, c'est où ?" },
+      { timestamp: new Date("2025-08-29T20:04:34.000Z"), direction: "sent" as const, body: "D'accord, à bientôt !" },
+      { timestamp: new Date("2025-08-29T20:05:05.000Z"), direction: "sent" as const, body: "Pas mal comme idée" },
+      { timestamp: new Date("2025-08-29T20:05:25.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2025-08-29T20:25:10.000Z"), direction: "sent" as const, body: "Je suis plutôt team apéro" },
+      { timestamp: new Date("2025-08-29T20:25:30.000Z"), direction: "sent" as const, body: "Tu habites dans quel coin ?" },
+      { timestamp: new Date("2025-08-29T20:25:49.000Z"), direction: "sent" as const, body: "Ahah c'est marrant" },
+      { timestamp: new Date("2025-08-29T20:41:23.000Z"), direction: "sent" as const, body: "Haha j'avoue" },
+      { timestamp: new Date("2025-08-29T20:50:16.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2025-08-29T20:50:25.000Z"), direction: "sent" as const, body: "Tu fais quoi ce weekend ?" },
+      { timestamp: new Date("2025-08-29T20:50:43.000Z"), direction: "sent" as const, body: "J'aime bien ta bio" },
+      { timestamp: new Date("2025-08-29T20:54:53.000Z"), direction: "sent" as const, body: "C'est noté !" },
+      { timestamp: new Date("2025-08-29T21:05:22.000Z"), direction: "sent" as const, body: "Tu connais ce bar ?" },
+      { timestamp: new Date("2025-08-29T21:25:21.000Z"), direction: "sent" as const, body: "C'est noté !" },
+      { timestamp: new Date("2025-08-29T21:25:41.000Z"), direction: "sent" as const, body: "Je te dis demain" },
+      { timestamp: new Date("2025-08-29T21:41:21.000Z"), direction: "sent" as const, body: "Haha j'avoue" },
+      { timestamp: new Date("2025-08-29T21:41:44.000Z"), direction: "sent" as const, body: "Ahah sympa comme approche" },
+      { timestamp: new Date("2025-08-29T21:42:25.000Z"), direction: "sent" as const, body: "J'aime bien ta bio" },
+      { timestamp: new Date("2025-08-29T21:51:51.000Z"), direction: "sent" as const, body: "Ah ouais ?" },
+      { timestamp: new Date("2025-08-29T21:52:07.000Z"), direction: "sent" as const, body: "Non je connais pas, c'est où ?" },
+      { timestamp: new Date("2025-08-29T21:52:24.000Z"), direction: "sent" as const, body: "On se dit quoi alors ?" },
+      { timestamp: new Date("2025-08-29T22:05:41.000Z"), direction: "sent" as const, body: "Oui carrément" }
+    ],
+    firstMessageDate: new Date("2025-06-26T20:36:47.000Z"),
+    lastMessageDate: new Date("2025-08-29T22:05:41.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-08-25T13:08:01.000Z"),
+    matchId: "Match 29",
+    messages: [
+      { timestamp: new Date("2025-08-25T13:08:01.000Z"), direction: "sent" as const, body: "Salut, tu as l'air sympa" }
+    ],
+    firstMessageDate: new Date("2025-08-25T13:08:01.000Z"),
+    lastMessageDate: new Date("2025-08-25T13:08:01.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-08-21T19:12:51.000Z"),
+    matchId: "Match 30",
+    messages: [
+      { timestamp: new Date("2025-08-21T19:12:51.000Z"), direction: "sent" as const, body: "Hey ! Dis-moi, tu es plutôt montagne ou plage ?" }
+    ],
+    firstMessageDate: new Date("2025-08-21T19:12:51.000Z"),
+    lastMessageDate: new Date("2025-08-21T19:12:51.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-05-31T00:14:50.000Z"),
+    matchId: "Match 31",
+    messages: [
+      { timestamp: new Date("2025-05-31T00:14:50.000Z"), direction: "sent" as const, body: "Salut ! Ton profil m'a interpellé" }
+    ],
+    firstMessageDate: new Date("2025-05-31T00:14:50.000Z"),
+    lastMessageDate: new Date("2025-05-31T00:14:50.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-05-27T19:34:36.000Z"),
+    matchId: "Match 32",
+    messages: [
+      { timestamp: new Date("2025-05-27T19:34:36.000Z"), direction: "sent" as const, body: "Hey ! On a matché, c'est cool" }
+    ],
+    firstMessageDate: new Date("2025-05-27T19:34:36.000Z"),
+    lastMessageDate: new Date("2025-05-27T19:34:36.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-05-25T08:57:05.000Z"),
+    matchId: "Match 33",
+    messages: [
+      { timestamp: new Date("2025-05-25T08:57:05.000Z"), direction: "sent" as const, body: "Ton sourire est contagieux" },
+      { timestamp: new Date("2025-05-25T15:43:47.000Z"), direction: "sent" as const, body: "Pas mal comme idée" },
+      { timestamp: new Date("2025-05-25T16:41:43.000Z"), direction: "sent" as const, body: "Ahah sympa comme approche" },
+      { timestamp: new Date("2025-05-25T16:51:51.000Z"), direction: "sent" as const, body: "Ah ouais ?" },
+      { timestamp: new Date("2025-05-25T17:00:20.000Z"), direction: "sent" as const, body: "Tu fais quoi ce weekend ?" },
+      { timestamp: new Date("2025-05-25T17:00:52.000Z"), direction: "sent" as const, body: "Trop bien" },
+      { timestamp: new Date("2025-05-25T17:00:58.000Z"), direction: "sent" as const, body: "Grave" },
+      { timestamp: new Date("2025-05-25T17:01:05.000Z"), direction: "sent" as const, body: "Haha j'avoue" },
+      { timestamp: new Date("2025-05-25T17:43:30.000Z"), direction: "sent" as const, body: "J'aime bien ta bio" },
+      { timestamp: new Date("2025-05-25T17:44:27.000Z"), direction: "sent" as const, body: "Ah ouais ?" },
+      { timestamp: new Date("2025-05-25T19:31:45.000Z"), direction: "sent" as const, body: "Oui je suis dans le marketing" },
+      { timestamp: new Date("2025-05-25T19:39:30.000Z"), direction: "sent" as const, body: "On se dit quoi alors ?" },
+      { timestamp: new Date("2025-05-25T19:43:00.000Z"), direction: "sent" as const, body: "Mdrrr" },
+      { timestamp: new Date("2025-05-25T19:49:59.000Z"), direction: "sent" as const, body: "Trop bien" },
+      { timestamp: new Date("2025-05-25T19:50:05.000Z"), direction: "sent" as const, body: "Trop bien" },
+      { timestamp: new Date("2025-05-25T19:50:38.000Z"), direction: "sent" as const, body: "Mdrrr" },
+      { timestamp: new Date("2025-05-25T19:51:13.000Z"), direction: "sent" as const, body: "Pas mal comme idée" }
+    ],
+    firstMessageDate: new Date("2025-05-25T08:57:05.000Z"),
+    lastMessageDate: new Date("2025-05-25T19:51:13.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-04-18T05:54:05.000Z"),
+    matchId: "Match 34",
+    messages: [
+      { timestamp: new Date("2025-04-18T05:54:05.000Z"), direction: "sent" as const, body: "Hey ! Dis-moi, tu es plutôt montagne ou plage ?" },
+      { timestamp: new Date("2025-04-19T09:52:26.000Z"), direction: "sent" as const, body: "Haha j'avoue" },
+      { timestamp: new Date("2025-04-19T19:40:26.000Z"), direction: "sent" as const, body: "Trop drôle" },
+      { timestamp: new Date("2025-04-24T15:39:54.000Z"), direction: "sent" as const, body: "Merci ! Et toi ?" },
+      { timestamp: new Date("2025-05-07T19:33:33.000Z"), direction: "sent" as const, body: "Intéressant, raconte" }
+    ],
+    firstMessageDate: new Date("2025-04-18T05:54:05.000Z"),
+    lastMessageDate: new Date("2025-05-07T19:33:33.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-05-01T17:45:10.000Z"),
+    matchId: "Match 35",
+    messages: [
+      { timestamp: new Date("2025-05-01T17:45:10.000Z"), direction: "sent" as const, body: "Salut, sympa ta dernière photo" },
+      { timestamp: new Date("2025-05-03T14:33:16.000Z"), direction: "sent" as const, body: "Oui je suis dans le marketing" },
+      { timestamp: new Date("2025-05-07T19:28:38.000Z"), direction: "sent" as const, body: "Merci ! Et toi ?" }
+    ],
+    firstMessageDate: new Date("2025-05-01T17:45:10.000Z"),
+    lastMessageDate: new Date("2025-05-07T19:28:38.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-04-30T15:38:25.000Z"),
+    matchId: "Match 36",
+    messages: [
+      { timestamp: new Date("2025-04-30T15:38:25.000Z"), direction: "sent" as const, body: "Salut, sympa ta dernière photo" }
+    ],
+    firstMessageDate: new Date("2025-04-30T15:38:25.000Z"),
+    lastMessageDate: new Date("2025-04-30T15:38:25.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-04-29T08:58:25.000Z"),
+    matchId: "Match 37",
+    messages: [
+      { timestamp: new Date("2025-04-29T08:58:25.000Z"), direction: "sent" as const, body: "Hey ! Dis-moi, tu es plutôt montagne ou plage ?" },
+      { timestamp: new Date("2025-04-29T14:37:00.000Z"), direction: "sent" as const, body: "Trop bien" },
+      { timestamp: new Date("2025-04-29T15:34:36.000Z"), direction: "sent" as const, body: "Pas mal comme idée" },
+      { timestamp: new Date("2025-04-30T09:02:05.000Z"), direction: "sent" as const, body: "Tu as des frères et sœurs ?" },
+      { timestamp: new Date("2025-04-30T09:02:21.000Z"), direction: "sent" as const, body: "Tu fais quoi ce weekend ?" }
+    ],
+    firstMessageDate: new Date("2025-04-29T08:58:25.000Z"),
+    lastMessageDate: new Date("2025-04-30T09:02:21.000Z")
+  },
+  {
+    matchTimestamp: new Date("2025-04-22T06:32:33.000Z"),
+    matchId: "Match 38",
+    messages: [
+      { timestamp: new Date("2025-04-22T06:32:33.000Z"), direction: "sent" as const, body: "Hey ! On a matché, c'est cool" },
+      { timestamp: new Date("2025-04-24T14:38:28.000Z"), direction: "sent" as const, body: "Oui carrément" }
+    ],
+    firstMessageDate: new Date("2025-04-22T06:32:33.000Z"),
+    lastMessageDate: new Date("2025-04-24T14:38:28.000Z")
+  }
 ];
 
-const conversations: ConversationRecord[] = [];
-
-// Only generate convos for non-ghosted matches
-const convoMatches = allMatches.filter(m => m.messagesCount > 0);
-
-for (const match of convoMatches) {
-  const msgCount = match.messagesCount;
-  const messages: RawMessage[] = [];
-  const startDate = match.firstMessageDate || new Date(match.timestamp.getTime() + 3600000);
-  let currentDate = new Date(startDate);
-
-  for (let i = 0; i < msgCount; i++) {
-    const isSent = i === 0 ? match.userInitiated : rng() > 0.45;
-    const bodyPool = i === 0 && isSent ? OPENERS : REPLIES;
-    const body = bodyPool[Math.floor(rng() * bodyPool.length)];
-
-    messages.push({
-      timestamp: new Date(currentDate),
-      direction: isSent ? "sent" : "received",
-      body,
-      type: rng() < 0.05 ? "gif" : "message",
-    });
-
-    // Gap between messages: 5min to 8h
-    currentDate = new Date(currentDate.getTime() + (Math.floor(rng() * 480) + 5) * 60000);
-  }
-
-  conversations.push({
-    matchTimestamp: match.timestamp,
-    messages,
-    firstMessageDate: messages[0]?.timestamp,
-    lastMessageDate: messages[messages.length - 1]?.timestamp,
-  });
-}
+const messageTimestamps: Date[] = [
+  new Date("2026-02-23T12:39:29.000Z"),
+  new Date("2026-02-25T17:40:40.000Z"),
+  new Date("2026-02-25T17:44:51.000Z"),
+  new Date("2026-02-25T17:46:54.000Z"),
+  new Date("2026-02-25T17:47:29.000Z"),
+  new Date("2026-02-25T17:51:45.000Z"),
+  new Date("2026-02-25T17:52:04.000Z"),
+  new Date("2026-02-25T18:01:21.000Z"),
+  new Date("2026-02-25T18:01:24.000Z"),
+  new Date("2026-02-25T20:01:41.000Z"),
+  new Date("2026-02-13T17:10:07.000Z"),
+  new Date("2026-02-22T15:40:15.000Z"),
+  new Date("2026-02-16T08:12:01.000Z"),
+  new Date("2026-02-05T23:24:42.000Z"),
+  new Date("2026-01-15T12:22:17.000Z"),
+  new Date("2026-01-15T12:28:54.000Z"),
+  new Date("2025-12-14T07:32:20.000Z"),
+  new Date("2026-01-02T17:58:29.000Z"),
+  new Date("2026-01-03T12:49:32.000Z"),
+  new Date("2026-01-03T13:22:42.000Z"),
+  new Date("2025-12-02T07:29:47.000Z"),
+  new Date("2025-12-09T07:30:05.000Z"),
+  new Date("2025-12-11T20:23:21.000Z"),
+  new Date("2025-12-17T05:37:51.000Z"),
+  new Date("2025-12-21T19:35:05.000Z"),
+  new Date("2025-12-24T08:25:44.000Z"),
+  new Date("2025-12-10T07:56:26.000Z"),
+  new Date("2025-12-10T11:52:20.000Z"),
+  new Date("2025-12-11T20:23:08.000Z"),
+  new Date("2025-12-09T22:16:31.000Z"),
+  new Date("2025-12-08T20:54:39.000Z"),
+  new Date("2025-12-02T09:30:33.000Z"),
+  new Date("2025-12-02T09:31:55.000Z"),
+  new Date("2025-12-02T09:33:07.000Z"),
+  new Date("2025-12-02T09:34:32.000Z"),
+  new Date("2025-12-02T09:37:51.000Z"),
+  new Date("2025-10-16T08:32:04.000Z"),
+  new Date("2025-10-16T16:18:43.000Z"),
+  new Date("2025-10-16T18:06:06.000Z"),
+  new Date("2025-10-16T18:06:14.000Z"),
+  new Date("2025-10-16T18:06:22.000Z"),
+  new Date("2025-10-17T12:32:57.000Z"),
+  new Date("2025-10-17T12:33:46.000Z"),
+  new Date("2025-10-18T08:24:05.000Z"),
+  new Date("2025-10-18T13:45:26.000Z"),
+  new Date("2025-10-18T22:13:27.000Z"),
+  new Date("2025-10-18T22:13:41.000Z"),
+  new Date("2025-10-18T22:13:46.000Z"),
+  new Date("2025-10-19T08:50:41.000Z"),
+  new Date("2025-10-19T11:25:42.000Z"),
+  new Date("2025-10-19T12:26:55.000Z"),
+  new Date("2025-10-19T19:13:50.000Z"),
+  new Date("2025-10-19T19:14:03.000Z"),
+  new Date("2025-10-19T19:15:08.000Z"),
+  new Date("2025-10-19T19:15:27.000Z"),
+  new Date("2025-10-21T18:39:58.000Z"),
+  new Date("2025-10-21T18:59:31.000Z"),
+  new Date("2025-10-21T19:00:59.000Z"),
+  new Date("2025-10-21T19:04:39.000Z"),
+  new Date("2025-10-21T19:04:56.000Z"),
+  new Date("2025-10-21T19:05:38.000Z"),
+  new Date("2025-10-21T19:07:25.000Z"),
+  new Date("2025-10-21T19:08:22.000Z"),
+  new Date("2025-10-23T11:47:24.000Z"),
+  new Date("2025-10-23T11:50:13.000Z"),
+  new Date("2025-10-23T11:52:26.000Z"),
+  new Date("2025-10-23T11:52:47.000Z"),
+  new Date("2025-10-23T11:54:51.000Z"),
+  new Date("2025-10-23T11:55:53.000Z"),
+  new Date("2025-10-23T11:58:17.000Z"),
+  new Date("2025-10-23T11:58:40.000Z"),
+  new Date("2025-10-23T12:52:30.000Z"),
+  new Date("2025-10-23T12:53:51.000Z"),
+  new Date("2025-10-27T18:58:50.000Z"),
+  new Date("2025-10-29T09:19:26.000Z"),
+  new Date("2025-10-31T10:21:04.000Z"),
+  new Date("2025-11-03T20:35:41.000Z"),
+  new Date("2025-11-30T20:54:37.000Z"),
+  new Date("2025-12-01T07:18:04.000Z"),
+  new Date("2025-12-01T07:18:32.000Z"),
+  new Date("2025-12-01T07:18:51.000Z"),
+  new Date("2025-12-01T19:42:45.000Z"),
+  new Date("2025-12-01T19:43:29.000Z"),
+  new Date("2025-12-01T19:44:09.000Z"),
+  new Date("2025-12-01T19:45:35.000Z"),
+  new Date("2025-11-23T16:38:44.000Z"),
+  new Date("2025-11-11T08:15:38.000Z"),
+  new Date("2025-11-11T17:54:52.000Z"),
+  new Date("2025-11-11T17:57:56.000Z"),
+  new Date("2025-11-11T18:21:55.000Z"),
+  new Date("2025-11-11T18:33:27.000Z"),
+  new Date("2025-11-11T20:00:53.000Z"),
+  new Date("2025-11-11T20:15:09.000Z"),
+  new Date("2025-11-11T20:26:57.000Z"),
+  new Date("2025-11-11T21:12:46.000Z"),
+  new Date("2025-11-11T21:13:08.000Z"),
+  new Date("2025-11-11T21:35:58.000Z"),
+  new Date("2025-11-11T21:37:42.000Z"),
+  new Date("2025-11-11T21:43:26.000Z"),
+  new Date("2025-11-11T21:43:55.000Z"),
+  new Date("2025-11-11T21:44:10.000Z"),
+  new Date("2025-11-11T21:54:03.000Z"),
+  new Date("2025-11-11T21:54:13.000Z"),
+  new Date("2025-11-11T21:54:45.000Z"),
+  new Date("2025-11-11T21:55:10.000Z"),
+  new Date("2025-11-11T21:57:05.000Z"),
+  new Date("2025-11-11T21:57:37.000Z"),
+  new Date("2025-11-11T22:00:13.000Z"),
+  new Date("2025-11-11T22:00:34.000Z"),
+  new Date("2025-11-11T22:00:51.000Z"),
+  new Date("2025-11-11T22:01:17.000Z"),
+  new Date("2025-11-11T22:02:00.000Z"),
+  new Date("2025-11-11T22:08:38.000Z"),
+  new Date("2025-11-11T22:09:18.000Z"),
+  new Date("2025-11-11T22:12:26.000Z"),
+  new Date("2025-11-11T22:56:45.000Z"),
+  new Date("2025-11-11T22:57:30.000Z"),
+  new Date("2025-11-11T23:28:41.000Z"),
+  new Date("2025-11-11T23:50:26.000Z"),
+  new Date("2025-11-12T14:34:14.000Z"),
+  new Date("2025-11-12T17:02:11.000Z"),
+  new Date("2025-11-12T17:48:43.000Z"),
+  new Date("2025-11-12T21:13:15.000Z"),
+  new Date("2025-11-12T23:14:14.000Z"),
+  new Date("2025-11-12T23:14:32.000Z"),
+  new Date("2025-11-12T23:17:42.000Z"),
+  new Date("2025-11-12T23:17:49.000Z"),
+  new Date("2025-11-12T23:19:04.000Z"),
+  new Date("2025-11-12T23:24:19.000Z"),
+  new Date("2025-11-12T23:27:34.000Z"),
+  new Date("2025-11-12T23:34:08.000Z"),
+  new Date("2025-11-12T23:39:25.000Z"),
+  new Date("2025-11-12T23:41:10.000Z"),
+  new Date("2025-11-12T23:41:31.000Z"),
+  new Date("2025-11-12T23:47:05.000Z"),
+  new Date("2025-11-12T23:57:41.000Z"),
+  new Date("2025-11-12T23:57:48.000Z"),
+  new Date("2025-11-13T00:01:32.000Z"),
+  new Date("2025-11-13T00:02:45.000Z"),
+  new Date("2025-11-13T00:03:38.000Z"),
+  new Date("2025-11-13T00:13:18.000Z"),
+  new Date("2025-11-13T00:17:26.000Z"),
+  new Date("2025-11-13T00:18:03.000Z"),
+  new Date("2025-11-13T00:18:23.000Z"),
+  new Date("2025-11-13T19:25:41.000Z"),
+  new Date("2025-11-13T21:31:47.000Z"),
+  new Date("2025-11-13T21:43:45.000Z"),
+  new Date("2025-11-13T21:45:17.000Z"),
+  new Date("2025-11-13T21:48:27.000Z"),
+  new Date("2025-11-13T21:48:43.000Z"),
+  new Date("2025-11-13T21:48:57.000Z"),
+  new Date("2025-11-13T21:49:12.000Z"),
+  new Date("2025-11-13T22:06:58.000Z"),
+  new Date("2025-11-13T22:39:10.000Z"),
+  new Date("2025-11-13T22:39:20.000Z"),
+  new Date("2025-11-13T21:35:21.000Z"),
+  new Date("2025-11-13T21:37:11.000Z"),
+  new Date("2025-11-10T07:13:40.000Z"),
+  new Date("2025-11-11T17:52:23.000Z"),
+  new Date("2025-11-09T11:29:55.000Z"),
+  new Date("2025-11-09T14:13:53.000Z"),
+  new Date("2025-11-09T14:19:11.000Z"),
+  new Date("2025-11-09T14:58:10.000Z"),
+  new Date("2025-10-29T09:18:50.000Z"),
+  new Date("2025-10-29T22:11:40.000Z"),
+  new Date("2025-10-31T10:29:42.000Z"),
+  new Date("2025-10-31T15:15:11.000Z"),
+  new Date("2025-10-31T22:01:15.000Z"),
+  new Date("2025-10-31T22:01:29.000Z"),
+  new Date("2025-11-02T09:24:47.000Z"),
+  new Date("2025-11-03T10:29:57.000Z"),
+  new Date("2025-11-03T10:35:06.000Z"),
+  new Date("2025-11-03T11:34:45.000Z"),
+  new Date("2025-11-03T11:35:46.000Z"),
+  new Date("2025-11-03T11:39:51.000Z"),
+  new Date("2025-11-03T12:08:04.000Z"),
+  new Date("2025-11-03T13:49:20.000Z"),
+  new Date("2025-11-03T13:49:57.000Z"),
+  new Date("2025-11-03T20:11:59.000Z"),
+  new Date("2025-11-03T20:39:25.000Z"),
+  new Date("2025-11-03T20:51:22.000Z"),
+  new Date("2025-11-04T08:07:56.000Z"),
+  new Date("2025-11-04T12:31:52.000Z"),
+  new Date("2025-11-04T14:36:58.000Z"),
+  new Date("2025-11-05T12:53:30.000Z"),
+  new Date("2025-11-05T14:30:09.000Z"),
+  new Date("2025-11-05T15:03:48.000Z"),
+  new Date("2025-11-05T15:50:17.000Z"),
+  new Date("2025-11-05T15:50:27.000Z"),
+  new Date("2025-11-05T15:51:02.000Z"),
+  new Date("2025-11-05T16:47:27.000Z"),
+  new Date("2025-11-05T19:01:34.000Z"),
+  new Date("2025-11-06T17:57:50.000Z"),
+  new Date("2025-11-09T09:12:13.000Z"),
+  new Date("2025-11-03T20:36:16.000Z"),
+  new Date("2025-10-28T17:37:29.000Z"),
+  new Date("2025-10-27T18:57:32.000Z"),
+  new Date("2025-10-27T19:24:48.000Z"),
+  new Date("2025-10-27T19:30:18.000Z"),
+  new Date("2025-10-27T19:44:51.000Z"),
+  new Date("2025-10-27T19:46:25.000Z"),
+  new Date("2025-10-27T19:47:15.000Z"),
+  new Date("2025-10-28T17:35:55.000Z"),
+  new Date("2025-09-07T21:36:47.000Z"),
+  new Date("2025-09-15T18:31:34.000Z"),
+  new Date("2025-09-20T19:47:19.000Z"),
+  new Date("2025-09-15T18:26:17.000Z"),
+  new Date("2025-09-15T18:29:36.000Z"),
+  new Date("2025-09-15T18:31:56.000Z"),
+  new Date("2025-09-15T18:34:36.000Z"),
+  new Date("2025-09-15T18:35:12.000Z"),
+  new Date("2025-08-22T14:41:55.000Z"),
+  new Date("2025-08-22T20:15:00.000Z"),
+  new Date("2025-08-23T06:49:29.000Z"),
+  new Date("2025-08-23T21:35:04.000Z"),
+  new Date("2025-08-24T19:58:25.000Z"),
+  new Date("2025-08-25T06:49:05.000Z"),
+  new Date("2025-08-25T06:49:20.000Z"),
+  new Date("2025-08-25T19:58:45.000Z"),
+  new Date("2025-08-25T19:59:42.000Z"),
+  new Date("2025-08-25T20:00:27.000Z"),
+  new Date("2025-08-26T06:39:45.000Z"),
+  new Date("2025-08-26T06:40:11.000Z"),
+  new Date("2025-08-26T19:08:30.000Z"),
+  new Date("2025-08-27T08:31:34.000Z"),
+  new Date("2025-08-27T08:33:25.000Z"),
+  new Date("2025-08-27T08:34:17.000Z"),
+  new Date("2025-08-28T10:38:38.000Z"),
+  new Date("2025-08-28T20:40:18.000Z"),
+  new Date("2025-08-28T20:40:23.000Z"),
+  new Date("2025-08-29T05:39:01.000Z"),
+  new Date("2025-08-29T05:40:22.000Z"),
+  new Date("2025-08-29T19:09:17.000Z"),
+  new Date("2025-08-29T19:09:40.000Z"),
+  new Date("2025-08-29T19:10:26.000Z"),
+  new Date("2025-08-30T08:43:43.000Z"),
+  new Date("2025-08-30T08:44:43.000Z"),
+  new Date("2025-08-30T08:49:07.000Z"),
+  new Date("2025-08-30T21:23:51.000Z"),
+  new Date("2025-08-30T21:27:03.000Z"),
+  new Date("2025-08-30T21:35:15.000Z"),
+  new Date("2025-08-30T21:35:57.000Z"),
+  new Date("2025-08-30T22:14:24.000Z"),
+  new Date("2025-08-30T22:14:44.000Z"),
+  new Date("2025-08-30T22:15:59.000Z"),
+  new Date("2025-08-30T22:16:27.000Z"),
+  new Date("2025-08-31T18:14:56.000Z"),
+  new Date("2025-09-01T06:55:58.000Z"),
+  new Date("2025-08-23T22:08:47.000Z"),
+  new Date("2025-08-24T19:19:12.000Z"),
+  new Date("2025-08-25T04:53:24.000Z"),
+  new Date("2025-08-25T12:57:40.000Z"),
+  new Date("2025-08-25T17:09:25.000Z"),
+  new Date("2025-08-25T19:55:07.000Z"),
+  new Date("2025-08-26T06:37:39.000Z"),
+  new Date("2025-08-26T06:37:58.000Z"),
+  new Date("2025-08-30T08:41:00.000Z"),
+  new Date("2025-08-29T23:07:41.000Z"),
+  new Date("2025-06-26T20:36:47.000Z"),
+  new Date("2025-06-27T18:45:02.000Z"),
+  new Date("2025-07-01T17:48:10.000Z"),
+  new Date("2025-07-02T20:41:27.000Z"),
+  new Date("2025-07-02T22:29:22.000Z"),
+  new Date("2025-08-29T19:11:05.000Z"),
+  new Date("2025-08-29T19:48:59.000Z"),
+  new Date("2025-08-29T19:49:11.000Z"),
+  new Date("2025-08-29T19:49:31.000Z"),
+  new Date("2025-08-29T19:49:37.000Z"),
+  new Date("2025-08-29T20:04:34.000Z"),
+  new Date("2025-08-29T20:05:05.000Z"),
+  new Date("2025-08-29T20:05:25.000Z"),
+  new Date("2025-08-29T20:25:10.000Z"),
+  new Date("2025-08-29T20:25:30.000Z"),
+  new Date("2025-08-29T20:25:49.000Z"),
+  new Date("2025-08-29T20:41:23.000Z"),
+  new Date("2025-08-29T20:50:16.000Z"),
+  new Date("2025-08-29T20:50:25.000Z"),
+  new Date("2025-08-29T20:50:43.000Z"),
+  new Date("2025-08-29T20:54:53.000Z"),
+  new Date("2025-08-29T21:05:22.000Z"),
+  new Date("2025-08-29T21:25:21.000Z"),
+  new Date("2025-08-29T21:25:41.000Z"),
+  new Date("2025-08-29T21:41:21.000Z"),
+  new Date("2025-08-29T21:41:44.000Z"),
+  new Date("2025-08-29T21:42:25.000Z"),
+  new Date("2025-08-29T21:51:51.000Z"),
+  new Date("2025-08-29T21:52:07.000Z"),
+  new Date("2025-08-29T21:52:24.000Z"),
+  new Date("2025-08-29T22:05:41.000Z"),
+  new Date("2025-08-25T13:08:01.000Z"),
+  new Date("2025-08-21T19:12:51.000Z"),
+  new Date("2025-05-31T00:14:50.000Z"),
+  new Date("2025-05-27T19:34:36.000Z"),
+  new Date("2025-05-25T08:57:05.000Z"),
+  new Date("2025-05-25T15:43:47.000Z"),
+  new Date("2025-05-25T16:41:43.000Z"),
+  new Date("2025-05-25T16:51:51.000Z"),
+  new Date("2025-05-25T17:00:20.000Z"),
+  new Date("2025-05-25T17:00:52.000Z"),
+  new Date("2025-05-25T17:00:58.000Z"),
+  new Date("2025-05-25T17:01:05.000Z"),
+  new Date("2025-05-25T17:43:30.000Z"),
+  new Date("2025-05-25T17:44:27.000Z"),
+  new Date("2025-05-25T19:31:45.000Z"),
+  new Date("2025-05-25T19:39:30.000Z"),
+  new Date("2025-05-25T19:43:00.000Z"),
+  new Date("2025-05-25T19:49:59.000Z"),
+  new Date("2025-05-25T19:50:05.000Z"),
+  new Date("2025-05-25T19:50:38.000Z"),
+  new Date("2025-05-25T19:51:13.000Z"),
+  new Date("2025-04-18T05:54:05.000Z"),
+  new Date("2025-04-19T09:52:26.000Z"),
+  new Date("2025-04-19T19:40:26.000Z"),
+  new Date("2025-04-24T15:39:54.000Z"),
+  new Date("2025-05-07T19:33:33.000Z"),
+  new Date("2025-05-01T17:45:10.000Z"),
+  new Date("2025-05-03T14:33:16.000Z"),
+  new Date("2025-05-07T19:28:38.000Z"),
+  new Date("2025-04-30T15:38:25.000Z"),
+  new Date("2025-04-29T08:58:25.000Z"),
+  new Date("2025-04-29T14:37:00.000Z"),
+  new Date("2025-04-29T15:34:36.000Z"),
+  new Date("2025-04-30T09:02:05.000Z"),
+  new Date("2025-04-30T09:02:21.000Z"),
+  new Date("2025-04-22T06:32:33.000Z"),
+  new Date("2025-04-24T14:38:28.000Z")
+];
 
 export const DEMO_PARSED_DATA: ParsedData = {
   source: "tinder",
-  period: { start: new Date("2025-01-01"), end: new Date("2025-12-31") },
+  period: { start: new Date("2025-04-15"), end: new Date("2026-02-26") },
   swipes: allSwipes,
   matches: allMatches,
   conversations,
-  createDate: new Date("2024-06-15"),
+  appOpens: 5089,
+  dailyOnly: true,
+  messageTimestamps,
+  createDate: new Date("2025-04-15T06:53:47.087Z"),
+  profile: {
+    bio: "Un profil sympa avec une bio de 263 caracteres",
+    photoCount: 5,
+  },
+  purchases: {
+    subscription: {
+      productType: "platinum",
+      createDate: new Date("2025-04-15T17:08:17.000Z"),
+      expireDate: new Date("2025-12-14T16:22:38.000Z"),
+    },
+    consumables: { count: 2, types: ["boost"] },
+  },
+  boostTracking: [{ date: new Date("1745077402000") }, { date: new Date("1745864663000") }],
 };
