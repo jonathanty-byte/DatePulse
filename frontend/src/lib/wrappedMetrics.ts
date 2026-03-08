@@ -278,11 +278,11 @@ export function computeWrappedMetrics(data: ParsedData): WrappedMetrics {
       (period.end.getTime() - period.start.getTime()) / (1000 * 60 * 60 * 24)
     )
   );
-  const swipeHours = (totalSwipes * 2) / 3600; // 2s per swipe
+  const swipeHours = (totalSwipes * 5) / 3600; // 5s per swipe (browse profile + decide)
   const totalMsgsSent = matches.reduce((sum, m) => sum + m.messagesCount, 0);
-  const msgHours = (totalMsgsSent * 30) / 3600; // 30s per message (read + type)
-  const browseOverhead = appOpens ? (appOpens * 20) / 3600 : swipeHours * 0.5;
-  const estimatedTotalHours = Math.round(swipeHours + msgHours + browseOverhead);
+  const msgHours = (totalMsgsSent * 45) / 3600; // 45s per message (read + compose)
+  const browseOverhead = appOpens ? (appOpens * 20) / 3600 : swipeHours * 0.8;
+  const estimatedTotalHours = Math.max(1, Math.round(swipeHours + msgHours + browseOverhead));
 
   const wastedTimePct = 1 - matchesInGreenLightPct / 100;
   const estimatedTimeSavedHours = Math.round(
