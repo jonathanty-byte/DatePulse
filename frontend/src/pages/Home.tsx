@@ -612,9 +612,9 @@ export default function Home() {
             transition={{ delay: 0.35 }}
           >
             {[
-              { icon: "🔒", text: "100% client-side" },
+              { icon: "🔒", text: "Tes données restent privées" },
               { icon: "🚫", text: "0 donnée stockée" },
-              { icon: "📱", text: "3 apps supportées" },
+              { icon: "📱", text: "3 apps analysées" },
               { icon: "⚡", text: "Analyse en 2 min" },
             ].map((b) => (
               <span

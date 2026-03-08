@@ -260,12 +260,12 @@ export default function Wrapped() {
                 Pas encore tes données ? Ça prend 1-3 jours.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mt-2">
-                <button
-                  onClick={loadDemo}
+                <a
+                  href="/demo"
                   className="text-indigo-600 font-semibold hover:underline text-sm"
                 >
                   Voir un rapport démo →
-                </button>
+                </a>
               </div>
             </div>
             <WrappedUpload onDataParsed={handleDataParsed} />
